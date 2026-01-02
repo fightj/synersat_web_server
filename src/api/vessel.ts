@@ -1,6 +1,6 @@
 import { ENV } from "../config/env"
 
-import type { VesselApiResponse, Vessel, SerialNumberDuplicateResponse } from "@/types/vessel"
+import type { VesselApiResponse, Vessel, SerialNumberDuplicateResponse, VpnIpDuplicateResponse, VesselDuplicateResponse } from "@/types/vessel"
 import type { AccountApiResponse } from "@/types/account"
 
 /* =========================
@@ -81,10 +81,10 @@ export async function serialNumberDuplicate(serialNumber: string):Promise<boolea
       }),
     })
     if (!res.ok) {
-      throw new Error("Failed to fetch accounts")
+      throw new Error("Failed to fetch s/n")
     }
     const rawData: SerialNumberDuplicateResponse = await res.json();
-    return rawData.sn_duplicted
+    return rawData.sn_duplicated
   } catch(error){
     console.error('fetch error 발생', error)
     throw error
@@ -93,4 +93,49 @@ export async function serialNumberDuplicate(serialNumber: string):Promise<boolea
 }
 
 // vpn_ip 중복확인 api
+export async function vpnIpDuplicate(vpnip: string):Promise<boolean> {
+  try{
+    const res = await fetch(ENV.BASE_URL + "/vpnipisduplicate/", {
+      method: "POST",
+      headers: { 
+        "Content-Type" : "application/json",
+        "x-sdc-application-id": ENV.APP_KEY },
+      body: JSON.stringify({
+        vpnip,
+      }),
+    })
+    if (!res.ok) {
+      throw new Error("Failed to fetch vpn-ip")
+    }
+    const rawData: VpnIpDuplicateResponse = await res.json();
+    return rawData.ip_duplicated
+  } catch(error){
+    console.error('fetch error 발생', error)
+    throw error
+  }
+  
+}
 
+// vessel 중복확인 api
+export async function VesselDuplicate(id: string):Promise<boolean> {
+  try{
+    const res = await fetch(ENV.BASE_URL + "/vesselisduplicate/", {
+      method: "POST",
+      headers: { 
+        "Content-Type" : "application/json",
+        "x-sdc-application-id": ENV.APP_KEY },
+      body: JSON.stringify({
+        id
+      }),
+    })
+    if (!res.ok) {
+      throw new Error("Failed to fetch vessel duplicate")
+    }
+    const rawData: VesselDuplicateResponse = await res.json();
+    return rawData.id_duplicated
+  } catch(error){
+    console.error('fetch error 발생', error)
+    throw error
+  }
+  
+}

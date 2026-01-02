@@ -33,5 +33,15 @@ export type SerialNumberDuplicateResponse = {
   serialNumber: string
   restPath: string
   result: string
-  sn_duplicted: boolean
+  sn_duplicated: boolean
+}
+
+export type VpnIpDuplicateResponse = {
+  vpnip: string
+  restPath: string
+  ip_duplicated: boolean
+}
+
+export type VesselDuplicateResponse = {
+  id_duplicated: boolean
 }

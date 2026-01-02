@@ -6,7 +6,12 @@ import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "../form/Select";
-import { getAccounts, serialNumberDuplicate } from "@/api/vessel";
+import {
+  getAccounts,
+  serialNumberDuplicate,
+  vpnIpDuplicate,
+  VesselDuplicate,
+} from "@/api/vessel";
 
 interface VesselComponentCardProps {
   title: string;
@@ -25,14 +30,26 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
 }) => {
   const { isOpen, openModal, closeModal } = useModal();
   const [options, setOptions] = useState<SelectOption[]>([]);
+
+  // S/N 중복확인 상태
   const [serialNumber, setSerialNumber] = useState("");
-
-  // ✅ 중복 호출 방지용
-  const lastCheckedRef = useRef<string>("");
-
-  // ✅ 상태(선택)
+  const lastCheckedSnRef = useRef<string>("");
   const [snChecking, setSnChecking] = useState(false);
   const [snDuplicated, setSnDuplicated] = useState<boolean | null>(null);
+
+  // VPN IP 중복확인 상태 (✅ 추가)
+  const [vpnIp, setVpnIp] = useState("");
+  const lastCheckedVpnRef = useRef<string>("");
+  const [vpnChecking, setVpnChecking] = useState(false);
+  const [vpnDuplicated, setVpnDuplicated] = useState<boolean | null>(null);
+
+  // Vessel Id 중복확인 상태
+  const [vesselId, setVesselId] = useState("");
+  const lastCheckedVesselIdRef = useRef<string>("");
+  const [vesselIdChecking, setVesselIdChecking] = useState(false);
+  const [vesselIdDuplicated, setVesselIdDuplicated] = useState<boolean | null>(
+    null,
+  );
 
   const haddleVesselAddClick = () => openModal();
 
@@ -54,9 +71,14 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     console.log("Selected value:", value);
   };
 
+  // S/N blur 중복확인
   const handleSerialNumberBlur = async () => {
     const sn = serialNumber.trim();
     if (!sn) return;
+
+    // ✅ 같은 값 재검사 방지(선택)
+    if (lastCheckedSnRef.current === sn) return;
+    lastCheckedSnRef.current = sn;
 
     try {
       setSnChecking(true);
@@ -64,11 +86,12 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
 
       const duplicated = await serialNumberDuplicate(sn);
       setSnDuplicated(duplicated);
-
-      console.log("중복 여부:", duplicated);
+      console.log("S/N 중복 여부:", duplicated);
     } catch (error) {
       console.log("s/n 중복확인 api 연동 실패", error);
       setSnDuplicated(null);
+      // 실패했으니 다음 blur에서 다시 검사 가능하도록
+      lastCheckedSnRef.current = "";
     } finally {
       setSnChecking(false);
     }
@@ -78,9 +101,84 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     const value = e.target.value;
     if (value.length <= 30) {
       setSerialNumber(value);
-      // ✅ 입력 바뀌면 중복 결과 초기화
       setSnDuplicated(null);
-      // ✅ lastCheckedRef는 유지해도 되지만, 바뀌면 어차피 blur에서 다른 값으로 호출됨
+      // 입력값이 바뀌면 lastChecked는 초기화(선택)
+      lastCheckedSnRef.current = "";
+    }
+  };
+
+  // VPN IP blur 중복확인 (✅ 추가)
+  const handleVpnIpBlur = async () => {
+    const ip = vpnIp.trim();
+    if (!ip) return;
+
+    // ✅ 같은 값 재검사 방지(선택)
+    if (lastCheckedVpnRef.current === ip) return;
+    lastCheckedVpnRef.current = ip;
+
+    try {
+      setVpnChecking(true);
+      setVpnDuplicated(null);
+
+      // vpnIpDuplicate가 boolean을 return한다고 가정 (true=중복, false=사용가능)
+      const duplicated = await vpnIpDuplicate(ip);
+      setVpnDuplicated(duplicated);
+
+      console.log("VPN IP 중복 여부:", duplicated);
+    } catch (error) {
+      console.log("vpn ip 중복확인 api 연동 실패", error);
+      setVpnDuplicated(null);
+      lastCheckedVpnRef.current = "";
+    } finally {
+      setVpnChecking(false);
+    }
+  };
+
+  const handleVpnIpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // ✅ 길이 제한은 필요시 조절
+    if (value.length <= 50) {
+      setVpnIp(value);
+      setVpnDuplicated(null);
+      lastCheckedVpnRef.current = "";
+    }
+  };
+
+  // Vessel ID blur 중복확인 (✅ 추가)
+  const handleVesselIdBlur = async () => {
+    const id = vesselId.trim();
+    if (!id) return;
+
+    // 같은 값 재검사 방지
+    if (lastCheckedVesselIdRef.current === id) return;
+    lastCheckedVesselIdRef.current = id;
+
+    try {
+      setVesselIdChecking(true);
+      setVesselIdDuplicated(null);
+
+      const duplicated = await VesselDuplicate(id); // ✅ api 호출
+      setVesselIdDuplicated(duplicated);
+
+      console.log("Vessel ID 중복 여부:", duplicated);
+    } catch (error) {
+      console.log("vessel id 중복확인 api 연동 실패", error);
+      setVesselIdDuplicated(null);
+      lastCheckedVesselIdRef.current = "";
+    } finally {
+      setVesselIdChecking(false);
+    }
+  };
+
+  const handleVesselIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // 길이 제한 필요하면 조절
+    if (value.length <= 30) {
+      setVesselId(value);
+      setVesselIdDuplicated(null);
+      lastCheckedVesselIdRef.current = "";
     }
   };
 
@@ -133,34 +231,75 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
 
               <div className="mb-4">
                 <Label>Vessel ID</Label>
-                <Input type="text" />
+                <Input
+                  type="text"
+                  value={vesselId}
+                  onChange={handleVesselIdChange}
+                  onBlur={handleVesselIdBlur}
+                  maxLength={30}
+                />
+                <div className="mt-2 text-xs">
+                  {vesselIdChecking && (
+                    <p className="text-gray-500">중복 확인 중...</p>
+                  )}
+                  {vesselIdDuplicated === true && (
+                    <p className="text-red-500">
+                      이미 사용 중인 Vessel ID 입니다.
+                    </p>
+                  )}
+                  {vesselIdDuplicated === false && (
+                    <p className="text-green-600">
+                      사용 가능한 Vessel ID 입니다.
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {/* ---------------------------
+                  S/N 입력 + 중복확인 UI
+                 --------------------------- */}
               <div className="mb-4">
                 <Label>S/N</Label>
                 <Input
                   type="text"
                   value={serialNumber}
                   onChange={handleSerialNumberChange}
-                  onBlur={handleSerialNumberBlur} // ✅ 이제 동작함
+                  onBlur={handleSerialNumberBlur}
                   maxLength={30}
                 />
-                {/* ✅ 확인용 UI (선택) */}
                 <div className="mt-2 text-xs">
                   {snChecking && (
-                    <p className="mt-2 text-xs text-gray-500">
-                      중복 확인 중...
-                    </p>
+                    <p className="text-gray-500">중복 확인 중...</p>
                   )}
                   {snDuplicated === true && (
-                    <p className="mt-2 text-xs text-red-500">
-                      이미 사용 중인 S/N 입니다.
-                    </p>
+                    <p className="text-red-500">이미 사용 중인 S/N 입니다.</p>
                   )}
                   {snDuplicated === false && (
-                    <p className="mt-2 text-xs text-green-600">
-                      사용 가능한 S/N 입니다.
-                    </p>
+                    <p className="text-green-600">사용 가능한 S/N 입니다.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* ---------------------------
+                  VPN IP 입력 + 중복확인 UI (✅ 추가)
+                 --------------------------- */}
+              <div className="mb-4">
+                <Label>VPN IP</Label>
+                <Input
+                  type="text"
+                  value={vpnIp}
+                  onChange={handleVpnIpChange}
+                  onBlur={handleVpnIpBlur}
+                />
+                <div className="mt-2 text-xs">
+                  {vpnChecking && (
+                    <p className="text-gray-500">중복 확인 중...</p>
+                  )}
+                  {vpnDuplicated === true && (
+                    <p className="text-red-500">이미 사용중인 VPN IP 입니다.</p>
+                  )}
+                  {vpnDuplicated === false && (
+                    <p className="text-green-600">사용 가능한 VPN IP 입니다.</p>
                   )}
                 </div>
               </div>
@@ -192,7 +331,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
               onClick={handleAddVesselEvent}
               type="button"
               className="btn btn-success btn-update-event bg-brand-500 hover:bg-brand-600 flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white sm:w-auto"
-              disabled={snChecking}
+              disabled={snChecking || vpnChecking || vesselIdChecking}
             >
               Add Vessel
             </button>
