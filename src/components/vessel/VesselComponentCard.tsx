@@ -92,9 +92,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     setAccount(value);
   };
 
-  // ---------------------------
   // S/N blur 중복확인
-  // ---------------------------
   const handleSerialNumberBlur = async () => {
     const sn = serialNumber.trim();
     if (!sn) return;
@@ -126,9 +124,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     }
   };
 
-  // ---------------------------
   // VPN IP blur 중복확인
-  // ---------------------------
   const handleVpnIpBlur = async () => {
     const ip = vpnIp.trim();
     if (!ip) return;
@@ -160,9 +156,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     }
   };
 
-  // ---------------------------
   // Vessel ID blur 중복확인
-  // ---------------------------
   const handleVesselIdBlur = async () => {
     const id = vesselId.trim();
     if (!id) return;
@@ -248,9 +242,6 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
       callsign: callsign.trim(),
     };
 
-    // ✅ API 호출 전에 콘솔 출력
-    console.log("[AddVessel] payload:", payload);
-
     // ✅ 필수값 체크 (원하면 더 추가 가능)
     if (
       !payload.acct ||
@@ -269,6 +260,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
     try {
       setAdding(true);
 
+      // 선박 추가 api 호출
       const result = await addVessel(payload);
       console.log("[AddVessel] response:", result);
 
@@ -475,11 +467,12 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
             <button
               onClick={handleAddVesselEvent}
               type="button"
-              className="btn btn-success btn-update-event bg-brand-500 hover:bg-brand-600 flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white sm:w-auto"
               disabled={!canSubmit}
+              className="btn btn-success btn-update-event bg-brand-500 hover:bg-brand-600 flex w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-200 disabled:opacity-60 disabled:hover:bg-gray-400 sm:w-auto"
             >
               {adding ? "Adding..." : "Add Vessel"}
             </button>
+
             <button
               onClick={closeModal}
               type="button"
