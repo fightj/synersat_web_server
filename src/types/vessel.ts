@@ -29,6 +29,7 @@ export interface VesselResponse {
   message?: string
 }
 
+// 시리얼넘버 중복확인 데이터 타입
 export type SerialNumberDuplicateResponse = {
   serialNumber: string
   restPath: string
@@ -36,12 +37,33 @@ export type SerialNumberDuplicateResponse = {
   sn_duplicated: boolean
 }
 
+// vpnip 중복확인 데이터 타입
 export type VpnIpDuplicateResponse = {
   vpnip: string
   restPath: string
   ip_duplicated: boolean
 }
 
+// vessel 중복확인 데이터 타입
 export type VesselDuplicateResponse = {
   id_duplicated: boolean
 }
+
+export type VesselAddInfo = {
+  acct: string
+  id: string
+  serialnumber: string
+  imo: string
+  vpnip: string
+  name: string
+  mmsi: string
+  callsign: string
+}
+
+export type VesselAddResponse = boolean;
+
+
+// 추후 수정 문의
+// export type VesselAddResponse = {
+//   boolean | boolean[]
+// }
