@@ -1,0 +1,12 @@
+"use client";
+export default function DashboardInfo() {
+  return (
+    <div className="h-full overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 sm:px-6 sm:pt-6 dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+          Dashboard info
+        </h3>
+      </div>
+    </div>
+  );
+}
