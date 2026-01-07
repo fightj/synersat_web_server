@@ -24,7 +24,7 @@ export default function Dashboard() {
         {/* <MonthlySalesChart /> */}
       </div>
 
-      <div className="col-span-12 h-[420px] md:h-[460px] xl:col-span-8">
+      <div className="col-span-12 h-[420px] space-y-6 md:h-[460px] xl:col-span-8">
         <WorldMap />
       </div>
 
