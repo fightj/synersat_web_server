@@ -18,13 +18,11 @@ export const metadata: Metadata = {
 export default function Dashboard() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12 h-[420px] space-y-6 md:h-[460px] xl:col-span-4">
-        {/* <EcommerceMetrics /> */}
+      <div className="col-span-12 h-[680px] space-y-6 md:h-[720px] xl:col-span-5">
         <DashboardInfo />
-        {/* <MonthlySalesChart /> */}
       </div>
 
-      <div className="col-span-12 h-[420px] space-y-6 md:h-[460px] xl:col-span-8">
+      <div className="col-span-12 h-[420px] space-y-6 md:h-[460px] xl:col-span-7">
         <WorldMap />
       </div>
 

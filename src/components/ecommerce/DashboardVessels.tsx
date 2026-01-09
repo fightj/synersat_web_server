@@ -17,18 +17,18 @@ interface Product {
   price: string; // Price of the product (as a string with currency symbol)
   // status: string; // Status of the product
   image: string; // URL or path to the product image
-  status: "Delivered" | "Pending" | "Canceled"; // Status of the product
+  status: "Delivered" | "Pending" | "Canceled" | "Active"; // Status of the product
 }
 
 // Define the table data using the interface
 const tableData: Product[] = [
   {
     id: 1,
-    name: "MacBook Pro 13”",
+    name: "AGNES 101",
     variants: "2 Variants",
     category: "Laptop",
-    price: "$2399.00",
-    status: "Delivered",
+    price: "10.8.128.142",
+    status: "Active",
     image: "/images/product/product-01.jpg", // Replace with actual image URL
   },
   {
@@ -69,13 +69,13 @@ const tableData: Product[] = [
   },
 ];
 
-export default function RecentOrders() {
+export default function DashboardVessels() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
+    <div className="overflow-hidden">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+            Vessels
           </h3>
         </div>
 
@@ -132,20 +132,20 @@ export default function RecentOrders() {
                 isHeader
                 className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
               >
-                Products
+                NAME
               </TableCell>
               <TableCell
                 isHeader
                 className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
               >
-                Category
+                VPN IP
               </TableCell>
-              <TableCell
+              {/* <TableCell
                 isHeader
                 className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Price
-              </TableCell>
+              </TableCell> */}
               <TableCell
                 isHeader
                 className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
@@ -162,36 +162,27 @@ export default function RecentOrders() {
               <TableRow key={product.id} className="">
                 <TableCell className="py-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
-                      <Image
-                        width={50}
-                        height={50}
-                        src={product.image}
-                        className="h-[50px] w-[50px]"
-                        alt={product.name}
-                      />
-                    </div>
                     <div>
                       <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
                         {product.name}
                       </p>
-                      <span className="text-theme-xs text-gray-500 dark:text-gray-400">
+                      {/* <span className="text-theme-xs text-gray-500 dark:text-gray-400">
                         {product.variants}
-                      </span>
+                      </span> */}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
                   {product.price}
                 </TableCell>
-                <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                {/* <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
                   {product.category}
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
                   <Badge
                     size="sm"
                     color={
-                      product.status === "Delivered"
+                      product.status === "Active"
                         ? "success"
                         : product.status === "Pending"
                           ? "warning"
