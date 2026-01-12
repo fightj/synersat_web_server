@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -8,14 +9,34 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { useVesselStore } from "@/store/vessel.store"; // ✅ 추가
-import type { Vessel } from "@/types/vessel";
+import { useVesselStore } from "@/store/vessel.store";
+import { useRouter, useSearchParams } from "next/navigation";
+import VesselSearch from "../vessel/VesselSearch";
 
 export default function DashboardVessels() {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
   const error = useVesselStore((s) => s.error);
   const fetchVessels = useVesselStore((s) => s.fetchVessels);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ✅ URL에서 선택된 선박 식별자 가져오기 (?v=...)
+  const selectedVesselName = searchParams.get("v") ?? "";
+
+  // ✅ 선택된 선박 정보 찾기
+  const selectedVessel = useMemo(() => {
+    if (!selectedVesselName) return null;
+    return vessels.find((v) => v.name === selectedVesselName) ?? null;
+  }, [vessels, selectedVesselName]);
+
+  // ✅ 클릭 시 URL의 ?v= 갱신 (현재 경로 유지)
+  const onSelectVessel = (vesselName: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("v", vesselName);
+    router.replace(`?${params.toString()}`); // ✅ history 쌓기 싫으면 replace (push로 바꿔도 됨)
+  };
 
   return (
     <div className="overflow-hidden">
@@ -26,20 +47,29 @@ export default function DashboardVessels() {
           </h3>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="text-theme-sm shadow-theme-xs inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            Filter
-          </button>
-
-          {/* ✅ 새로고침(재조회) 버튼 */}
-          <button
-            type="button"
-            onClick={() => fetchVessels()}
-            className="text-theme-sm shadow-theme-xs inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-          >
-            Refresh
-          </button>
+        <div className="flex items-center pr-5">
+          <VesselSearch />
         </div>
+      </div>
+
+      {/* ✅ H3와 테이블 사이: 선택된 선박 정보 표시 */}
+      <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200">
+        {selectedVessel ? (
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <span className="text-lg font-medium text-blue-500">
+              <span className="font-semibold">{selectedVessel.name}</span>
+            </span>
+            <span className="text-gray-500 dark:text-gray-400">|</span>
+            <span>
+              VPN IP:{" "}
+              <span className="font-medium">{selectedVessel.vpnIp || "-"}</span>
+            </span>
+          </div>
+        ) : (
+          <span className="text-gray-500 dark:text-gray-400">
+            No vessel selected. Click a vessel name to select.
+          </span>
+        )}
       </div>
 
       <div className="max-w-full overflow-x-auto">
@@ -102,30 +132,45 @@ export default function DashboardVessels() {
                 </TableCell>
               </TableRow>
             ) : (
-              vessels.map((vessel: Vessel) => (
-                <TableRow key={vessel.id}>
-                  <TableCell className="py-3">
-                    <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
-                      {vessel.name || "-"}
-                    </p>
-                    {/* 필요하면 아래처럼 ID도 같이 표시 가능 */}
-                    {/* <span className="text-theme-xs text-gray-500">{vessel.id}</span> */}
-                  </TableCell>
+              vessels.map((vessel) => {
+                const isSelected =
+                  !!selectedVesselName && vessel.name === selectedVesselName;
 
-                  <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                    {vessel.vpnIp || "-"}
-                  </TableCell>
+                return (
+                  <TableRow
+                    key={vessel.id}
+                    className={
+                      isSelected
+                        ? "bg-blue-50 dark:bg-blue-500/10"
+                        : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                    }
+                  >
+                    <TableCell className="py-3">
+                      {/* ✅ name 클릭 = 선택 */}
+                      <button
+                        type="button"
+                        onClick={() => onSelectVessel(vessel.name)}
+                        className="text-theme-sm font-medium text-gray-800 hover:underline dark:text-white/90"
+                      >
+                        {vessel.name || "-"}
+                      </button>
+                    </TableCell>
 
-                  <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                    <Badge
-                      size="sm"
-                      color={vessel.enabled ? "success" : "error"}
-                    >
-                      {vessel.enabled ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                      {vessel.vpnIp || "-"}
+                    </TableCell>
+
+                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                      <Badge
+                        size="sm"
+                        color={vessel.enabled ? "success" : "error"}
+                      >
+                        {vessel.enabled ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
