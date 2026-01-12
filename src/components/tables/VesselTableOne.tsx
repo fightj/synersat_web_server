@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,8 +9,8 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { getVessels } from "../../api/vessel";
 import type { Vessel } from "@/types/vessel";
+import { useVesselStore } from "@/store/vessel.store"; // ✅ store import
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
@@ -33,7 +34,9 @@ const SortIcon = ({
   sortDir: SortDir;
 }) => (
   <span
-    className={`ml-2 inline-flex flex-col leading-none ${active ? "opacity-100" : "opacity-40"}`}
+    className={`ml-2 inline-flex flex-col leading-none ${
+      active ? "opacity-100" : "opacity-40"
+    }`}
   >
     <span
       className={
@@ -81,36 +84,23 @@ const SortHeader = ({
 };
 
 export default function VesselTableOne() {
-  const [vessels, setVessels] = useState<Vessel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // ✅ store에서 가져오기
+  const vessels = useVesselStore((s) => s.vessels);
+  const loading = useVesselStore((s) => s.loading);
+  const error = useVesselStore((s) => s.error);
+  const fetchVessels = useVesselStore((s) => s.fetchVessels);
 
   const [sortKey, setSortKey] = useState<SortKey>("company");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const toggleSort = (key: SortKey) => {
     if (sortKey !== key) {
-      // Different column: start with ascending
       setSortKey(key);
       setSortDir("asc");
     } else {
-      // Same column: toggle direction
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     }
   };
-
-  useEffect(() => {
-    getVessels()
-      .then((data) => {
-        setVessels(data);
-        setError(null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load vessels");
-        setLoading(false);
-      });
-  }, []);
 
   const sortedVessels = useMemo(() => {
     const copy = [...vessels];
@@ -140,8 +130,16 @@ export default function VesselTableOne() {
 
   if (error) {
     return (
-      <div className="p-8 text-center">
+      <div className="space-y-3 p-8 text-center">
         <p className="text-destructive">Error: {error}</p>
+        {/* ✅ 재시도 버튼 */}
+        <button
+          type="button"
+          onClick={() => fetchVessels()}
+          className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/[0.1] dark:text-white/80 dark:hover:bg-white/[0.06]"
+        >
+          Retry
+        </button>
       </div>
     );
   }

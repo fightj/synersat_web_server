@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -6,70 +8,15 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import Image from "next/image";
-
-// Define the TypeScript interface for the table rows
-interface Product {
-  id: number; // Unique identifier for each product
-  name: string; // Product name
-  variants: string; // Number of variants (e.g., "1 Variant", "2 Variants")
-  category: string; // Category of the product
-  price: string; // Price of the product (as a string with currency symbol)
-  // status: string; // Status of the product
-  image: string; // URL or path to the product image
-  status: "Delivered" | "Pending" | "Canceled" | "Active"; // Status of the product
-}
-
-// Define the table data using the interface
-const tableData: Product[] = [
-  {
-    id: 1,
-    name: "AGNES 101",
-    variants: "2 Variants",
-    category: "Laptop",
-    price: "10.8.128.142",
-    status: "Active",
-    image: "/images/product/product-01.jpg", // Replace with actual image URL
-  },
-  {
-    id: 2,
-    name: "Apple Watch Ultra",
-    variants: "1 Variant",
-    category: "Watch",
-    price: "$879.00",
-    status: "Pending",
-    image: "/images/product/product-02.jpg", // Replace with actual image URL
-  },
-  {
-    id: 3,
-    name: "iPhone 15 Pro Max",
-    variants: "2 Variants",
-    category: "SmartPhone",
-    price: "$1869.00",
-    status: "Delivered",
-    image: "/images/product/product-03.jpg", // Replace with actual image URL
-  },
-  {
-    id: 4,
-    name: "iPad Pro 3rd Gen",
-    variants: "2 Variants",
-    category: "Electronics",
-    price: "$1699.00",
-    status: "Canceled",
-    image: "/images/product/product-04.jpg", // Replace with actual image URL
-  },
-  {
-    id: 5,
-    name: "AirPods Pro 2nd Gen",
-    variants: "1 Variant",
-    category: "Accessories",
-    price: "$240.00",
-    status: "Delivered",
-    image: "/images/product/product-05.jpg", // Replace with actual image URL
-  },
-];
+import { useVesselStore } from "@/store/vessel.store"; // ✅ 추가
+import type { Vessel } from "@/types/vessel";
 
 export default function DashboardVessels() {
+  const vessels = useVesselStore((s) => s.vessels);
+  const loading = useVesselStore((s) => s.loading);
+  const error = useVesselStore((s) => s.error);
+  const fetchVessels = useVesselStore((s) => s.fetchVessels);
+
   return (
     <div className="overflow-hidden">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -81,51 +28,22 @@ export default function DashboardVessels() {
 
         <div className="flex items-center gap-3">
           <button className="text-theme-sm shadow-theme-xs inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            <svg
-              className="fill-white stroke-current dark:fill-gray-800"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2.29004 5.90393H17.7067"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M17.7075 14.0961H2.29085"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-              <path
-                d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-            </svg>
             Filter
           </button>
-          <button className="text-theme-sm shadow-theme-xs inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            See all
+
+          {/* ✅ 새로고침(재조회) 버튼 */}
+          <button
+            type="button"
+            onClick={() => fetchVessels()}
+            className="text-theme-sm shadow-theme-xs inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+          >
+            Refresh
           </button>
         </div>
       </div>
+
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
           <TableHeader className="border-y border-gray-100 dark:border-gray-800">
             <TableRow>
               <TableCell
@@ -140,12 +58,6 @@ export default function DashboardVessels() {
               >
                 VPN IP
               </TableCell>
-              {/* <TableCell
-                isHeader
-                className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
-              >
-                Price
-              </TableCell> */}
               <TableCell
                 isHeader
                 className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
@@ -155,45 +67,66 @@ export default function DashboardVessels() {
             </TableRow>
           </TableHeader>
 
-          {/* Table Body */}
-
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((product) => (
-              <TableRow key={product.id} className="">
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
-                        {product.name}
-                      </p>
-                      {/* <span className="text-theme-xs text-gray-500 dark:text-gray-400">
-                        {product.variants}
-                      </span> */}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                  {product.price}
-                </TableCell>
-                {/* <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                  {product.category}
-                </TableCell> */}
-                <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      product.status === "Active"
-                        ? "success"
-                        : product.status === "Pending"
-                          ? "warning"
-                          : "error"
-                    }
-                  >
-                    {product.status}
-                  </Badge>
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="py-6 text-center text-gray-500"
+                >
+                  Loading vessels...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={3} className="py-6 text-center">
+                  <div className="space-y-2">
+                    <p className="text-destructive">Error: {error}</p>
+                    <button
+                      type="button"
+                      onClick={() => fetchVessels()}
+                      className="rounded-md border px-3 py-1 text-sm"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : vessels.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="py-6 text-center text-gray-500"
+                >
+                  No vessels found
+                </TableCell>
+              </TableRow>
+            ) : (
+              vessels.map((vessel: Vessel) => (
+                <TableRow key={vessel.id}>
+                  <TableCell className="py-3">
+                    <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                      {vessel.name || "-"}
+                    </p>
+                    {/* 필요하면 아래처럼 ID도 같이 표시 가능 */}
+                    {/* <span className="text-theme-xs text-gray-500">{vessel.id}</span> */}
+                  </TableCell>
+
+                  <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                    {vessel.vpnIp || "-"}
+                  </TableCell>
+
+                  <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                    <Badge
+                      size="sm"
+                      color={vessel.enabled ? "success" : "error"}
+                    >
+                      {vessel.enabled ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
