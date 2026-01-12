@@ -62,8 +62,3 @@ export type VesselAddInfo = {
 
 export type VesselAddResponse = boolean;
 
-
-// 추후 수정 문의
-// export type VesselAddResponse = {
-//   boolean | boolean[]
-// }

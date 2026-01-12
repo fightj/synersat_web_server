@@ -10,7 +10,6 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
-import { useRouter, useSearchParams } from "next/navigation";
 import VesselSearch from "../vessel/VesselSearch";
 
 export default function DashboardVessels() {
@@ -19,23 +18,19 @@ export default function DashboardVessels() {
   const error = useVesselStore((s) => s.error);
   const fetchVessels = useVesselStore((s) => s.fetchVessels);
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
-  // ✅ URL에서 선택된 선박 식별자 가져오기 (?v=...)
-  const selectedVesselName = searchParams.get("v") ?? "";
+  // ✅ 클릭 시 store에 선택 선박 저장 + 콘솔 확인
+  const onSelectVessel = (v: { id: any; name?: string; vpnIp?: string }) => {
+    const payload = {
+      id: String(v.id),
+      name: v.name ?? "",
+      vpnIp: v.vpnIp ?? "",
+    };
 
-  // ✅ 선택된 선박 정보 찾기
-  const selectedVessel = useMemo(() => {
-    if (!selectedVesselName) return null;
-    return vessels.find((v) => v.name === selectedVesselName) ?? null;
-  }, [vessels, selectedVesselName]);
-
-  // ✅ 클릭 시 URL의 ?v= 갱신 (현재 경로 유지)
-  const onSelectVessel = (vesselName: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("v", vesselName);
-    router.replace(`?${params.toString()}`); // ✅ history 쌓기 싫으면 replace (push로 바꿔도 됨)
+    setSelectedVessel(payload);
+    console.log("[selectedVessel]", payload); // ✅ 확인용
   };
 
   return (
@@ -52,7 +47,7 @@ export default function DashboardVessels() {
         </div>
       </div>
 
-      {/* ✅ H3와 테이블 사이: 선택된 선박 정보 표시 */}
+      {/* ✅ 선택된 선박 정보 표시 (store 기반) */}
       <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200">
         {selectedVessel ? (
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
@@ -63,6 +58,10 @@ export default function DashboardVessels() {
             <span>
               VPN IP:{" "}
               <span className="font-medium">{selectedVessel.vpnIp || "-"}</span>
+            </span>
+            <span className="text-gray-500 dark:text-gray-400">|</span>
+            <span>
+              ID: <span className="font-medium">{selectedVessel.id}</span>
             </span>
           </div>
         ) : (
@@ -78,7 +77,7 @@ export default function DashboardVessels() {
             <TableRow>
               <TableCell
                 isHeader
-                className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                className="text-theme-xs py-3 pl-2 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 NAME
               </TableCell>
@@ -134,7 +133,8 @@ export default function DashboardVessels() {
             ) : (
               vessels.map((vessel) => {
                 const isSelected =
-                  !!selectedVesselName && vessel.name === selectedVesselName;
+                  !!selectedVessel &&
+                  String(vessel.id) === String(selectedVessel.id);
 
                 return (
                   <TableRow
@@ -146,11 +146,10 @@ export default function DashboardVessels() {
                     }
                   >
                     <TableCell className="py-3">
-                      {/* ✅ name 클릭 = 선택 */}
                       <button
                         type="button"
-                        onClick={() => onSelectVessel(vessel.name)}
-                        className="text-theme-sm font-medium text-gray-800 hover:underline dark:text-white/90"
+                        onClick={() => onSelectVessel(vessel)}
+                        className="text-theme-sm pl-2 font-medium text-gray-800 hover:underline dark:text-white/90"
                       >
                         {vessel.name || "-"}
                       </button>

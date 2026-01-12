@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 
 type Props = { className?: string };
@@ -14,7 +13,6 @@ function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// ✅ query와 일치하는 부분만 하이라이트(대소문자 무시, 여러 번 등장도 전부)
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const q = query.trim();
   if (!q) return <>{text}</>;
@@ -43,9 +41,8 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 export default function VesselSearch({ className = "" }: Props) {
   const vessels = useVesselStore((s) => s.vessels);
-
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const selectedVessel = useVesselStore((s) => s.selectedVessel); // ✅ 선택 상태(표시/동기화용)
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel); // ✅ 선택 설정
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -54,37 +51,36 @@ export default function VesselSearch({ className = "" }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
-  // ✅ 전체 필터 결과(렌더는 visible만)
   const allMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return vessels;
-
     return vessels.filter((v) => (v.name ?? "").toLowerCase().includes(q));
   }, [vessels, query]);
 
-  // ✅ “스크롤 내리면 더 로드”를 위한 렌더 갯수
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
-
-  // ✅ 키보드 활성 인덱스(렌더되는 목록 기준)
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // query/open이 바뀌면 초기화
   useEffect(() => {
     if (!open) return;
     setVisibleCount(INITIAL_BATCH);
     setActiveIndex(0);
   }, [query, open]);
 
-  // ✅ 렌더되는 목록
   const visibleMatches = useMemo(() => {
     return allMatches.slice(0, visibleCount);
   }, [allMatches, visibleCount]);
 
-  // ✅ 선택 적용: URL ?v= 갱신
-  const selectVessel = (name: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("v", name);
-    router.replace(`?${params.toString()}`);
+  // ✅ 선택 적용: store에 selectedVessel 저장
+  const selectVessel = (v: { id: any; name?: string; vpnIp?: string }) => {
+    const payload = {
+      id: String(v.id),
+      name: v.name ?? "",
+      vpnIp: v.vpnIp ?? "",
+    };
+
+    setSelectedVessel(payload);
+    console.log("[selectedVessel] (from search)", payload); // ✅ 확인용
+
     setQuery("");
     setOpen(false);
   };
@@ -128,9 +124,9 @@ export default function VesselSearch({ className = "" }: Props) {
       e.preventDefault();
 
       setActiveIndex((i) => {
-        const next = Math.min(i + 1, Math.max(allMatches.length - 1, 0));
+        const max = Math.max(allMatches.length - 1, 0);
+        const next = Math.min(i + 1, max);
 
-        // ✅ 활성 인덱스가 visibleCount 밖으로 나가면 더 로드
         if (next >= visibleCount) {
           setVisibleCount((c) =>
             Math.min(c + LOAD_MORE_BATCH, allMatches.length),
@@ -143,8 +139,9 @@ export default function VesselSearch({ className = "" }: Props) {
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const target = allMatches[activeIndex];
-      if (target?.name) selectVessel(target.name);
+      // ✅ visible 기준으로 선택(현재 렌더된 항목과 activeIndex 일치)
+      const target = visibleMatches[activeIndex];
+      if (target) selectVessel(target);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -153,7 +150,7 @@ export default function VesselSearch({ className = "" }: Props) {
   return (
     <div
       ref={rootRef}
-      className="relative w-60"
+      className={`relative w-60 ${className}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => {
         if (document.activeElement === inputRef.current) return;
@@ -190,8 +187,12 @@ export default function VesselSearch({ className = "" }: Props) {
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Search vessel name..."
-            className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-4 pl-12 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[260px] dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30"
+            placeholder={
+              selectedVessel?.name
+                ? `Selected: ${selectedVessel.name}`
+                : "Search vessel name..."
+            }
+            className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-4 pl-12 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30"
           />
 
           {open && (
@@ -217,6 +218,9 @@ export default function VesselSearch({ className = "" }: Props) {
                 <ul className="py-1">
                   {visibleMatches.map((v, idx) => {
                     const isActive = idx === activeIndex;
+                    const isSelected =
+                      !!selectedVessel &&
+                      String(v.id) === String(selectedVessel.id);
 
                     return (
                       <li key={v.id ?? `${v.name}-${idx}`}>
@@ -224,9 +228,10 @@ export default function VesselSearch({ className = "" }: Props) {
                           id={`vessel-option-${idx}`}
                           type="button"
                           onMouseEnter={() => setActiveIndex(idx)}
-                          onClick={() => v.name && selectVessel(v.name)}
+                          onClick={() => selectVessel(v)}
                           className={[
                             "w-full px-4 py-2 text-left text-sm font-medium text-gray-800 dark:text-white/90",
+                            isSelected ? "bg-blue-50 dark:bg-blue-500/10" : "",
                             isActive
                               ? "bg-gray-100 dark:bg-white/[0.06]"
                               : "hover:bg-gray-50 dark:hover:bg-white/[0.04]",
@@ -238,7 +243,6 @@ export default function VesselSearch({ className = "" }: Props) {
                     );
                   })}
 
-                  {/* ✅ 더 남아있으면 힌트 */}
                   {visibleCount < allMatches.length ? (
                     <li className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
                       Scroll to load more…

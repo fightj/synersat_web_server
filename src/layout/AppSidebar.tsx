@@ -32,26 +32,26 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Dashboard", path: "/", pro: false }],
   },
   {
+    name: "Vessels",
+    icon: <TableIcon />,
+    subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Crew Account",
+    path: "/crew_account",
+  },
+  {
     icon: <CalenderIcon />,
     name: "Calendar",
     path: "/calendar",
   },
   {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
-  },
-
-  {
     name: "Forms",
     icon: <ListIcon />,
     subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
   },
-  {
-    name: "Vessels",
-    icon: <TableIcon />,
-    subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
-  },
+
   {
     name: "Pages",
     icon: <PageIcon />,
