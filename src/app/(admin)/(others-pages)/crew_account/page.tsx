@@ -11,21 +11,9 @@ import {
 } from "../../../../components/ui/table";
 import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
+import type { CrewUser } from "@/types/crew_user";
 
-type CrewUser = {
-  description: string;
-  varusersmaxtotaloctetstimerange: string; // e.g. "monthly"
-  varuserscreatedate: string;
-  varusersusername: string; // ID
-  varuserspassword: string;
-  varusersmaxtotaloctets: string; // max MB (string)
-  varusersusage: string; // used MB (string) ✅ 추가
-  type: "starlink" | "vsat"; // ✅ 고정
-  duty?: string;
-  updatedAt?: string;
-  varusersislogin: boolean; // ✅ 로그인 여부
-};
-
+// 추후에 실제 api 연동으로 대체
 function makeDummyCrew(count = 10): CrewUser[] {
   return Array.from({ length: count }, (_, i) => {
     const n = String(i + 1).padStart(5, "0");
@@ -35,6 +23,7 @@ function makeDummyCrew(count = 10): CrewUser[] {
 
     return {
       description: "",
+      varusershalftimeperiod: Math.random() < 0.5 ? "half" : "",
       varusersmaxtotaloctetstimerange: "monthly",
       varuserscreatedate: `2025/10/${String(21 + (i % 7)).padStart(2, "0")} 11:42:11`,
       varusersusername: `starlinkuser${n}`,
@@ -67,6 +56,13 @@ export default function ManageCrewAccount() {
   const indeterminate = selectedCount > 0 && selectedCount < allIds.length;
 
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.title = selectedVessel?.name
+      ? `${selectedVessel.name}`
+      : "Manage Crew Account";
+  }, [selectedVessel?.name]);
+
   useEffect(() => {
     if (!headerCheckboxRef.current) return;
     headerCheckboxRef.current.indeterminate = indeterminate;
@@ -189,9 +185,9 @@ export default function ManageCrewAccount() {
 
         <div className="max-w-full overflow-x-auto">
           <Table>
-            <TableHeader className="border-y border-gray-100 dark:border-gray-800">
+            <TableHeader className="border-y border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
-                <TableCell isHeader className="w-[44px] py-3 text-start">
+                <TableCell isHeader className="w-[44px] px-4 py-3 text-start">
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
@@ -267,7 +263,7 @@ export default function ManageCrewAccount() {
                         : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                     }
                   >
-                    <TableCell className="py-3">
+                    <TableCell className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={checked}
@@ -301,7 +297,9 @@ export default function ManageCrewAccount() {
 
                     <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
                       {/* ✅ Update: monthly */}
-                      {u.varusersmaxtotaloctetstimerange || "-"}
+                      {u.varusershalftimeperiod === "half"
+                        ? `${u.varusershalftimeperiod}-${u.varusersmaxtotaloctetstimerange}`
+                        : u.varusersmaxtotaloctetstimerange || "-"}
                     </TableCell>
 
                     <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
