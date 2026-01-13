@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -10,7 +9,6 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
-import VesselSearch from "../vessel/VesselSearch";
 
 export default function DashboardVessels() {
   const vessels = useVesselStore((s) => s.vessels);
@@ -21,58 +19,30 @@ export default function DashboardVessels() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
-  // ✅ 클릭 시 store에 선택 선박 저장 + 콘솔 확인
   const onSelectVessel = (v: { id: any; name?: string; vpnIp?: string }) => {
-    const payload = {
+    setSelectedVessel({
       id: String(v.id),
       name: v.name ?? "",
       vpnIp: v.vpnIp ?? "",
-    };
-
-    setSelectedVessel(payload);
-    console.log("[selectedVessel]", payload); // ✅ 확인용
+    });
   };
 
   return (
-    <div className="overflow-hidden">
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Vessels
-          </h3>
-        </div>
-
-        <div className="flex items-center pr-5">
-          <VesselSearch />
-        </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-4 shrink-0">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+          Vessels
+        </h3>
       </div>
 
-      {/* ✅ 선택된 선박 정보 표시 (store 기반) */}
-      <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-200">
-        {selectedVessel ? (
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-            <span className="text-lg font-medium text-blue-500">
-              <span className="font-semibold">{selectedVessel.name}</span>
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">|</span>
-            <span>
-              VPN IP:{" "}
-              <span className="font-medium">{selectedVessel.vpnIp || "-"}</span>
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">|</span>
-            <span>
-              ID: <span className="font-medium">{selectedVessel.id}</span>
-            </span>
-          </div>
-        ) : (
-          <span className="text-gray-500 dark:text-gray-400">
-            No vessel selected. Click a vessel name to select.
-          </span>
-        )}
-      </div>
+      <div className="max-w-full shrink-0 overflow-x-auto">
+        <Table className="w-full table-fixed">
+          <colgroup>
+            <col className="w-[45%]" />
+            <col className="w-[35%]" />
+            <col className="w-[20%]" />
+          </colgroup>
 
-      <div className="max-w-full overflow-x-auto">
-        <Table>
           <TableHeader className="border-y border-gray-100 dark:border-gray-800">
             <TableRow>
               <TableCell
@@ -95,6 +65,17 @@ export default function DashboardVessels() {
               </TableCell>
             </TableRow>
           </TableHeader>
+        </Table>
+      </div>
+
+      {/* ✅ 바디만 스크롤 */}
+      <div className="no-scrollbar min-h-0 max-w-full flex-1 overflow-x-auto overflow-y-auto">
+        <Table className="w-full table-fixed">
+          <colgroup>
+            <col className="w-[45%]" />
+            <col className="w-[35%]" />
+            <col className="w-[20%]" />
+          </colgroup>
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
             {loading ? (
@@ -141,7 +122,7 @@ export default function DashboardVessels() {
                     key={vessel.id}
                     className={
                       isSelected
-                        ? "bg-blue-50 dark:bg-blue-500/10"
+                        ? "bg-blue-100 dark:bg-blue-500/10"
                         : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                     }
                   >
@@ -149,7 +130,7 @@ export default function DashboardVessels() {
                       <button
                         type="button"
                         onClick={() => onSelectVessel(vessel)}
-                        className="text-theme-sm pl-2 font-medium text-gray-800 hover:underline dark:text-white/90"
+                        className="text-theme-md pl-2 font-medium text-gray-800 hover:underline dark:text-white/90"
                       >
                         {vessel.name || "-"}
                       </button>

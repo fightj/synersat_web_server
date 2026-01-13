@@ -139,12 +139,7 @@ export default function ManageCrewAccount() {
           <div className="text-sm text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
               <>
-                Selected Vessel:{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {selectedVessel.name}
-                </span>{" "}
-                <span className="text-gray-400">|</span> VPN IP:{" "}
-                <span className="font-medium">{selectedVessel.vpnIp}</span>
+                <span className="font-semibold text-gray-900 dark:text-white"></span>
               </>
             ) : (
               <span className="text-gray-500 dark:text-gray-400">

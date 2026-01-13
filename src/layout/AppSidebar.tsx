@@ -349,6 +349,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
+
               {renderMenuItems(navItems, "main")}
             </div>
 

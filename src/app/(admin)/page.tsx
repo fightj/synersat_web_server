@@ -10,23 +10,21 @@ import WorldMap from "@/components/map/WorldMap";
 import DashboardInfo from "@/components/ecommerce/DashboardInfo";
 
 export const metadata: Metadata = {
-  title:
-    "Next.js E-commerce Dashboard | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js Home for TailAdmin Dashboard Template",
+  title: "Synersat",
 };
 
 export default function Dashboard() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12 h-[680px] space-y-6 md:h-[720px] xl:col-span-5">
+      <div className="col-span-12 h-[420px] space-y-6 md:h-[550px] xl:col-span-5">
         <DashboardInfo />
       </div>
 
-      <div className="col-span-12 h-[420px] space-y-6 md:h-[460px] xl:col-span-7">
+      <div className="col-span-12 h-[420px] space-y-6 md:h-[550px] xl:col-span-7">
         <WorldMap />
       </div>
 
-      <div className="col-span-12">
+      {/* <div className="col-span-12">
         <StatisticsChart />
       </div>
 
@@ -36,7 +34,7 @@ export default function Dashboard() {
 
       <div className="col-span-12 xl:col-span-7">
         <RecentOrders />
-      </div>
+      </div> */}
     </div>
   );
 }
