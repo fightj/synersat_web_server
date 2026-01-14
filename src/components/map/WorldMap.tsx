@@ -110,7 +110,7 @@ export default function WorldMap() {
   }, []);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative z-0 h-full w-full">
       <div ref={mapRef} className="absolute inset-0" />
     </div>
   );

@@ -22,7 +22,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen xl:flex">
-      {/* ✅ 앱 시작 시 선박 데이터 로드(새로고침 포함) */}
+      {/* 앱 시작 시 선박 데이터 로드(새로고침 포함) */}
       <VesselBootstrap />
 
       {/* Sidebar and Backdrop */}

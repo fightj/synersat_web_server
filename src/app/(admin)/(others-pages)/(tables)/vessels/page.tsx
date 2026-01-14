@@ -1,6 +1,5 @@
 import VesselComponentCard from "@/components/vessel/VesselComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import BasicTableOne from "@/components/tables/BasicTableOne";
 // 선박 테이블 임포트
 import VesselTableOne from "@/components/tables/VesselTableOne";
 import { Metadata } from "next";
@@ -13,13 +12,6 @@ export const metadata: Metadata = {
 export default function BasicTables() {
   return (
     <div>
-      {/* <PageBreadcrumb pageTitle=" Table" />
-      <div className="space-y-6">
-        <ComponentCard title=" Info">
-          <BasicTableOne />
-        </ComponentCard>
-      </div> */}
-
       {/* 선박데이터 테이블 */}
       <PageBreadcrumb pageTitle="Vessels" />
       <div className="space-y-6">

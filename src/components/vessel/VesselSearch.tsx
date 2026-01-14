@@ -150,7 +150,7 @@ export default function VesselSearch({ className = "" }: Props) {
   return (
     <div
       ref={rootRef}
-      className={`relative w-70 ${className}`}
+      className={`relative w-full sm:max-w-[220px] md:max-w-[260px] lg:max-w-[320px] ${className} `}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => {
         if (document.activeElement === inputRef.current) return;
