@@ -192,7 +192,7 @@ export default function VesselSearch({ className = "" }: Props) {
                 ? `${selectedVessel.name}`
                 : "Search vessel name..."
             }
-            className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 dark:placeholdertext-blue-600 dark:placeholder:font-semi-bold h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-4 pl-12 text-lg text-gray-800 placeholder:text-green-600 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-green-400"
+            className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 dark:placeholdertext-blue-600 dark:placeholder:font-semi-bold h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-4 pl-12 text-lg text-gray-800 placeholder:text-gray-600 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-blue-400"
           />
 
           {open && (
