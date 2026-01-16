@@ -150,7 +150,7 @@ export default function VesselTableOne() {
         <div className="min-w-[1102px]">
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-              <TableRow>
+              <TableRow className="bg-blue-50 dark:bg-slate-800">
                 <TableCell
                   isHeader
                   className="text-theme-xs px-5 py-3 text-start font-medium text-gray-500 dark:text-gray-400"
