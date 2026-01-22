@@ -103,6 +103,7 @@ const AppHeader: React.FC = () => {
           <div>
             <VesselSearch />
           </div>
+
           <button
             onClick={toggleApplicationMenu}
             className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"

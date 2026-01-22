@@ -20,24 +20,24 @@ import {
 
 type NavItem = {
   name: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
+    // icon: <GridIcon />,
     name: "Dashboard",
     subItems: [{ name: "Dashboard", path: "/", pro: false }],
   },
   {
     name: "Vessels",
-    icon: <TableIcon />,
+    // icon: <TableIcon />,
     subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
   },
   {
-    icon: <UserCircleIcon />,
+    // icon: <UserCircleIcon />,
     name: "Crew Account",
     path: "/crew_account",
   },
