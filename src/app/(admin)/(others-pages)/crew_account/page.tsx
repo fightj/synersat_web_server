@@ -13,68 +13,81 @@ import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
 
-// 추후에 실제 api 연동으로 대체
-function makeDummyCrew(count = 10): CrewUser[] {
-  return Array.from({ length: count }, (_, i) => {
-    const n = String(i + 1).padStart(5, "0");
-
-    const max = 10240; // MB
-    const usage = Math.min(max, 2000 + i * 700); // 임의
-
-    return {
-      description: "",
-      varusershalftimeperiod: Math.random() < 0.5 ? "half" : "",
-      varusersmaxtotaloctetstimerange: "monthly",
-      varuserscreatedate: `2025/10/${String(21 + (i % 7)).padStart(2, "0")} 11:42:11`,
-      varusersusername: `starlinkuser${n}`,
-      varuserspassword: String(1111 + (i % 3)), // 1111/1112/1113 같은 느낌
-      varusersmaxtotaloctets: String(max),
-      varusersusage: String(usage),
-      type: i % 2 === 0 ? "starlink" : "vsat",
-      duty: "",
-      updatedAt: `2026/01/${String(1 + (i % 9)).padStart(2, "0")} 09:10:00`,
-      varusersislogin: i % 3 === 0, // 3명 중 1명 로그인 상태
-    };
-  });
-}
-
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
 export default function ManageCrewAccount() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const vpnIp = selectedVessel?.vpnIp || "";
+
+  // API 경로 설정
   const freeradiusUrl = vpnIp ? `http://${vpnIp}/api/v1/freeradius` : "";
 
-  const [crew, setCrew] = useState<CrewUser[]>(() => makeDummyCrew(10));
-
+  const [crew, setCrew] = useState<CrewUser[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  // ✅ 1. 변경된 규격에 따른 API 호출 함수
+  const fetchCrewData = async () => {
+    if (!freeradiusUrl) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(freeradiusUrl, {
+        method: "GET", // ✅ GET 메서드 유지
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // ✅ GET임에도 Body를 포함 (서버/환경에서 지원해야 함)
+        body: JSON.stringify({
+          "client-id": "admin",
+          "client-token": "globe1@3",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch crew data");
+
+      const data = await response.json();
+
+      const mappedData = data.map((u: any) => ({
+        ...u,
+        // UI 깨짐 방지를 위해 없는 필드 기본값 할당
+        varusersusage: u.varusersusage || "0",
+        varusershalftimeperiod: u.varusershalftimeperiod || "",
+      }));
+
+      setCrew(mappedData);
+    } catch (error) {
+      console.error("Crew Fetch Error:", error);
+      setCrew([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (vpnIp) {
+      fetchCrewData();
+    } else {
+      setCrew([]);
+    }
+    setSelected(new Set());
+  }, [vpnIp]);
+
+  // --- 테이블 제어 로직 (이전과 동일) ---
   const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
   const selectedCount = selected.size;
   const allSelected = allIds.length > 0 && selectedCount === allIds.length;
   const noneSelected = selectedCount === 0;
   const indeterminate = selectedCount > 0 && selectedCount < allIds.length;
-
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    document.title = selectedVessel?.name
-      ? `${selectedVessel.name}`
-      : "Manage Crew Account";
-  }, [selectedVessel?.name]);
 
   useEffect(() => {
     if (!headerCheckboxRef.current) return;
     headerCheckboxRef.current.indeterminate = indeterminate;
   }, [indeterminate]);
 
-  const toggleAll = () => {
-    setSelected((prev) => {
-      if (allSelected) return new Set();
-      return new Set(allIds);
-    });
-  };
-
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set(allIds));
   const toggleOne = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -91,95 +104,48 @@ export default function ManageCrewAccount() {
 
   const onAction = (action: ActionType) => {
     if (action === "CHECK_PW") {
-      // ✅ 선택된 유저들의 패스워드 표시 (일단은 alert)
       const lines =
         selectedUsers.length === 0
           ? ["No users selected"]
           : selectedUsers.map(
               (u) => `${u.varusersusername} → PW: ${u.varuserspassword}`,
             );
-
       alert(lines.join("\n"));
       return;
     }
-
-    console.log("[Crew Action]", {
-      action,
-      selectedUsers,
-      selectedVessel,
-      freeradiusUrl,
-      request: {
-        method: "GET",
-        url: freeradiusUrl,
-        headers: { "content-type": "application/json" },
-        body: { "client-id": "admin", "client-token": "globe1@3" },
-      },
-    });
-  };
-
-  const onLogoutClick = (u: CrewUser) => {
-    // ✅ 지금은 아무 변화 없음
-    console.log("[Logout Click]", {
-      user: u.varusersusername,
-      selectedVessel,
-      freeradiusUrl,
-    });
+    // TODO: RESET_PW, DELETE 등의 액션에 대해서도 위 fetch 로직과 동일한 인증 Body를 사용하여 구현 가능
+    console.log(`Action: ${action}`, selectedUsers);
   };
 
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
-
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
-              <>
-                <span className="font-semibold text-gray-900 dark:text-white"></span>
-              </>
+              <span className="font-semibold text-gray-900 dark:text-white">
+                Vessel: {selectedVessel.name} ({vpnIp})
+              </span>
             ) : (
               <span className="text-gray-500 dark:text-gray-400">
-                No vessel selected (select a vessel first)
+                No vessel selected
               </span>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onAction("RESET_PW")}
-              disabled={noneSelected}
-              className="text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-            >
-              Reset PW
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onAction("RESET_DATA")}
-              disabled={noneSelected}
-              className="text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-            >
-              Reset Data
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onAction("CHECK_PW")}
-              disabled={noneSelected}
-              className="text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-            >
-              Check PW
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onAction("DELETE")}
-              disabled={noneSelected}
-              className="text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border border-red-200 bg-white px-4 py-2.5 font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/30 dark:bg-gray-800 dark:text-red-300 dark:hover:bg-red-500/10"
-            >
-              Delete
-            </button>
+            {["RESET_PW", "RESET_DATA", "CHECK_PW", "DELETE"].map((act) => (
+              <button
+                key={act}
+                type="button"
+                onClick={() => onAction(act as ActionType)}
+                disabled={noneSelected || isLoading}
+                className={`text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border px-4 py-2.5 font-medium disabled:cursor-not-allowed disabled:opacity-50 ${act === "DELETE" ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+              >
+                {act.replace("_", " ")}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -193,56 +159,48 @@ export default function ManageCrewAccount() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
-                    aria-label="Select all users"
+                    className="h-4 w-4 rounded border-gray-300"
                   />
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   ID
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Description
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Duty
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Type
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Update
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Usage State
                 </TableCell>
-
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Online
                 </TableCell>
@@ -250,43 +208,45 @@ export default function ManageCrewAccount() {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {crew.map((u) => {
-                const id = u.varusersusername;
-                const checked = selected.has(id);
-
-                return (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : crew.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-10 text-center">
+                    No users available.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                crew.map((u) => (
                   <TableRow
-                    key={id}
+                    key={u.varusersusername}
                     className={
-                      checked
+                      selected.has(u.varusersusername)
                         ? "bg-blue-50/60 dark:bg-blue-500/10"
-                        : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                        : ""
                     }
                   >
                     <TableCell className="px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleOne(id)}
-                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
-                        aria-label={`Select ${id}`}
+                        checked={selected.has(u.varusersusername)}
+                        onChange={() => toggleOne(u.varusersusername)}
                       />
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-800 dark:text-white/90">
+                    <TableCell className="text-theme-sm py-3 font-medium text-gray-800 dark:text-white/90">
                       {u.varusersusername}
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                    <TableCell className="text-theme-sm py-3 text-gray-500">
                       {u.description || "-"}
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
+                    <TableCell className="text-theme-sm py-3 text-gray-500">
                       {u.duty || "-"}
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                      {/* ✅ type: starlink / vsat */}
+                    <TableCell className="text-theme-sm py-3">
                       <Badge
                         size="sm"
                         color={u.type === "starlink" ? "success" : "warning"}
@@ -294,34 +254,24 @@ export default function ManageCrewAccount() {
                         {u.type}
                       </Badge>
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                      {/* ✅ Update: monthly */}
+                    <TableCell className="text-theme-sm py-3 text-gray-500">
                       {u.varusershalftimeperiod === "half"
-                        ? `${u.varusershalftimeperiod}-${u.varusersmaxtotaloctetstimerange}`
-                        : u.varusersmaxtotaloctetstimerange || "-"}
+                        ? `half-${u.varusersmaxtotaloctetstimerange}`
+                        : u.varusersmaxtotaloctetstimerange}
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                      {/* ✅ Usage State: usage / max MB */}
+                    <TableCell className="text-theme-sm py-3 text-gray-500">
                       {u.varusersusage} / {u.varusersmaxtotaloctets} MB
                     </TableCell>
-
-                    <TableCell className="text-theme-sm py-3 text-gray-500 dark:text-gray-400">
-                      {/* ✅ Online: 로그인 유저만 Logout 버튼 표시 */}
-                      {u.varusersislogin ? (
-                        <button
-                          type="button"
-                          onClick={() => onLogoutClick(u)}
-                          className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-white/[0.03]"
-                        >
+                    <TableCell className="text-theme-sm py-3">
+                      {u.varusersislogin && (
+                        <button className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">
                           Logout
                         </button>
-                      ) : null}
+                      )}
                     </TableCell>
                   </TableRow>
-                );
-              })}
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
