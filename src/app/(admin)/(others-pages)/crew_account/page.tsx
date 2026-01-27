@@ -8,7 +8,7 @@ import {
   TableCell,
   TableHeader,
   TableRow,
-} from "../../../../components/ui/table";
+} from "@/components/ui/table";
 import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
@@ -16,7 +16,6 @@ import type { CrewUser } from "@/types/crew_user";
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
 export default function ManageCrewAccount() {
-  // Zustand에서 전역 상태 가져오기
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const vpnIp = selectedVessel?.vpnIp || "";
 
@@ -24,7 +23,7 @@ export default function ManageCrewAccount() {
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // ✅ 1. Next.js API Route를 호출하는 함수
+  // API 호출 및 데이터 가공
   const fetchCrewData = async () => {
     if (!vpnIp) return;
     setIsLoading(true);
@@ -37,22 +36,31 @@ export default function ManageCrewAccount() {
       });
 
       const result = await response.json();
-
-      // ✅ 핵심 수정: result 자체가 아니라 result.data가 실제 배열입니다.
-      // result.data가 없거나 배열이 아닐 경우를 대비해 기본값 []를 설정합니다.
       const crewList = Array.isArray(result.data) ? result.data : [];
 
-      const mappedData = crewList.map((u: any) => ({
-        ...u,
-        // 데이터 구조에 맞춰 기본값 처리
-        description: u.description || "-",
-        duty: u.duty || "-",
-        type: u.type || "standard", // 예시 데이터에 type이 없으므로 기본값 설정
-        varusersusage: u.varusersusage || "0",
-        varusershalftimeperiod: u.varusershalftimeperiod || "",
-      }));
+      const processedData: CrewUser[] = crewList
+        .filter((u: any) => u.varusersusername !== "synersat") // 1. synersat 제외
+        .map((u: any) => ({
+          ...u,
+          description: u.description || "-",
+          duty: u.duty || "-",
+          varusersterminaltype: u.varusersterminaltype || "Unknown",
+          varusersusage: u.varusersusage || "0",
+          varusershalftimeperiod: u.varusershalftimeperiod || "",
+        }))
+        .sort((a: CrewUser, b: CrewUser) => {
+          // 2. 정렬 로직: startlinkuser가 포함된 아이디를 최상단으로
+          const aIsSpecial = a.varusersusername.startsWith("startlinkuser");
+          const bIsSpecial = b.varusersusername.startsWith("startlinkuser");
 
-      setCrew(mappedData);
+          if (aIsSpecial && !bIsSpecial) return -1;
+          if (!aIsSpecial && bIsSpecial) return 1;
+
+          // 나머지는 알파벳 오름차순
+          return a.varusersusername.localeCompare(b.varusersusername);
+        });
+
+      setCrew(processedData);
     } catch (error) {
       console.error("Crew Fetch Error:", error);
       setCrew([]);
@@ -61,17 +69,16 @@ export default function ManageCrewAccount() {
     }
   };
 
-  // ✅ 2. vpnIp(선택된 선박)가 변경되거나 컴포넌트 마운트 시 실행
   useEffect(() => {
     if (vpnIp) {
       fetchCrewData();
     } else {
       setCrew([]);
     }
-    setSelected(new Set()); // 선박 바뀌면 선택 상태 초기화
-  }, [vpnIp]); // 👈 Zustand 상태가 바뀌면 자동으로 실행됨
+    setSelected(new Set());
+  }, [vpnIp]);
 
-  // --- 이하 테이블 제어 로직 동일 ---
+  // 체크박스 제어 로직
   const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
   const selectedCount = selected.size;
   const allSelected = allIds.length > 0 && selectedCount === allIds.length;
@@ -113,11 +120,21 @@ export default function ManageCrewAccount() {
     }
     console.log(`Action: ${action}`, selectedUsers);
   };
+
+  // 뱃지 컬러 결정 함수
+  const getBadgeProps = (type: string) => {
+    const lowerType = type.toLowerCase();
+    if (lowerType === "starlink")
+      return { color: "success" as const, label: "Starlink" };
+    if (lowerType === "vsat")
+      return { color: "warning" as const, label: "VSAT" };
+    return { color: "light" as const, label: type }; // 그 외는 입력값 그대로 출력
+  };
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        {/* Vessel 정보 표시 및 상단 버튼들 */}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
@@ -138,7 +155,11 @@ export default function ManageCrewAccount() {
                 type="button"
                 onClick={() => onAction(act as ActionType)}
                 disabled={noneSelected || isLoading}
-                className={`text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border px-4 py-2.5 font-medium disabled:cursor-not-allowed disabled:opacity-50 ${act === "DELETE" ? "border-red-200 text-red-600 hover:bg-red-50" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                className={`text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border px-4 py-2.5 font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                  act === "DELETE"
+                    ? "border-red-200 text-red-600 hover:bg-red-50"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 {act.replace("_", " ")}
               </button>
@@ -187,19 +208,13 @@ export default function ManageCrewAccount() {
                   isHeader
                   className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
-                  Update
+                  Update Period
                 </TableCell>
                 <TableCell
                   isHeader
                   className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
-                  Usage State
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
-                >
-                  Online
+                  Usage Limit
                 </TableCell>
               </TableRow>
             </TableHeader>
@@ -207,67 +222,60 @@ export default function ManageCrewAccount() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center">
+                  <TableCell colSpan={7} className="py-10 text-center">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : crew.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center">
+                  <TableCell colSpan={7} className="py-10 text-center">
                     No users available.
                   </TableCell>
                 </TableRow>
               ) : (
-                crew.map((u) => (
-                  <TableRow
-                    key={u.varusersusername}
-                    className={
-                      selected.has(u.varusersusername)
-                        ? "bg-blue-50/60 dark:bg-blue-500/10"
-                        : ""
-                    }
-                  >
-                    <TableCell className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(u.varusersusername)}
-                        onChange={() => toggleOne(u.varusersusername)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3 font-medium text-gray-800 dark:text-white/90">
-                      {u.varusersusername}
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3 text-gray-500">
-                      {u.description || "-"}
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3 text-gray-500">
-                      {u.duty || "-"}
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3">
-                      <Badge
-                        size="sm"
-                        color={u.type === "starlink" ? "success" : "warning"}
-                      >
-                        {u.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3 text-gray-500">
-                      {u.varusershalftimeperiod === "half"
-                        ? `half-${u.varusersmaxtotaloctetstimerange}`
-                        : u.varusersmaxtotaloctetstimerange}
-                    </TableCell>
-                    <TableCell className="text-theme-sm py-3 text-gray-500">
-                      {/* {u.varusersusage}*/} / {u.varusersmaxtotaloctets} MB
-                    </TableCell>
-                    {/* <TableCell className="text-theme-sm py-3">
-                      {u.varusersislogin && (
-                        <button className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                          Logout
-                        </button>
-                      )}
-                    </TableCell> */}
-                  </TableRow>
-                ))
+                crew.map((u) => {
+                  const badge = getBadgeProps(u.varusersterminaltype || "");
+                  return (
+                    <TableRow
+                      key={u.varusersusername}
+                      className={
+                        selected.has(u.varusersusername)
+                          ? "bg-blue-50/60 dark:bg-blue-500/10"
+                          : ""
+                      }
+                    >
+                      <TableCell className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(u.varusersusername)}
+                          onChange={() => toggleOne(u.varusersusername)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3 font-medium text-gray-800 dark:text-white/90">
+                        {u.varusersusername}
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                        {u.description}
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                        {u.duty}
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3">
+                        <Badge size="sm" color={badge.color}>
+                          {badge.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                        {u.varusershalftimeperiod === "half"
+                          ? `Half-${u.varusersmaxtotaloctetstimerange}`
+                          : u.varusersmaxtotaloctetstimerange}
+                      </TableCell>
+                      <TableCell className="text-theme-sm py-3 font-medium text-gray-500">
+                        {u.varusersmaxtotaloctets} MB
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
