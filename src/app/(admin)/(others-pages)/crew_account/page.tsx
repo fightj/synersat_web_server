@@ -25,25 +25,26 @@ export default function ManageCrewAccount() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // ✅ 1. Next.js API Route를 호출하는 함수
+  // ✅ 수정된 fetchCrewData 함수
   const fetchCrewData = async () => {
     if (!vpnIp) return;
 
     setIsLoading(true);
     try {
-      // ⚠️ 브라우저 제약을 피하기 위해 외부 IP가 아닌 내부 API('/api/crew') 호출
+      // 1. 직접 외부 vpnIp로 쏘는 게 아니라, 내 서버의 API(/api/crew)로 보냅니다.
+      // 2. 메서드는 POST로 보냅니다. (데이터 전달을 위해)
       const response = await fetch("/api/crew", {
-        method: "POST", // 내 API Route가 POST로 설정되어 있으므로
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ vpnIp }), // 서버 측에 대상 VPN IP 전달
+        body: JSON.stringify({ vpnIp }), // 내 서버에 vpnIp를 알려줌
       });
 
-      if (!response.ok) throw new Error("Failed to fetch crew data from proxy");
+      if (!response.ok) throw new Error("API Route를 통한 호출 실패");
 
       const data = await response.json();
 
-      // 서버로부터 받은 데이터 매핑
       const mappedData = data.map((u: any) => ({
         ...u,
         varusersusage: u.varusersusage || "0",
@@ -52,7 +53,7 @@ export default function ManageCrewAccount() {
 
       setCrew(mappedData);
     } catch (error) {
-      console.error("Crew Fetch Error:", error);
+      console.error("Crew Fetch Error:", error); // 👈 이제 여기서 'Request with GET method...' 에러가 나지 않아야 합니다.
       setCrew([]);
     } finally {
       setIsLoading(false);
