@@ -25,35 +25,36 @@ export default function ManageCrewAccount() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // ✅ 1. Next.js API Route를 호출하는 함수
-  // ✅ 수정된 fetchCrewData 함수
   const fetchCrewData = async () => {
     if (!vpnIp) return;
-
     setIsLoading(true);
+
     try {
-      // 1. 직접 외부 vpnIp로 쏘는 게 아니라, 내 서버의 API(/api/crew)로 보냅니다.
-      // 2. 메서드는 POST로 보냅니다. (데이터 전달을 위해)
       const response = await fetch("/api/crew", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ vpnIp }), // 내 서버에 vpnIp를 알려줌
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vpnIp }),
       });
 
-      if (!response.ok) throw new Error("API Route를 통한 호출 실패");
+      const result = await response.json();
 
-      const data = await response.json();
+      // ✅ 핵심 수정: result 자체가 아니라 result.data가 실제 배열입니다.
+      // result.data가 없거나 배열이 아닐 경우를 대비해 기본값 []를 설정합니다.
+      const crewList = Array.isArray(result.data) ? result.data : [];
 
-      const mappedData = data.map((u: any) => ({
+      const mappedData = crewList.map((u: any) => ({
         ...u,
+        // 데이터 구조에 맞춰 기본값 처리
+        description: u.description || "-",
+        duty: u.duty || "-",
+        type: u.type || "standard", // 예시 데이터에 type이 없으므로 기본값 설정
         varusersusage: u.varusersusage || "0",
         varusershalftimeperiod: u.varusershalftimeperiod || "",
       }));
 
       setCrew(mappedData);
     } catch (error) {
-      console.error("Crew Fetch Error:", error); // 👈 이제 여기서 'Request with GET method...' 에러가 나지 않아야 합니다.
+      console.error("Crew Fetch Error:", error);
       setCrew([]);
     } finally {
       setIsLoading(false);
