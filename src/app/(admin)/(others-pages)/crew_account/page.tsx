@@ -16,41 +16,36 @@ import type { CrewUser } from "@/types/crew_user";
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
 export default function ManageCrewAccount() {
+  // Zustand에서 전역 상태 가져오기
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const vpnIp = selectedVessel?.vpnIp || "";
-
-  // API 경로 설정
-  const freeradiusUrl = vpnIp ? `http://${vpnIp}/api/v1/freeradius` : "";
 
   const [crew, setCrew] = useState<CrewUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // ✅ 1. 변경된 규격에 따른 API 호출 함수
+  // ✅ 1. Next.js API Route를 호출하는 함수
   const fetchCrewData = async () => {
-    if (!freeradiusUrl) return;
+    if (!vpnIp) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch(freeradiusUrl, {
-        method: "GET", // ✅ GET 메서드 유지
+      // ⚠️ 브라우저 제약을 피하기 위해 외부 IP가 아닌 내부 API('/api/crew') 호출
+      const response = await fetch("/api/crew", {
+        method: "POST", // 내 API Route가 POST로 설정되어 있으므로
         headers: {
           "Content-Type": "application/json",
         },
-        // ✅ GET임에도 Body를 포함 (서버/환경에서 지원해야 함)
-        body: JSON.stringify({
-          "client-id": "admin",
-          "client-token": "globe1@3",
-        }),
+        body: JSON.stringify({ vpnIp }), // 서버 측에 대상 VPN IP 전달
       });
 
-      if (!response.ok) throw new Error("Failed to fetch crew data");
+      if (!response.ok) throw new Error("Failed to fetch crew data from proxy");
 
       const data = await response.json();
 
+      // 서버로부터 받은 데이터 매핑
       const mappedData = data.map((u: any) => ({
         ...u,
-        // UI 깨짐 방지를 위해 없는 필드 기본값 할당
         varusersusage: u.varusersusage || "0",
         varusershalftimeperiod: u.varusershalftimeperiod || "",
       }));
@@ -64,16 +59,17 @@ export default function ManageCrewAccount() {
     }
   };
 
+  // ✅ 2. vpnIp(선택된 선박)가 변경되거나 컴포넌트 마운트 시 실행
   useEffect(() => {
     if (vpnIp) {
       fetchCrewData();
     } else {
       setCrew([]);
     }
-    setSelected(new Set());
-  }, [vpnIp]);
+    setSelected(new Set()); // 선박 바뀌면 선택 상태 초기화
+  }, [vpnIp]); // 👈 Zustand 상태가 바뀌면 자동으로 실행됨
 
-  // --- 테이블 제어 로직 (이전과 동일) ---
+  // --- 이하 테이블 제어 로직 동일 ---
   const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
   const selectedCount = selected.size;
   const allSelected = allIds.length > 0 && selectedCount === allIds.length;
@@ -113,14 +109,13 @@ export default function ManageCrewAccount() {
       alert(lines.join("\n"));
       return;
     }
-    // TODO: RESET_PW, DELETE 등의 액션에 대해서도 위 fetch 로직과 동일한 인증 Body를 사용하여 구현 가능
     console.log(`Action: ${action}`, selectedUsers);
   };
-
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        {/* Vessel 정보 표시 및 상단 버튼들 */}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
@@ -260,15 +255,15 @@ export default function ManageCrewAccount() {
                         : u.varusersmaxtotaloctetstimerange}
                     </TableCell>
                     <TableCell className="text-theme-sm py-3 text-gray-500">
-                      {u.varusersusage} / {u.varusersmaxtotaloctets} MB
+                      {/* {u.varusersusage}*/} / {u.varusersmaxtotaloctets} MB
                     </TableCell>
-                    <TableCell className="text-theme-sm py-3">
+                    {/* <TableCell className="text-theme-sm py-3">
                       {u.varusersislogin && (
                         <button className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">
                           Logout
                         </button>
                       )}
-                    </TableCell>
+                    </TableCell> */}
                   </TableRow>
                 ))
               )}

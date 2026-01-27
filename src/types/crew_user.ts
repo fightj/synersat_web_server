@@ -6,9 +6,9 @@ export type CrewUser = {
   varusersusername: string; // ID
   varuserspassword?: string;
   varusersmaxtotaloctets?: string; // max MB (string)
-  varusersusage?: string; // used MB (string) ✅ 추가
+  // varusersusage?: string; // used MB (string) ✅ 추가
   type?: "starlink" | "vsat"; // ✅ 고정
   duty?: string;
   updatedAt?: string;
-  varusersislogin?: boolean; // ✅ 로그인 여부
+  // varusersislogin?: boolean;
 };

@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
-  images: { unoptimized: true },
-  trailingSlash: true, // 추가
 
   webpack(config) {
     config.module.rules.push({
