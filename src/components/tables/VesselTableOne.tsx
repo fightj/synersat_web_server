@@ -11,6 +11,7 @@ import {
 import Badge from "../ui/badge/Badge";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store"; // ✅ store import
+import Loading from "../common/Loading";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
@@ -123,7 +124,8 @@ export default function VesselTableOne() {
   if (loading) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted-foreground">Loading vessels...</p>
+        <Loading />
+        {/* <p className="mt-2 text-xs text-gray-400">Fetching crew data...</p> */}
       </div>
     );
   }

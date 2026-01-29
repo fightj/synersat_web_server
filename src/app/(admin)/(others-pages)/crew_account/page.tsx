@@ -12,6 +12,8 @@ import {
 import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
+import Button from "@/components/ui/button/Button";
+import Loading from "@/components/common/Loading";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
@@ -131,6 +133,53 @@ export default function ManageCrewAccount() {
     return { color: "light" as const, label: type }; // 그 외는 입력값 그대로 출력
   };
 
+  //CSV 다운로드 로직
+  const handleExportCSV = () => {
+    if (crew.length === 0) {
+      alert("다운로드할 데이터가 없습니다.");
+    }
+
+    // 헤더 정의
+    const headers = [
+      "ID",
+      "Description",
+      "Type",
+      "Update",
+      /*Used(MB): 실제 사용량*/ "Quota(MB)" /*Online*/,
+    ];
+
+    // 데이터 행 변환
+    const rows = crew.map((u) => [
+      u.varusersusername,
+      u.description,
+      u.varusersterminaltype,
+      u.varusershalftimeperiod === "half"
+        ? `Half-${u.varusersmaxtotaloctetstimerange}`
+        : u.varusersmaxtotaloctetstimerange,
+      u.varusersmaxtotaloctets,
+    ]);
+
+    // CSV 문자열 합치기
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((field) => `"${field}"`).join(",")), // 데이터에 쉼표가 있을 경우를 대비해 따옴표 감싸기
+    ].join("\n");
+
+    //Blob 생성 및 다운로드 (한글 깨짐 방지 BOM 추가)
+    const blob = new Blob(["\ufeff" + csvContent], {
+      type: "tect/csv; charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute(
+      "download",
+      `CrewList_${selectedVessel?.name || "export"}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
@@ -149,20 +198,31 @@ export default function ManageCrewAccount() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* export csv 버튼 */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={crew.length == 0 || isLoading}
+              className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Export CSV
+            </Button>
             {["RESET_PW", "RESET_DATA", "CHECK_PW", "DELETE"].map((act) => (
-              <button
+              <Button
+                size="sm"
+                variant="outline"
                 key={act}
-                type="button"
                 onClick={() => onAction(act as ActionType)}
                 disabled={noneSelected || isLoading}
-                className={`text-theme-sm shadow-theme-xs inline-flex items-center rounded-lg border px-4 py-2.5 font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`inline-flex items-center rounded-lg px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                   act === "DELETE"
-                    ? "border-red-200 text-red-600 hover:bg-red-50"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    ? "text-red-600 hover:bg-red-50"
+                    : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 {act.replace("_", " ")}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -222,8 +282,12 @@ export default function ManageCrewAccount() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center">
-                    Loading...
+                  <TableCell colSpan={7} className="py-20 text-center">
+                    {/* 그럴싸한 로딩 컴포넌트 적용 */}
+                    <Loading />
+                    <p className="mt-2 text-xs text-gray-400">
+                      Fetching crew data...
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : crew.length === 0 ? (
