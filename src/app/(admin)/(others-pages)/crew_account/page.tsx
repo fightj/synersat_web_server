@@ -285,9 +285,6 @@ export default function ManageCrewAccount() {
                   <TableCell colSpan={7} className="py-20 text-center">
                     {/* 그럴싸한 로딩 컴포넌트 적용 */}
                     <Loading />
-                    <p className="mt-2 text-xs text-gray-400">
-                      Fetching crew data...
-                    </p>
                   </TableCell>
                 </TableRow>
               ) : crew.length === 0 ? (
