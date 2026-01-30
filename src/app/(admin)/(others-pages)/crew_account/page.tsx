@@ -167,7 +167,7 @@ export default function ManageCrewAccount() {
 
     //Blob 생성 및 다운로드 (한글 깨짐 방지 BOM 추가)
     const blob = new Blob(["\ufeff" + csvContent], {
-      type: "tect/csv; charset=utf-8;",
+      type: "text/csv; charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
