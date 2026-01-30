@@ -22,7 +22,7 @@ export default function ManageCrewAccount() {
   const vpnIp = selectedVessel?.vpnIp || "";
 
   const [crew, setCrew] = useState<CrewUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // API 호출 및 데이터 가공
