@@ -22,7 +22,7 @@ export default function ManageCrewAccount() {
   const vpnIp = selectedVessel?.vpnIp || "";
 
   const [crew, setCrew] = useState<CrewUser[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // API 호출 및 데이터 가공
@@ -282,9 +282,10 @@ export default function ManageCrewAccount() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-20 text-center">
-                    {/* 그럴싸한 로딩 컴포넌트 적용 */}
-                    <Loading />
+                  <TableCell colSpan={7} className="py-20">
+                    <div className="flex w-full items-center justify-center">
+                      <Loading />
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : crew.length === 0 ? (

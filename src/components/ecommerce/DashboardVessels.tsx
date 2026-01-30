@@ -9,6 +9,7 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
+import Loading from "../common/Loading";
 
 export default function DashboardVessels() {
   const vessels = useVesselStore((s) => s.vessels);
@@ -84,7 +85,7 @@ export default function DashboardVessels() {
                   colSpan={3}
                   className="py-6 text-center text-gray-500"
                 >
-                  Loading vessels...
+                  <Loading />
                 </TableCell>
               </TableRow>
             ) : error ? (
