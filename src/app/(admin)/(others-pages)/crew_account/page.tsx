@@ -46,7 +46,7 @@ export default function ManageCrewAccount() {
           ...u,
           description: u.description || "-",
           duty: u.duty || "-",
-          varusersterminaltype: u.varusersterminaltype || "Unknown",
+          varusersterminaltype: u.varusersterminaltype || "Auto",
           varusersusage: u.varusersusage || "0",
           varusershalftimeperiod: u.varusershalftimeperiod || "",
         }))
@@ -133,23 +133,26 @@ export default function ManageCrewAccount() {
     return { color: "light" as const, label: type }; // 그 외는 입력값 그대로 출력
   };
 
-  //CSV 다운로드 로직
   const handleExportCSV = () => {
-    if (crew.length === 0) {
-      alert("다운로드할 데이터가 없습니다.");
+    let dataToExport = crew;
+
+    // 로컬/실제 데이터 체크
+    if (dataToExport.length === 0) {
+      dataToExport = [
+        {
+          varusersusername: "test_user_01",
+          description: "Test Officer",
+          varusersterminaltype: "Starlink",
+          varusersmaxtotaloctetstimerange: "Daily",
+          varusersmaxtotaloctets: "1024",
+          varusershalftimeperiod: "",
+          duty: "Captain",
+        },
+      ] as CrewUser[];
     }
 
-    // 헤더 정의
-    const headers = [
-      "ID",
-      "Description",
-      "Type",
-      "Update",
-      /*Used(MB): 실제 사용량*/ "Quota(MB)" /*Online*/,
-    ];
-
-    // 데이터 행 변환
-    const rows = crew.map((u) => [
+    const headers = ["ID", "Description", "Type", "Update", "Quota(MB)"];
+    const rows = dataToExport.map((u) => [
       u.varusersusername,
       u.description,
       u.varusersterminaltype,
@@ -159,27 +162,42 @@ export default function ManageCrewAccount() {
       u.varusersmaxtotaloctets,
     ]);
 
-    // CSV 문자열 합치기
+    // 1. CSV 내용 생성
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.map((field) => `"${field}"`).join(",")), // 데이터에 쉼표가 있을 경우를 대비해 따옴표 감싸기
+      ...rows.map((row) =>
+        row
+          .map((field) => `"${String(field ?? "").replace(/"/g, '""')}"`)
+          .join(","),
+      ),
     ].join("\n");
 
-    //Blob 생성 및 다운로드 (한글 깨짐 방지 BOM 추가)
-    const blob = new Blob(["\ufeff" + csvContent], {
-      type: "text/csv; charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute(
-      "download",
-      `CrewList_${selectedVessel?.name || "export"}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+    // 2. HTTP 환경에서 가장 강력한 Data URI 방식 (Blob 미사용)
+    // \ufeff (BOM)를 붙여야 엑셀에서 한글이 안 깨집니다.
+    const csvData =
+      "data:text/csv;charset=utf-8,\ufeff" + encodeURIComponent(csvContent);
 
+    try {
+      const link = document.createElement("a");
+      link.setAttribute("href", csvData); // Blob URL 대신 실제 데이터 주소 삽입
+      link.setAttribute(
+        "download",
+        `CrewList_${selectedVessel?.name || "Export"}.csv`,
+      );
+
+      // 3. 반드시 DOM에 추가 (일부 브라우저 필수)
+      document.body.appendChild(link);
+
+      // 4. 클릭 및 제거
+      link.click();
+      document.body.removeChild(link);
+
+      console.log("Download triggered via Data URI");
+    } catch (error) {
+      console.error("Critical Download Error:", error);
+      alert("서버 보안 정책으로 인해 다운로드가 차단되었습니다.");
+    }
+  };
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
@@ -203,7 +221,7 @@ export default function ManageCrewAccount() {
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              disabled={crew.length == 0 || isLoading}
+              // disabled={crew.length == 0 || isLoading}
               className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export CSV
@@ -333,7 +351,7 @@ export default function ManageCrewAccount() {
                           : u.varusersmaxtotaloctetstimerange}
                       </TableCell>
                       <TableCell className="text-theme-sm py-3 font-medium text-gray-500">
-                        {u.varusersmaxtotaloctets} MB
+                        195843(example) / {u.varusersmaxtotaloctets} MB
                       </TableCell>
                     </TableRow>
                   );
