@@ -29,12 +29,14 @@ const navItems: NavItem[] = [
   {
     // icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Dashboard", path: "/", pro: false }],
+    // subItems: [{ name: "Dashboard", path: "/", pro: false }],
+    path: "/",
   },
   {
     name: "Vessels",
     // icon: <TableIcon />,
-    subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
+    // subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
+    path: "/vessels",
   },
   {
     // icon: <UserCircleIcon />,
@@ -42,10 +44,15 @@ const navItems: NavItem[] = [
     path: "/crew_account",
   },
   {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
+    // icon: <CalenderIcon />,
+    name: "Fire Wall",
+    subItems: [{ name: "Port Forward", path: "/port_forward", pro: false }],
   },
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "Calendar",
+  //   path: "/calendar",
+  // },
   {
     name: "Forms",
     icon: <ListIcon />,

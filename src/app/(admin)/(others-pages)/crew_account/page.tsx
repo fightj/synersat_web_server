@@ -221,7 +221,7 @@ export default function ManageCrewAccount() {
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              // disabled={crew.length == 0 || isLoading}
+              disabled={crew.length == 0 || isLoading}
               className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export CSV
@@ -308,7 +308,10 @@ export default function ManageCrewAccount() {
                 </TableRow>
               ) : crew.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center">
+                  <TableCell
+                    colSpan={7}
+                    className="py-10 text-center dark:text-white"
+                  >
                     No users available.
                   </TableCell>
                 </TableRow>
