@@ -12,6 +12,7 @@ import {
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "@/components/common/Loading";
 import Switch from "@/components/form/switch/Switch";
+import Button from "@/components/ui/button/Button";
 
 interface PortForwardRule {
   disabled: string | undefined;
@@ -70,28 +71,29 @@ export default function PortForwardPage() {
 
       {/* 컨테이너 스타일을 Crew Account와 동일하게 유지 */}
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            {selectedVessel ? (
-              <span className="font-semibold text-gray-900 dark:text-white">
-                Vessel: {selectedVessel.name} ({vpnIp})
-              </span>
-            ) : (
-              <span className="text-gray-500 dark:text-gray-400">
-                No vessel selected
-              </span>
-            )}
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              // onClick={handleExportCSV}
+              // disabled={crew.length == 0 || isLoading}
+              className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              + Add new rule
+            </Button>
           </div>
         </div>
 
         <div className="max-w-full overflow-x-auto">
           <Table>
             {/* 헤더 스타일: bg-blue-50 및 텍스트 설정 일치 */}
-            <TableHeader className="border-y border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
+            <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-xs px-4 py-3 text-start font-medium text-gray-500"
                 >
                   Status
                 </TableCell>
@@ -139,7 +141,7 @@ export default function PortForwardPage() {
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-end font-medium text-gray-500"
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
                 >
                   Actions
                 </TableCell>

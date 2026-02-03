@@ -247,7 +247,7 @@ export default function ManageCrewAccount() {
 
         <div className="max-w-full overflow-x-auto">
           <Table>
-            <TableHeader className="border-y border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
+            <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
                 <TableCell isHeader className="w-[44px] px-4 py-3 text-start">
                   <input
