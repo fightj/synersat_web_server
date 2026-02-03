@@ -7,21 +7,24 @@ import type {
 import type { AccountApiResponse } from "@/types/account"
 
 /**
- * [공통] Postman 설정과 동일한 필수 헤더 구성
+ * [공통] Postman 이미지 기반 필수 헤더 구성
  */
 const COMMON_HEADERS = {
   "x-sdc-application-id": ENV.APP_KEY,
-  "User-Agent": "PostmanRuntime/7.51.1", // 이미지의 User-Agent 값 적용
+  "User-Agent": "PostmanRuntime/7.51.1", // 서버 보안 정책 통과를 위한 필수 값
   "Accept": "*/*",
   "Accept-Encoding": "gzip, deflate, br",
   "Connection": "keep-alive",
 };
 
 /**
- * [공통] Fetch 래퍼 함수 (중복 제거 및 헤더 통합)
+ * [공통] fetch 래퍼 함수
+ * 404 및 Time-out 방지를 위해 공통 설정 적용
  */
 async function sdcFetch(endpoint: string, options: RequestInit = {}) {
-  const url = `${ENV.BASE_URL}${endpoint}`;
+  // 엔드포인트가 /로 시작하지 않으면 붙여줌 (URL 조립 시 실수 방지)
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${ENV.BASE_URL}${path}`;
   
   const response = await fetch(url, {
     ...options,
@@ -30,23 +33,22 @@ async function sdcFetch(endpoint: string, options: RequestInit = {}) {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...options.headers,
     },
-    cache: "no-store", // 캐시 방지 (Time-out 및 데이터 정합성 해결)
+    cache: "no-store", // 최신 데이터 보장을 위해 캐시 사용 안함
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error(`API Error [${response.status}]: ${url}`, errorBody);
-    throw new Error(`Server Error: ${response.status}`);
+    console.error(`[API Error] ${response.status} at ${url}`, errorBody);
+    throw new Error(`Failed to fetch: ${response.status}`);
   }
 
   return response;
 }
 
-// 1. 선박 데이터 받아오기
+// 1. 선박 데이터 받아오기 및 변환
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    // ⚠️ 404 방지를 위해 Postman에서 성공한 정확한 경로(/getvessel 또는 /getvessel/) 확인 필요
-    const res = await sdcFetch("/getvessel"); 
+    const res = await sdcFetch("/getvessel"); // curl 결과에 따라 필요시 /getvessel/ 로 수정
     const rawData: VesselApiResponse = await res.json();
     return transformVesselData(rawData);
   } catch (error) {
@@ -77,7 +79,7 @@ export async function serialNumberDuplicate(serialNumber: string): Promise<boole
     const rawData: SerialNumberDuplicateResponse = await res.json();
     return rawData.sn_duplicated;
   } catch (error) {
-    console.error('fetch error 발생', error);
+    console.error('S/N duplicate check error:', error);
     throw error;
   }
 }
@@ -92,15 +94,30 @@ export async function vpnIpDuplicate(vpnip: string): Promise<boolean> {
     const rawData: VpnIpDuplicateResponse = await res.json();
     return rawData.ip_duplicated;
   } catch (error) {
-    console.error('fetch error 발생', error);
+    console.error('VPN IP duplicate check error:', error);
     throw error;
   }
 }
 
-// 5. 선박 추가
+// 5. vessel 중복확인 (대문자 V 유지 - 컴포넌트 빌드 오류 방지)
+export async function VesselDuplicate(id: string): Promise<boolean> {
+  try {
+    const res = await sdcFetch("/vesselisduplicate", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+    const rawData: VesselDuplicateResponse = await res.json();
+    return rawData.id_duplicated;
+  } catch (error) {
+    console.error('Vessel duplicate check error:', error);
+    throw error;
+  }
+}
+
+// 6. 선박 추가
 export async function addVessel(vesselAddlInfo: VesselAddInfo | null) {
   try {
-    const res = await sdcFetch("/addvessel", {
+    const res = await sdcFetch("/addvessel", { // 필요 시 /addvessel/ 로 수정
       method: "POST",
       body: JSON.stringify({
         acct: vesselAddlInfo?.acct,
@@ -116,17 +133,21 @@ export async function addVessel(vesselAddlInfo: VesselAddInfo | null) {
     
     const isSuccess = await res.text();
     const firstLine = isSuccess.trim().split(/\r?\n/)[0]?.trim();
-    return firstLine === "true";
+
+    if (firstLine === "true") return true;
+    if (firstLine === "false") return false;
+    return false;
   } catch (error) {
-    console.error('addVessel error 발생', error);
+    console.error('Add vessel error:', error);
     throw error;
   }
 }
 
-// 데이터 변환 헬퍼
+// [Helper] 데이터 변환 로직
 function transformVesselData(apiResponse: VesselApiResponse): Vessel[] {
   const vessels: Vessel[] = [];
   const length = apiResponse.id.length;
+
   for (let i = 0; i < length; i++) {
     vessels.push({
       id: apiResponse.id[i],
