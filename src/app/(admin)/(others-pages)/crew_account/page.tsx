@@ -203,10 +203,10 @@ export default function ManageCrewAccount() {
       <PageBreadcrumb pageTitle="Manage Crew Account" />
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-gray-600 dark:text-gray-300">
+          <div className="text-md text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
               <span className="font-semibold text-gray-900 dark:text-white">
-                Vessel: {selectedVessel.name} ({vpnIp})
+                {selectedVessel.name} ({vpnIp})
               </span>
             ) : (
               <span className="text-gray-500 dark:text-gray-400">
@@ -235,8 +235,8 @@ export default function ManageCrewAccount() {
                 disabled={noneSelected || isLoading}
                 className={`inline-flex items-center rounded-lg px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                   act === "DELETE"
-                    ? "text-red-600 hover:bg-red-50"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "text-red-600 hover:bg-red-50 dark:text-red-400 hover:dark:text-red-500"
+                    : "text-gray-700 hover:bg-blue-50"
                 }`}
               >
                 {act.replace("_", " ")}
@@ -255,42 +255,42 @@ export default function ManageCrewAccount() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4.5 w-4.5 rounded border-gray-300"
                   />
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   ID
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   Description
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   Duty
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   Type
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   Update Period
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
                   Usage Limit
                 </TableCell>
@@ -300,7 +300,7 @@ export default function ManageCrewAccount() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-20">
+                  <TableCell colSpan={7} className="py-24">
                     <div className="flex w-full items-center justify-center">
                       <Loading />
                     </div>
@@ -321,39 +321,40 @@ export default function ManageCrewAccount() {
                   return (
                     <TableRow
                       key={u.varusersusername}
-                      className={
+                      className={`cursor-default transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${
                         selected.has(u.varusersusername)
                           ? "bg-blue-50/60 dark:bg-blue-500/10"
-                          : ""
-                      }
+                          : "bg-transparent"
+                      } `}
                     >
-                      <TableCell className="px-4 py-3">
+                      <TableCell className="px-4 py-4">
                         <input
                           type="checkbox"
                           checked={selected.has(u.varusersusername)}
                           onChange={() => toggleOne(u.varusersusername)}
+                          className="h-4 w-4 cursor-pointer rounded border-gray-300"
                         />
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 font-medium text-gray-800 dark:text-white/90">
+                      <TableCell className="text-theme-md py-3 font-medium text-gray-800 dark:text-white/90">
                         {u.varusersusername}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-white/90">
                         {u.description}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-white/90">
                         {u.duty}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3">
+                      <TableCell className="text-theme-md py-3">
                         <Badge size="sm" color={badge.color}>
                           {badge.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-white/90">
                         {u.varusershalftimeperiod === "half"
                           ? `Half-${u.varusersmaxtotaloctetstimerange}`
                           : u.varusersmaxtotaloctetstimerange}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 font-medium text-gray-500">
+                      <TableCell className="text-theme-md py-3 font-medium text-gray-500 dark:text-white/90">
                         195843(example) / {u.varusersmaxtotaloctets} MB
                       </TableCell>
                     </TableRow>
