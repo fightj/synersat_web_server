@@ -13,6 +13,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import Loading from "@/components/common/Loading";
 import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
+import Image from "next/image";
 
 interface PortForwardRule {
   disabled: string | undefined;
@@ -65,21 +66,30 @@ export default function PortForwardPage() {
     // 실제 API 연동 시 setRules 업데이트 로직 추가 필요
   };
 
+  const handleEdit = (ruleId: string) => {
+    console.log("Edit Rule:", ruleId);
+  };
+
+  const handleDelete = (ruleId: string) => {
+    if (confirm("Are you sure you want to delete this rule?")) {
+      console.log("Delete Rule:", ruleId);
+    }
+  };
+
   return (
     <div>
-      <PageBreadcrumb pageTitle="Firewall: NAT: Port Forward" />
-
-      {/* 컨테이너 스타일을 Crew Account와 동일하게 유지 */}
+      <PageBreadcrumb pageTitle="Firewall / Port Forward(System)" />
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div></div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Port Forward (System)
+            </h3>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              variant="outline"
-              // onClick={handleExportCSV}
-              // disabled={crew.length == 0 || isLoading}
-              className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-white transition-colors hover:bg-blue-700"
             >
               + Add new rule
             </Button>
@@ -88,60 +98,59 @@ export default function PortForwardPage() {
 
         <div className="max-w-full overflow-x-auto">
           <Table>
-            {/* 헤더 스타일: bg-blue-50 및 텍스트 설정 일치 */}
             <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
                 <TableCell
                   isHeader
-                  className="text-theme-xs px-4 py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-center text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Status
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Interface
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Protocol
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Source Address
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Source Ports
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   NAT IP
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   NAT Ports
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-start text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Description
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs py-3 text-start font-medium text-gray-500"
+                  className="py-4 text-center text-sm font-semibold text-gray-600 dark:text-white"
                 >
                   Actions
                 </TableCell>
@@ -151,7 +160,7 @@ export default function PortForwardPage() {
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-20">
+                  <TableCell colSpan={9} className="py-24">
                     <div className="flex w-full items-center justify-center">
                       <Loading />
                     </div>
@@ -161,7 +170,7 @@ export default function PortForwardPage() {
                 <TableRow>
                   <TableCell
                     colSpan={9}
-                    className="py-10 text-center dark:text-white"
+                    className="py-16 text-center text-base dark:text-white"
                   >
                     No rules available.
                   </TableCell>
@@ -173,38 +182,67 @@ export default function PortForwardPage() {
                   return (
                     <TableRow
                       key={rule["associated-rule-id"] || idx}
-                      className={` ${!isEnabled ? "opacity-40" : ""} ${isEnabled ? "hover:bg-gray-50 dark:hover:bg-white/5" : ""} `}
+                      className={`transition-all duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${!isEnabled ? "opacity-50" : ""} `}
                     >
-                      <TableCell className="px-4 py-3 text-center">
-                        {isEnabled && (
-                          <span className="text-lg font-bold text-green-500">
-                            ✔
-                          </span>
+                      <TableCell className="px-4 py-4 text-center">
+                        {isEnabled ? (
+                          <Image
+                            src="/images/icons/ic_check_on.png"
+                            alt="Enabled"
+                            width={24} // 적절한 크기로 조정하세요 (h-6 w-6 급)
+                            height={24}
+                            className="object-contain"
+                          />
+                        ) : (
+                          <Image
+                            src="/images/icons/ic_check_off.png"
+                            alt="Disabled"
+                            width={24}
+                            height={24}
+                            className="object-contain"
+                          />
                         )}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 font-medium text-gray-800 uppercase dark:text-white/90">
+                      <TableCell className="py-4 text-sm font-bold text-gray-800 uppercase md:text-base dark:text-white/90">
                         {rule.interface}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500 uppercase">
+                      <TableCell className="py-4 text-sm font-medium text-gray-600 uppercase md:text-base dark:text-gray-300">
                         {rule.protocol}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="py-4 text-sm text-gray-600 md:text-base dark:text-gray-300">
                         {rule.target}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="py-4 font-mono text-sm text-gray-600 md:text-base dark:text-gray-300">
                         {rule.destination.port}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="py-4 text-sm font-medium text-gray-600 md:text-base dark:text-gray-300">
                         {rule.target}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="py-4 font-mono text-sm text-gray-800 md:text-base dark:text-white/90">
                         {rule["local-port"]}
                       </TableCell>
-                      <TableCell className="text-theme-sm py-3 text-gray-500">
+                      <TableCell className="py-4 text-sm text-gray-500 md:text-base dark:text-gray-400">
                         {rule.descr}
                       </TableCell>
-                      <TableCell className="py-3 pr-4">
-                        <div className="flex justify-end">
+                      <TableCell className="py-4 pr-6">
+                        <div className="flex scale-110 justify-end">
+                          {/* 1. Modify 버튼 (왼쪽) */}
+                          <button
+                            onClick={() =>
+                              handleEdit(rule["associated-rule-id"])
+                            }
+                            className="transition-transform hover:opacity-80 active:scale-90"
+                          >
+                            <Image
+                              src="/images/icons/ic_modify_b.png"
+                              alt="Modify"
+                              width={24}
+                              height={24}
+                              className="mr-3 object-contain"
+                            />
+                          </button>
+
+                          {/* 스위치 크기 약간 키움 */}
                           <Switch
                             label=""
                             defaultChecked={isEnabled}
@@ -216,6 +254,20 @@ export default function PortForwardPage() {
                             }
                             color="blue"
                           />
+                          <button
+                            onClick={() =>
+                              handleDelete(rule["associated-rule-id"])
+                            }
+                            className="ml-3 transition-transform hover:opacity-80 active:scale-90"
+                          >
+                            <Image
+                              src="/images/icons/ic_delete_r.png"
+                              alt="Delete"
+                              width={24}
+                              height={24}
+                              className="object-contain"
+                            />
+                          </button>
                         </div>
                       </TableCell>
                     </TableRow>

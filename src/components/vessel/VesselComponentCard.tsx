@@ -311,7 +311,7 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
         </h3>
 
         {vesselAddBtn && (
-          <Button size="sm" variant="outline" onClick={haddleVesselAddClick}>
+          <Button size="sm" onClick={haddleVesselAddClick}>
             {vesselAddBtn}
           </Button>
         )}

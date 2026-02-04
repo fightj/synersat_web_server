@@ -46,7 +46,9 @@ const navItems: NavItem[] = [
   {
     // icon: <CalenderIcon />,
     name: "Fire Wall",
-    subItems: [{ name: "Port Forward", path: "/port_forward", pro: false }],
+    subItems: [
+      { name: "Port Forward (System)", path: "/port_forward", pro: false },
+    ],
   },
   // {
   //   icon: <CalenderIcon />,
