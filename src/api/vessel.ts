@@ -28,7 +28,7 @@ function transformVesselData(apiResponse: VesselApiResponse): Vessel[] {
 // 선박 데이터 받아오기
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    const res = await fetch("http://10.10.10.7:8080/getvessel", {
+    const res = await fetch(ENV.BASE_URL + "/getvessel", {
       headers: { "x-sdc-application-id": ENV.APP_KEY },
     })
 
@@ -48,7 +48,7 @@ export async function getVessels(): Promise<Vessel[]> {
 // get account api
 export async function getAccounts(): Promise<string[]> {
   try {
-    const res = await fetch("http://10.10.10.7:8080/getaccount", {
+    const res = await fetch(ENV.BASE_URL + "/getaccount", {
       headers: { "x-sdc-application-id": ENV.APP_KEY },
     })
 
@@ -68,7 +68,7 @@ export async function getAccounts(): Promise<string[]> {
 // 시리얼 넘버 중복확인 api
 export async function serialNumberDuplicate(serialNumber: string):Promise<boolean> {
   try{
-    const res = await fetch(ENV.BASE_URL + "/serialnumberduplicate/", {
+    const res = await fetch(ENV.BASE_URL + "/serialnumberduplicate", {
       method: "POST",
       headers: { 
         "Content-Type" : "application/json",
@@ -92,7 +92,7 @@ export async function serialNumberDuplicate(serialNumber: string):Promise<boolea
 // vpn_ip 중복확인 api
 export async function vpnIpDuplicate(vpnip: string):Promise<boolean> {
   try{
-    const res = await fetch(ENV.BASE_URL + "/vpnipisduplicate/", {
+    const res = await fetch(ENV.BASE_URL + "/vpnipisduplicate", {
       method: "POST",
       headers: { 
         "Content-Type" : "application/json",
@@ -116,7 +116,7 @@ export async function vpnIpDuplicate(vpnip: string):Promise<boolean> {
 // vessel 중복확인 api
 export async function VesselDuplicate(id: string):Promise<boolean> {
   try{
-    const res = await fetch(ENV.BASE_URL + "/vesselisduplicate/", {
+    const res = await fetch(ENV.BASE_URL + "/vesselisduplicate", {
       method: "POST",
       headers: { 
         "Content-Type" : "application/json",
@@ -140,7 +140,7 @@ export async function VesselDuplicate(id: string):Promise<boolean> {
 // 선박 추가 api
 export async function addVessel(vesselAddlInfo: VesselAddInfo | null) {
   try{
-    const res = await fetch(ENV.BASE_URL + "/addvessel/", {
+    const res = await fetch(ENV.BASE_URL + "/addvessel", {
       method: "POST",
       headers: { 
         "Content-Type" : "application/json",
