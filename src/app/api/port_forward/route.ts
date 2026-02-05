@@ -66,3 +66,54 @@ if (host && host.includes('localhost:3000')) {
     return NextResponse.json({error: error.message}, {status:500});
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { vpnIp, id, disabled } = await req.json();
+
+    // 1. 특정 IP 검증 (화이트리스트)
+    const ALLOWED_IP = "10.8.130.249";
+    if (vpnIp !== ALLOWED_IP) {
+      return NextResponse.json(
+        { 
+          status: "forbidden",
+          message: `테스트 단계에서는 해당 IP(${vpnIp})로의 수정을 허용하지 않습니다. ${ALLOWED_IP}만 가능합니다.` 
+        }, 
+        { status: 403 } // 403 Forbidden: 서버가 요청을 이해했지만 승인을 거부함
+      );
+    }
+
+    if (!vpnIp) return NextResponse.json({ error: "VPN IP is required" }, { status: 400 });
+
+    // 2. Basic Auth 헤더 생성
+    const authString = Buffer.from(`admin:globe1@3`).toString('base64');
+    
+    // 3. 타겟 URL
+    const targetUrl = `http://${vpnIp}/api/v1/firewall/nat/port_forward`;
+    
+    const response = await fetch(targetUrl, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${authString}`
+      },
+      body: JSON.stringify({
+        id: id,
+        disabled: disabled,
+        apply: true
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json({ 
+        error: result.message || "Authentication or Update failed" 
+      }, { status: response.status });
+    }
+
+    return NextResponse.json({ status: "success", data: result.data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
