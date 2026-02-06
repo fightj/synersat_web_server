@@ -15,16 +15,23 @@ import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import Image from "next/image";
 
+// API 응답 데이터 구조 정의
 interface PortForwardRule {
-  disabled: string | undefined;
+  disabled?: string;
   interface: string;
   protocol: string;
+  source: {
+    address?: string;
+    port?: string;
+    any?: string;
+  };
+  destination: {
+    network?: string;
+    port?: string;
+  };
   target: string;
   "local-port": string;
   descr: string;
-  destination: {
-    port: string;
-  };
   "associated-rule-id": string;
 }
 
@@ -40,10 +47,8 @@ export default function PortForwardPage() {
     if (!vpnIp) return;
     setIsLoading(true);
     try {
-      const response = await fetch("/api/port_forward", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vpnIp }),
+      const response = await fetch(`/api/port_forward?vpnIp=${vpnIp}`, {
+        method: "GET",
       });
       const result = await response.json();
       setRules(Array.isArray(result.data) ? result.data : []);
@@ -82,7 +87,6 @@ export default function PortForwardPage() {
       <PageBreadcrumb pageTitle="Firewall / Port Forward(System)" />
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        {/* 헤더 영역: ManageCrewAccount와 동일한 스타일 적용 */}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-md text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
@@ -95,22 +99,18 @@ export default function PortForwardPage() {
               </span>
             )}
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              + Add new rule
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
+            + Add new rule
+          </Button>
         </div>
 
         <div className="max-w-full overflow-x-auto">
           <Table>
             <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
-                {/* 텍스트 색상 및 폰트 크기 조정 (Crew 페이지와 통일) */}
                 <TableCell
                   isHeader
                   className="text-theme-sm py-3 text-center font-medium text-gray-500 dark:text-white"
@@ -145,6 +145,18 @@ export default function PortForwardPage() {
                   isHeader
                   className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
                 >
+                  Dest. Address
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
+                >
+                  Dest. Ports
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
+                >
                   NAT IP
                 </TableCell>
                 <TableCell
@@ -169,7 +181,6 @@ export default function PortForwardPage() {
             </TableHeader>
 
             <TableBody className="relative divide-y divide-gray-100 dark:divide-gray-800">
-              {/* 적용 중일 때의 오버레이 - TableBody만 덮음 */}
               {isUpdating && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
                   <div className="flex flex-col items-center gap-2 rounded-xl bg-white p-4 shadow-lg dark:bg-gray-800">
@@ -183,14 +194,14 @@ export default function PortForwardPage() {
 
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-24 text-center">
+                  <TableCell colSpan={11} className="py-24 text-center">
                     <Loading />
                   </TableCell>
                 </TableRow>
               ) : rules.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={11}
                     className="py-10 text-center dark:text-white"
                   >
                     No rules available.
@@ -199,13 +210,19 @@ export default function PortForwardPage() {
               ) : (
                 rules.map((rule, idx) => {
                   const isEnabled = rule.disabled === undefined;
+                  // Source/Dest 헬퍼 로직
+                  const srcAddr =
+                    rule.source.any !== undefined
+                      ? "*"
+                      : rule.source.address || "*";
+                  const srcPort = rule.source.port || "*";
+                  const dstAddr = rule.destination.network || "*";
+                  const dstPort = rule.destination.port || "*";
+
                   return (
                     <TableRow
-                      key={rule["associated-rule-id"] || idx}
-                      // 비활성화 시 배경색을 주는 대신 투명도만 조절하여 다크모드 대응
-                      className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${
-                        !isEnabled ? "opacity-40 grayscale-[0.5]" : ""
-                      }`}
+                      key={idx}
+                      className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${!isEnabled ? "opacity-40 grayscale-[0.5]" : ""}`}
                     >
                       <TableCell className="py-3 text-center">
                         <Image
@@ -223,10 +240,16 @@ export default function PortForwardPage() {
                         {rule.protocol}
                       </TableCell>
                       <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {rule.target}
+                        {srcAddr}
                       </TableCell>
-                      <TableCell className="py-3 font-mono text-sm text-gray-500 dark:text-gray-400">
-                        {rule.destination.port}
+                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {srcPort}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {dstAddr}
+                      </TableCell>
+                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {dstPort}
                       </TableCell>
                       <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
                         {rule.target}
@@ -234,10 +257,9 @@ export default function PortForwardPage() {
                       <TableCell className="py-3 font-mono text-sm text-gray-500 dark:text-gray-400">
                         {rule["local-port"]}
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-400 italic dark:text-gray-500">
+                      <TableCell className="max-w-[150px] truncate py-3 text-sm text-gray-400 italic dark:text-gray-500">
                         {rule.descr}
                       </TableCell>
-
                       <TableCell className="py-3 pr-4">
                         <div className="flex items-center justify-center gap-3">
                           <button className="hover:opacity-70">
@@ -249,7 +271,7 @@ export default function PortForwardPage() {
                             />
                           </button>
                           <Switch
-                            key={`${rule["associated-rule-id"]}-${isEnabled}`}
+                            key={`${idx}-${isEnabled}`}
                             label=""
                             defaultChecked={isEnabled}
                             disabled={isUpdating}
