@@ -14,7 +14,7 @@ import Loading from "@/components/common/Loading";
 import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import Image from "next/image";
-
+import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
 // API 응답 데이터 구조 정의
 interface PortForwardRule {
   disabled?: string;
@@ -44,6 +44,10 @@ export default function PortForwardPage() {
   const [interfaces, setInterfaces] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<any>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number>(0);
 
   const fetchPortForwardData = async () => {
     if (!vpnIp) return;
@@ -102,6 +106,12 @@ export default function PortForwardPage() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleEditClick = (rule: any, idx: number) => {
+    setSelectedRule(rule);
+    setSelectedIdx(idx);
+    setIsEditModalOpen(true);
   };
 
   return (
@@ -301,6 +311,7 @@ export default function PortForwardPage() {
                               alt="Edit"
                               width={20}
                               height={20}
+                              onClick={() => handleEditClick(rule, idx)}
                             />
                           </button>
                           <Switch
@@ -329,6 +340,19 @@ export default function PortForwardPage() {
           </Table>
         </div>
       </div>
+      <PortForwardEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        rule={selectedRule}
+        ruleId={selectedIdx}
+        vpnIp={vpnIp}
+        // 이전에 만든 interfaces 객체를 Select 옵션 형식으로 변환 [{value: 'wan', label: 'LANDLINE'}, ...]
+        interfaceOptions={Object.entries(interfaces).map(([key, label]) => ({
+          value: key,
+          label,
+        }))}
+        onSuccess={fetchPortForwardData} // 수정 성공 시 데이터 새로고침
+      />
     </div>
   );
 }

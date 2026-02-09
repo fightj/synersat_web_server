@@ -60,10 +60,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// 2. 수정 메서드 (PUT - 기존 로직 유지)
 export async function PUT(req: NextRequest) {
   try {
-    const { vpnIp, id, disabled } = await req.json();
+    const body = await req.json();
+    const { vpnIp, id, apply, ...updateData } = body;
+
+    if (!vpnIp) return NextResponse.json({ error: "VPN IP is required" }, { status: 400 });
 
     const ALLOWED_IP = "10.8.130.249";
     if (vpnIp !== ALLOWED_IP) {
@@ -72,17 +74,23 @@ export async function PUT(req: NextRequest) {
         { status: 403 }
       );
     }
-
+    
     const authString = Buffer.from(`admin:globe1@3`).toString('base64');
     const targetUrl = `http://${vpnIp}/api/v1/firewall/nat/port_forward`;
     
+    // 모달에서 넘어온 필드들을 pfSense API가 기대하는 구조로 매핑하여 보냅니다.
     const response = await fetch(targetUrl, {
       method: "PUT",
       headers: { 
         "Content-Type": "application/json",
         "Authorization": `Basic ${authString}`
       },
-      body: JSON.stringify({ id, disabled, apply: true }),
+      // updateData에는 interface, protocol, src, srcport, dst, dstport, target, local-port, descr, disabled 등이 포함됨
+      body: JSON.stringify({ 
+        id, 
+        ...updateData,
+        apply: true 
+      }),
     });
 
     const result = await response.json();
