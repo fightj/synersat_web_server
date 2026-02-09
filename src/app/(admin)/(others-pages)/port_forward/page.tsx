@@ -40,6 +40,8 @@ export default function PortForwardPage() {
   const vpnIp = selectedVessel?.vpnIp || "";
 
   const [rules, setRules] = useState<PortForwardRule[]>([]);
+  // 인터페이스 매핑 상태: { "opt9": "CRW_WAN", "wan": "LANDLINE" }
+  const [interfaces, setInterfaces] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -47,11 +49,28 @@ export default function PortForwardPage() {
     if (!vpnIp) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/port_forward?vpnIp=${vpnIp}`, {
-        method: "GET",
-      });
-      const result = await response.json();
-      setRules(Array.isArray(result.data) ? result.data : []);
+      // 1. 포트포워딩 룰과 인터페이스 정보를 병렬로 호출
+      const [rulesRes, interfaceRes] = await Promise.all([
+        fetch(`/api/port_forward?vpnIp=${vpnIp}`),
+        fetch(`/api/interface?vpnIp=${vpnIp}`),
+      ]);
+
+      const rulesResult = await rulesRes.json();
+      const interfaceResult = await interfaceRes.json();
+
+      // 2. 인터페이스 데이터 가공 (Key: 시스템ID, Value: Description)
+      const interfaceMap: Record<string, string> = {};
+      if (interfaceResult.data) {
+        Object.entries(interfaceResult.data).forEach(
+          ([key, value]: [string, any]) => {
+            // descr이 있으면 쓰고, 없으면 시스템 ID(key)를 그대로 씀
+            interfaceMap[key] = value.descr || key;
+          },
+        );
+      }
+
+      setInterfaces(interfaceMap);
+      setRules(Array.isArray(rulesResult.data) ? rulesResult.data : []);
     } catch (error) {
       console.error("Fetch Error:", error);
     } finally {
@@ -61,7 +80,10 @@ export default function PortForwardPage() {
 
   useEffect(() => {
     if (vpnIp) fetchPortForwardData();
-    else setRules([]);
+    else {
+      setRules([]);
+      setInterfaces({});
+    }
   }, [vpnIp]);
 
   const handleToggleStatus = async (index: number, currentEnabled: boolean) => {
@@ -210,7 +232,12 @@ export default function PortForwardPage() {
               ) : (
                 rules.map((rule, idx) => {
                   const isEnabled = rule.disabled === undefined;
-                  // Source/Dest 헬퍼 로직
+
+                  // Interface 이름 변환 로직 적용
+                  // interfaces["opt9"] -> "CRW_WAN" 출력
+                  const displayInterface =
+                    interfaces[rule.interface] || rule.interface;
+
                   const srcAddr =
                     rule.source.any !== undefined
                       ? "*"
@@ -233,8 +260,14 @@ export default function PortForwardPage() {
                           className="mx-auto"
                         />
                       </TableCell>
+                      {/* 이 부분이 수정되었습니다 */}
                       <TableCell className="py-3 text-sm font-medium text-gray-800 uppercase dark:text-white/90">
-                        {rule.interface}
+                        {displayInterface}
+                        {displayInterface !== rule.interface && (
+                          <span className="ml-1 text-[10px] text-gray-400 lowercase italic">
+                            ({rule.interface})
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="py-3 text-sm text-gray-500 uppercase dark:text-gray-400">
                         {rule.protocol}
