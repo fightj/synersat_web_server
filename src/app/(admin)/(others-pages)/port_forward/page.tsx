@@ -259,6 +259,7 @@ export default function PortForwardPage() {
                   return (
                     <TableRow
                       key={idx}
+                      onDoubleClick={() => handleEditClick(rule, idx)}
                       className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${!isEnabled ? "opacity-40 grayscale-[0.5]" : ""}`}
                     >
                       <TableCell className="py-3 text-center">
