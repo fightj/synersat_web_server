@@ -16,6 +16,8 @@ import {
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  VesselIcon,
+  FirewallIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -27,24 +29,24 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    // icon: <GridIcon />,
+    icon: <GridIcon />,
     name: "Dashboard",
     // subItems: [{ name: "Dashboard", path: "/", pro: false }],
     path: "/",
   },
   {
     name: "Vessels",
-    // icon: <TableIcon />,
+    icon: <VesselIcon />,
     // subItems: [{ name: "Vessels", path: "/vessels", pro: false }],
     path: "/vessels",
   },
   {
-    // icon: <UserCircleIcon />,
+    icon: <UserCircleIcon />,
     name: "Crew Account",
     path: "/crew_account",
   },
   {
-    // icon: <CalenderIcon />,
+    icon: <FirewallIcon />,
     name: "Fire Wall",
     subItems: [
       { name: "Port Forward (System)", path: "/port_forward", pro: false },

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   Table,
@@ -10,7 +11,7 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import type { Vessel } from "@/types/vessel";
-import { useVesselStore } from "@/store/vessel.store"; // ✅ store import
+import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
 
 type SortKey = "company" | "vesselId" | "vesselName";
@@ -26,35 +27,6 @@ function getSortValue(v: Vessel, key: SortKey) {
       return v.name ?? "";
   }
 }
-
-const SortIcon = ({
-  active,
-  sortDir,
-}: {
-  active: boolean;
-  sortDir: SortDir;
-}) => (
-  <span
-    className={`ml-2 inline-flex flex-col leading-none ${
-      active ? "opacity-100" : "opacity-40"
-    }`}
-  >
-    <span
-      className={
-        sortDir === "asc" && active ? "text-gray-900 dark:text-white" : ""
-      }
-    >
-      ▲
-    </span>
-    <span
-      className={
-        sortDir === "desc" && active ? "text-gray-900 dark:text-white" : ""
-      }
-    >
-      ▼
-    </span>
-  </span>
-);
 
 const SortHeader = ({
   label,
@@ -75,17 +47,42 @@ const SortHeader = ({
     <button
       type="button"
       onClick={() => onToggle(k)}
-      className="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white"
-      aria-label={`Sort by ${label}`}
+      className="group inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white"
     >
       <span>{label}</span>
-      <SortIcon active={active} sortDir={sortDir} />
+      <div className="relative flex h-4 w-4 items-center justify-center">
+        {/* ✅ 화이트 테마용 아이콘: width, height 명시 */}
+        <Image
+          src="/images/icons/ic_sortable_d.png"
+          alt="sort"
+          width={16} // 4 * 4(px) = 16
+          height={16}
+          className={`transition-opacity dark:hidden ${
+            active ? "opacity-100" : "opacity-30 group-hover:opacity-60"
+          }`}
+          style={{
+            transform: active && sortDir === "desc" ? "rotate(180deg)" : "none",
+          }}
+        />
+        {/* ✅ 다크 테마용 아이콘: width, height 명시 */}
+        <Image
+          src="/images/icons/ic_sortable_g.png"
+          alt="sort"
+          width={16}
+          height={16}
+          className={`hidden transition-opacity dark:block ${
+            active ? "opacity-100" : "opacity-30 group-hover:opacity-60"
+          }`}
+          style={{
+            transform: active && sortDir === "desc" ? "rotate(180deg)" : "none",
+          }}
+        />
+      </div>
     </button>
   );
 };
 
 export default function VesselTableOne() {
-  // ✅ store에서 가져오기
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
   const error = useVesselStore((s) => s.error);
@@ -105,46 +102,36 @@ export default function VesselTableOne() {
 
   const sortedVessels = useMemo(() => {
     const copy = [...vessels];
-
     copy.sort((a, b) => {
       const av = getSortValue(a, sortKey);
       const bv = getSortValue(b, sortKey);
-
       const cmp = av.localeCompare(bv, "en", {
         numeric: true,
         sensitivity: "base",
       });
-
       return sortDir === "asc" ? cmp : -cmp;
     });
-
     return copy;
   }, [vessels, sortKey, sortDir]);
 
-  if (loading) {
+  if (loading)
     return (
       <div className="p-8 text-center">
         <Loading />
-        {/* <p className="mt-2 text-xs text-gray-400">Fetching crew data...</p> */}
       </div>
     );
-  }
-
-  if (error) {
+  if (error)
     return (
       <div className="space-y-3 p-8 text-center">
         <p className="text-destructive">Error: {error}</p>
-        {/* ✅ 재시도 버튼 */}
         <button
-          type="button"
           onClick={() => fetchVessels()}
-          className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/[0.1] dark:text-white/80 dark:hover:bg-white/[0.06]"
+          className="rounded-md border border-gray-300 px-3 py-1 text-sm dark:border-white/[0.1] dark:text-white/80"
         >
           Retry
         </button>
       </div>
     );
-  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -165,7 +152,6 @@ export default function VesselTableOne() {
                     onToggle={toggleSort}
                   />
                 </TableCell>
-
                 <TableCell
                   isHeader
                   className="text-theme-xs px-5 py-3 text-start font-medium text-gray-500 dark:text-gray-400"
@@ -178,7 +164,6 @@ export default function VesselTableOne() {
                     onToggle={toggleSort}
                   />
                 </TableCell>
-
                 <TableCell
                   isHeader
                   className="text-theme-xs px-5 py-3 text-start font-medium text-gray-500 dark:text-gray-400"
@@ -191,7 +176,6 @@ export default function VesselTableOne() {
                     onToggle={toggleSort}
                   />
                 </TableCell>
-
                 <TableCell
                   isHeader
                   className="text-theme-xs px-5 py-3 text-start font-medium text-gray-500 dark:text-gray-400"
@@ -237,7 +221,11 @@ export default function VesselTableOne() {
                 </TableRow>
               ) : (
                 sortedVessels.map((vessel) => (
-                  <TableRow key={vessel.id}>
+                  <TableRow
+                    key={vessel.id}
+                    // ✅ 행(Row) 호버 효과 추가
+                    className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
+                  >
                     <TableCell className="text-black-800 text-theme-sm px-4 py-3 text-start font-medium dark:text-white/90">
                       {vessel.description || "-"}
                     </TableCell>
