@@ -13,6 +13,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import Loading from "@/components/common/Loading";
 import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
+import Alert from "@/components/ui/alert/Alert";
 import Image from "next/image";
 import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
 import PortForwardAddModal from "@/components/port-forward/PortForwardAddModal";
@@ -49,6 +50,9 @@ export default function PortForwardPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<any>(null);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
+
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
 
   const interfaceOptions = Object.entries(interfaces).map(([key, label]) => ({
     value: key,
@@ -124,7 +128,37 @@ export default function PortForwardPage() {
     setIsEditModalOpen(true);
   };
 
-  // ✅ 1. 데이터 필터링 및 원본 인덱스 유지
+  const handleDeleteRule = async () => {
+    if (ruleToDelete === null || !vpnIp) return;
+
+    setIsUpdating(true); // 진행 중 표시 (오버레이)
+    setIsDeleteAlertOpen(false); // 알럿 닫기
+
+    try {
+      const response = await fetch("/api/port_forward", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vpnIp,
+          id: ruleToDelete,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "삭제에 실패했습니다.");
+      }
+
+      // 성공 시 데이터 갱신
+      await fetchPortForwardData();
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setIsUpdating(false);
+      setRuleToDelete(null);
+    }
+  };
+
   // descr에 "[User Rule]"이 포함되지 않은 것들만 필터링합니다.
   const systemRules = rules
     .map((rule, index) => ({ ...rule, originalIdx: index })) // 원본 인덱스 저장
@@ -133,7 +167,35 @@ export default function PortForwardPage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Firewall / Port Forward(System)" />
-
+      {/* ✅ 1. 삭제 확인 Alert UI */}
+      {isDeleteAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-gray-900">
+            <Alert
+              variant="warning"
+              title="Delete Rule"
+              message="Are you sure you want to delete this rule? This action cannot be undone."
+              showLink={false}
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDeleteAlertOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={handleDeleteRule}
+              >
+                Delete Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-md text-gray-600 dark:text-gray-300">
@@ -344,7 +406,13 @@ export default function PortForwardPage() {
                             }
                             color="blue"
                           />
-                          <button className="hover:opacity-70">
+                          <button
+                            className="hover:opacity-70"
+                            onClick={() => {
+                              setRuleToDelete(rule.originalIdx);
+                              setIsDeleteAlertOpen(true);
+                            }}
+                          >
                             <Image
                               src="/images/icons/ic_delete_r.png"
                               alt="Delete"
