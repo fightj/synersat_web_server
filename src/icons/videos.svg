@@ -1,15 +1,10 @@
-<svg
-         
-              width="25"
-              height="24"
-              viewBox="0 0 25 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M6.70825 5.93126L6.70825 18.0687C6.70825 19.2416 7.9937 19.9607 8.99315 19.347L18.8765 13.2783C19.83 12.6928 19.83 11.3072 18.8765 10.7217L8.99315 4.65301C7.9937 4.03931 6.70825 4.75844 6.70825 5.93126Z"
-                stroke="currentColor"
-                stroke-width="1.5" 
-  stroke-linejoin="round"
-              />
-            </svg>
+<svg width="400" height="150" viewBox="0 0 400 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g id="header">
+    <path d="M120 30c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20zm0 36c-8.8 0-16-7.2-16-16s7.2-16 16-16 16 7.2 16 16-7.2 16-16 16z" fill="#000000"/>
+    <path d="M120 35c-8 0-15 6.7-15 15s7 15 15 15 15-6.7 15-15-7-15-15-15zm0 26c-6.1 0-11-4.9-11-11s4.9-11 11-11 11 4.9 11 11-4.9 11-11 11z" fill="#000000" opacity="0.6"/>
+    
+    <text x="145" y="55" font-family="Arial, sans-serif" font-weight="900" font-style="italic" font-size="28" fill="#000000">SynerSAT</text>
+  </g>
+
+  <text x="10" y="110" font-family="Arial, sans-serif" font-weight="900" font-size="42" letter-spacing="1" fill="#000000">FLEET MANAGER</text>
+</svg>

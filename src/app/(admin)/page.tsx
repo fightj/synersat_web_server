@@ -10,7 +10,7 @@ import WorldMap from "@/components/map/WorldMap";
 import DashboardInfo from "@/components/Dashboard/DashboardInfo";
 
 export const metadata: Metadata = {
-  title: "Synersat",
+  title: "SynerSAT Fleet Manager",
 };
 
 export default function Dashboard() {
