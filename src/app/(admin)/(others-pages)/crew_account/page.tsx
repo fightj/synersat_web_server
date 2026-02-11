@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Image from "next/image";
+import { CsvIcon, UpdateIcon, CheckIcon } from "@/icons";
 import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
@@ -224,21 +226,37 @@ export default function ManageCrewAccount() {
               disabled={crew.length == 0 || isLoading}
               className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
+              <CsvIcon />
               Export CSV
             </Button>
-            {["RESET_PW", "RESET_DATA", "CHECK_PW", "DELETE"].map((act) => (
+            {["Reset_PW", "Reset_Data", "Check_PW", "Delete"].map((act) => (
               <Button
                 size="sm"
                 variant="outline"
                 key={act}
                 onClick={() => onAction(act as ActionType)}
                 disabled={noneSelected || isLoading}
-                className={`inline-flex items-center rounded-lg px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-50 ${
-                  act === "DELETE"
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  act === "Delete"
                     ? "text-red-600 hover:bg-red-50 dark:text-red-400 hover:dark:text-red-500"
-                    : "text-gray-700 hover:bg-blue-50"
+                    : "text-gray-700 hover:bg-blue-50 dark:text-gray-300"
                 }`}
               >
+                {/* ✅ 각 액션에 맞는 아이콘 분기 처리 */}
+                {(act === "Reset_PW" || act === "Reset_Data") && <UpdateIcon />}
+
+                {act === "Check_PW" && <CheckIcon />}
+
+                {act === "Delete" && (
+                  <Image
+                    src="/images/icons/ic_delete_r.png"
+                    alt="Delete"
+                    width={18}
+                    height={18}
+                  />
+                )}
+
+                {/* 텍스트 표시 */}
                 {act.replace("_", " ")}
               </Button>
             ))}

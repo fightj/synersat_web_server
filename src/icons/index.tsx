@@ -53,6 +53,10 @@ import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
 import VesselIcon from "./vessel.svg";
 import FirewallIcon from "./firewall.svg";
+import CsvIcon from "./csv-export.svg";
+import UpdateIcon from "./update.svg";
+import CheckIcon from "./check.svg";
+
 export {
   DownloadIcon,
   BellIcon,
@@ -109,4 +113,7 @@ export {
   ChatIcon,
   VesselIcon,
   FirewallIcon,
+  CsvIcon,
+  UpdateIcon,
+  CheckIcon,
 };

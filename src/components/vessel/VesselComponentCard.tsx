@@ -367,17 +367,13 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
                 />
                 <div className="mt-2 text-xs">
                   {vesselIdChecking && (
-                    <p className="text-gray-500">중복 확인 중...</p>
+                    <p className="text-gray-500">Checking for duplicates...</p>
                   )}
                   {vesselIdDuplicated === true && (
-                    <p className="text-red-500">
-                      이미 사용 중인 Vessel ID 입니다.
-                    </p>
+                    <p className="text-red-500">Vessel ID is already in use.</p>
                   )}
                   {vesselIdDuplicated === false && (
-                    <p className="text-green-600">
-                      사용 가능한 Vessel ID 입니다.
-                    </p>
+                    <p className="text-green-600">Available Vessel IDs.</p>
                   )}
                 </div>
               </div>
@@ -393,13 +389,13 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
                 />
                 <div className="mt-2 text-xs">
                   {snChecking && (
-                    <p className="text-gray-500">중복 확인 중...</p>
+                    <p className="text-gray-500">Checking for duplicates...</p>
                   )}
                   {snDuplicated === true && (
-                    <p className="text-red-500">이미 사용 중인 S/N 입니다.</p>
+                    <p className="text-red-500">This S/N is already in use.</p>
                   )}
                   {snDuplicated === false && (
-                    <p className="text-green-600">사용 가능한 S/N 입니다.</p>
+                    <p className="text-green-600">Available S/N.</p>
                   )}
                 </div>
               </div>
@@ -414,13 +410,17 @@ const VesselComponentCard: React.FC<VesselComponentCardProps> = ({
                 />
                 <div className="mt-2 text-xs">
                   {vpnChecking && (
-                    <p className="text-gray-500">중복 확인 중...</p>
+                    <p className="text-gray-500">Checking for duplicates...</p>
                   )}
                   {vpnDuplicated === true && (
-                    <p className="text-red-500">이미 사용중인 VPN IP 입니다.</p>
+                    <p className="text-red-500">
+                      This VPN IP is already in use.
+                    </p>
                   )}
                   {vpnDuplicated === false && (
-                    <p className="text-green-600">사용 가능한 VPN IP 입니다.</p>
+                    <p className="text-green-600">
+                      These are the available VPN IPs.
+                    </p>
                   )}
                 </div>
               </div>
