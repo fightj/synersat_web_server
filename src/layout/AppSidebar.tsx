@@ -54,6 +54,11 @@ const navItems: NavItem[] = [
         path: "/port_forward_system",
         pro: false,
       },
+      {
+        name: "Port Forward (User)",
+        path: "/port_forward_user",
+        pro: false,
+      },
     ],
   },
   // {
