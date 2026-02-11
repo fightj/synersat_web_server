@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "@/icons";
 
-interface PortForwardEditModalProps {
+interface PortForwardAddModalProps {
   isOpen: boolean;
   onClose: () => void;
-  rule: any;
-  ruleId: number;
   vpnIp: string;
   interfaceOptions: { value: string; label: string }[];
   onSuccess: () => void;
@@ -30,7 +28,6 @@ const PROTOCOL_OPTIONS = [
   { value: "pim", label: "PIM" },
   { value: "ospf", label: "OSPF" },
 ];
-
 const ANY_OTHER_OPTIONS = [
   { value: "any", label: "Any" },
   { value: "other", label: "Other" },
@@ -41,25 +38,34 @@ const RULE_TYPE_OPTIONS = [
   { value: "[User Rule]", label: "[User Rule]" },
 ];
 
-export default function PortForwardEditModal({
+export default function PortForwardAddModal({
   isOpen,
   onClose,
-  rule,
-  ruleId,
   vpnIp,
   interfaceOptions,
   onSuccess,
-}: PortForwardEditModalProps) {
-  const [formData, setFormData] = useState<any>({});
-  const [ruleType, setRuleType] = useState("[User Rule]"); // [System Rule] 또는 [User Rule]
-  const [pureDescr, setPureDescr] = useState(""); // 태그를 제외한 실제 설명 내용
+}: PortForwardAddModalProps) {
+  // 초기값 설정 (빈 값)
+  const [formData, setFormData] = useState<any>({
+    interface: "wan",
+    protocol: "tcp",
+    src: "",
+    srcport: "",
+    dst: "(self)",
+    dstport: "",
+    target: "",
+    "local-port": "",
+  });
+
+  const [ruleType, setRuleType] = useState("[User Rule]");
+  const [pureDescr, setPureDescr] = useState("");
 
   const [srcAddrMode, setSrcAddrMode] = useState("any");
   const [srcPortMode, setSrcPortMode] = useState("any");
   const [dstPortMode, setDstPortMode] = useState("any");
   const [loading, setLoading] = useState(false);
 
-  // 다크모드 대응 스타일
+  // 스타일 정의
   const inputStyle =
     "dark:bg-gray-200 dark:text-gray-900 dark:border-gray-300 font-medium placeholder:text-gray-500";
   const labelStyle =
@@ -67,73 +73,50 @@ export default function PortForwardEditModal({
   const sectionCardStyle =
     "bg-gray-50/50 dark:bg-white/[0.03] p-4 rounded-xl border border-gray-100 dark:border-white/[0.05]";
 
-  useEffect(() => {
-    if (rule && isOpen) {
-      // 1. Description 파싱 로직
-      const fullDescr = rule.descr || "";
-      if (fullDescr.startsWith("[System Rule]")) {
-        setRuleType("[System Rule]");
-        setPureDescr(fullDescr.replace("[System Rule]", "").trim());
-      } else if (fullDescr.startsWith("[User Rule]")) {
-        setRuleType("[User Rule]");
-        setPureDescr(fullDescr.replace("[User Rule]", "").trim());
-      } else {
-        setRuleType("[User Rule]");
-        setPureDescr(fullDescr);
-      }
-
-      // 2. 기타 데이터 로드
-      const srcAddr =
-        rule.source?.address || (rule.source?.any !== undefined ? "any" : "");
-      const srcPort =
-        rule.source?.port || (rule.source?.port === undefined ? "any" : "");
-      const dstPort = rule.destination?.port || "";
-
-      setFormData({
-        interface: rule.interface,
-        protocol: rule.protocol,
-        src: srcAddr === "any" ? "" : srcAddr,
-        srcport: srcPort === "any" ? "" : srcPort,
-        dst: rule.destination?.network || "(self)",
-        dstport: dstPort === "any" ? "" : dstPort,
-        target: rule.target,
-        "local-port": rule["local-port"],
-      });
-
-      setSrcAddrMode(srcAddr === "any" || !srcAddr ? "any" : "other");
-      setSrcPortMode(srcPort === "any" || !srcPort ? "any" : "other");
-      setDstPortMode(dstPort === "any" || !dstPort ? "any" : "other");
-    }
-  }, [rule, isOpen]);
-
   const handleSubmit = async () => {
     setLoading(true);
 
-    // 제출 시 타입과 내용을 합침
     const finalDescr = `${ruleType} ${pureDescr}`.trim();
 
+    // 생성 시 요구하신 고정 필드 포함
     const payload = {
       vpnIp,
-      id: ruleId,
       ...formData,
       descr: finalDescr,
       src: srcAddrMode === "any" ? "any" : formData.src,
       srcport: srcPortMode === "any" ? "any" : formData.srcport,
       dstport: dstPortMode === "any" ? "any" : formData.dstport,
+      // 요구하신 고정 파라미터
+      natreflection: "enable",
+      nordr: false,
+      nosync: false,
+      top: true,
       apply: true,
     };
 
     try {
       const res = await fetch("/api/port_forward", {
-        method: "PUT",
+        method: "POST", // 생성이므로 POST 사용
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Update Failed");
+      if (!res.ok) throw new Error("Add Failed");
       onSuccess();
       onClose();
+      // 성공 시 폼 초기화
+      setPureDescr("");
+      setFormData({
+        interface: "wan",
+        protocol: "tcp",
+        src: "",
+        srcport: "",
+        dst: "(self)",
+        dstport: "",
+        target: "",
+        "local-port": "",
+      });
     } catch (err) {
-      alert("수정 실패");
+      alert("규칙 생성 실패");
     } finally {
       setLoading(false);
     }
@@ -162,12 +145,12 @@ export default function PortForwardEditModal({
       <div className="flex flex-col gap-6">
         <div className="border-b pb-4 dark:border-white/10">
           <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-            Edit Rule #{ruleId}
+            Add New Port Forward Rule
           </h3>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* 1. Interface & Protocol 섹션 */}
+          {/* 1. Interface & Protocol */}
           <div className={`${sectionCardStyle} flex flex-col gap-4`}>
             <div className="space-y-1">
               <label className={labelStyle}>Interface</label>
@@ -191,7 +174,7 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 2. Source Info 섹션 */}
+          {/* 2. Source Info */}
           <div className={`${sectionCardStyle} flex flex-col gap-4`}>
             <div className="space-y-1">
               <label className={labelStyle}>Source Address</label>
@@ -206,7 +189,7 @@ export default function PortForwardEditModal({
                 {srcAddrMode === "other" && (
                   <Input
                     className={inputStyle}
-                    value={formData.src ?? ""}
+                    value={formData.src}
                     onChange={(e) =>
                       setFormData({ ...formData, src: e.target.value })
                     }
@@ -228,7 +211,7 @@ export default function PortForwardEditModal({
                 {srcPortMode === "other" && (
                   <Input
                     className={inputStyle}
-                    value={formData.srcport ?? ""}
+                    value={formData.srcport}
                     onChange={(e) =>
                       setFormData({ ...formData, srcport: e.target.value })
                     }
@@ -239,13 +222,13 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 3. External Dest 섹션 */}
+          {/* 3. External Dest */}
           <div className={`${sectionCardStyle} space-y-4`}>
             <div className="space-y-1">
               <label className={labelStyle}>Destination IP</label>
               <Input
                 className={`${inputStyle} opacity-60`}
-                value={formData.dst ?? ""}
+                value={formData.dst}
                 disabled
               />
             </div>
@@ -262,7 +245,7 @@ export default function PortForwardEditModal({
                 {dstPortMode === "other" && (
                   <Input
                     className={inputStyle}
-                    value={formData.dstport ?? ""}
+                    value={formData.dstport}
                     onChange={(e) =>
                       setFormData({ ...formData, dstport: e.target.value })
                     }
@@ -273,34 +256,32 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 4. NAT Target 섹션 */}
+          {/* 4. NAT Target */}
           <div className={`${sectionCardStyle} space-y-4`}>
             <div className="space-y-1">
-              <label className={labelStyle}>NAT IP</label>
+              <label className={labelStyle}>NAT IP (Target)</label>
               <Input
                 className={inputStyle}
-                value={formData.target ?? ""}
+                value={formData.target}
                 onChange={(e) =>
                   setFormData({ ...formData, target: e.target.value })
                 }
-                placeholder="Internal IP"
               />
             </div>
             <div className="space-y-1">
-              <label className={labelStyle}>NAT Port</label>
+              <label className={labelStyle}>NAT Port (Local)</label>
               <Input
                 className={inputStyle}
-                value={formData["local-port"] ?? ""}
+                value={formData["local-port"]}
                 onChange={(e) =>
                   setFormData({ ...formData, "local-port": e.target.value })
                 }
-                placeholder="Internal Port"
               />
             </div>
           </div>
         </div>
 
-        {/* 5. Description 섹션 (수정된 부분) */}
+        {/* 5. Description */}
         <div className={`${sectionCardStyle}`}>
           <label className={labelStyle}>Description</label>
           <div className="flex gap-2">
@@ -313,7 +294,7 @@ export default function PortForwardEditModal({
             </div>
             <Input
               className={inputStyle}
-              value={pureDescr ?? ""}
+              value={pureDescr}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setPureDescr(e.target.value)
               }
@@ -336,7 +317,7 @@ export default function PortForwardEditModal({
             disabled={loading}
             className="bg-brand-500 hover:bg-brand-600 px-8 text-white shadow-lg"
           >
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? "Creating..." : "Create Rule"}
           </Button>
         </div>
       </div>

@@ -49,7 +49,11 @@ const navItems: NavItem[] = [
     icon: <FirewallIcon />,
     name: "Fire Wall",
     subItems: [
-      { name: "Port Forward (System)", path: "/port_forward", pro: false },
+      {
+        name: "Port Forward (System)",
+        path: "/port_forward_system",
+        pro: false,
+      },
     ],
   },
   // {

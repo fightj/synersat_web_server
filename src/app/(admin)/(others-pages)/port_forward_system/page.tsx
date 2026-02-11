@@ -15,7 +15,8 @@ import Switch from "@/components/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import Image from "next/image";
 import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
-// API 응답 데이터 구조 정의
+import PortForwardAddModal from "@/components/port-forward/PortForwardAddModal";
+
 interface PortForwardRule {
   disabled?: string;
   interface: string;
@@ -40,20 +41,24 @@ export default function PortForwardPage() {
   const vpnIp = selectedVessel?.vpnIp || "";
 
   const [rules, setRules] = useState<PortForwardRule[]>([]);
-  // 인터페이스 매핑 상태: { "opt9": "CRW_WAN", "wan": "LANDLINE" }
   const [interfaces, setInterfaces] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<any>(null);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
+
+  const interfaceOptions = Object.entries(interfaces).map(([key, label]) => ({
+    value: key,
+    label,
+  }));
 
   const fetchPortForwardData = async () => {
     if (!vpnIp) return;
     setIsLoading(true);
     try {
-      // 1. 포트포워딩 룰과 인터페이스 정보를 병렬로 호출
       const [rulesRes, interfaceRes] = await Promise.all([
         fetch(`/api/port_forward?vpnIp=${vpnIp}`),
         fetch(`/api/interface?vpnIp=${vpnIp}`),
@@ -62,12 +67,10 @@ export default function PortForwardPage() {
       const rulesResult = await rulesRes.json();
       const interfaceResult = await interfaceRes.json();
 
-      // 2. 인터페이스 데이터 가공 (Key: 시스템ID, Value: Description)
       const interfaceMap: Record<string, string> = {};
       if (interfaceResult.data) {
         Object.entries(interfaceResult.data).forEach(
           ([key, value]: [string, any]) => {
-            // descr이 있으면 쓰고, 없으면 시스템 ID(key)를 그대로 씀
             interfaceMap[key] = value.descr || key;
           },
         );
@@ -90,14 +93,21 @@ export default function PortForwardPage() {
     }
   }, [vpnIp]);
 
-  const handleToggleStatus = async (index: number, currentEnabled: boolean) => {
+  const handleToggleStatus = async (
+    originalIndex: number,
+    currentEnabled: boolean,
+  ) => {
     if (!vpnIp) return;
     setIsUpdating(true);
     try {
       const response = await fetch("/api/port_forward", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vpnIp, id: index, disabled: currentEnabled }),
+        body: JSON.stringify({
+          vpnIp,
+          id: originalIndex,
+          disabled: currentEnabled,
+        }),
       });
       if (!response.ok) throw new Error("Update failed");
       await fetchPortForwardData();
@@ -108,11 +118,17 @@ export default function PortForwardPage() {
     }
   };
 
-  const handleEditClick = (rule: any, idx: number) => {
+  const handleEditClick = (rule: any, originalIdx: number) => {
     setSelectedRule(rule);
-    setSelectedIdx(idx);
+    setSelectedIdx(originalIdx); // 필터링된 순서가 아닌 원본 인덱스 전달
     setIsEditModalOpen(true);
   };
+
+  // ✅ 1. 데이터 필터링 및 원본 인덱스 유지
+  // descr에 "[User Rule]"이 포함되지 않은 것들만 필터링합니다.
+  const systemRules = rules
+    .map((rule, index) => ({ ...rule, originalIdx: index })) // 원본 인덱스 저장
+    .filter((rule) => !rule.descr?.includes("[User Rule]")); // User Rule 제외
 
   return (
     <div>
@@ -134,6 +150,7 @@ export default function PortForwardPage() {
           <Button
             size="sm"
             className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={() => setIsAddModalOpen(true)}
           >
             + Add new rule
           </Button>
@@ -230,21 +247,18 @@ export default function PortForwardPage() {
                     <Loading />
                   </TableCell>
                 </TableRow>
-              ) : rules.length === 0 ? (
+              ) : systemRules.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={11}
                     className="py-10 text-center dark:text-white"
                   >
-                    No rules available.
+                    No system rules available.
                   </TableCell>
                 </TableRow>
               ) : (
-                rules.map((rule, idx) => {
+                systemRules.map((rule) => {
                   const isEnabled = rule.disabled === undefined;
-
-                  // Interface 이름 변환 로직 적용
-                  // interfaces["opt9"] -> "CRW_WAN" 출력
                   const displayInterface =
                     interfaces[rule.interface] || rule.interface;
 
@@ -258,8 +272,10 @@ export default function PortForwardPage() {
 
                   return (
                     <TableRow
-                      key={idx}
-                      onDoubleClick={() => handleEditClick(rule, idx)}
+                      key={rule.originalIdx} // 고유 인덱스 사용
+                      onDoubleClick={() =>
+                        handleEditClick(rule, rule.originalIdx)
+                      }
                       className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${!isEnabled ? "opacity-40 grayscale-[0.5]" : ""}`}
                     >
                       <TableCell className="py-3 text-center">
@@ -271,7 +287,6 @@ export default function PortForwardPage() {
                           className="mx-auto"
                         />
                       </TableCell>
-                      {/* 이 부분이 수정되었습니다 */}
                       <TableCell className="py-3 text-sm font-medium text-gray-800 uppercase dark:text-white/90">
                         {displayInterface}
                         {displayInterface !== rule.interface && (
@@ -306,21 +321,27 @@ export default function PortForwardPage() {
                       </TableCell>
                       <TableCell className="py-3 pr-4">
                         <div className="flex items-center justify-center gap-3">
-                          <button className="hover:opacity-70">
+                          <button
+                            className="hover:opacity-70"
+                            onClick={() =>
+                              handleEditClick(rule, rule.originalIdx)
+                            }
+                          >
                             <Image
                               src="/images/icons/ic_modify_b.png"
                               alt="Edit"
                               width={20}
                               height={20}
-                              onClick={() => handleEditClick(rule, idx)}
                             />
                           </button>
                           <Switch
-                            key={`${idx}-${isEnabled}`}
+                            key={`${rule.originalIdx}-${isEnabled}`}
                             label=""
                             defaultChecked={isEnabled}
                             disabled={isUpdating}
-                            onChange={() => handleToggleStatus(idx, isEnabled)}
+                            onChange={() =>
+                              handleToggleStatus(rule.originalIdx, isEnabled)
+                            }
                             color="blue"
                           />
                           <button className="hover:opacity-70">
@@ -341,18 +362,24 @@ export default function PortForwardPage() {
           </Table>
         </div>
       </div>
+      {/* ✅ Port Forward 수정 모달 */}
       <PortForwardEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         rule={selectedRule}
         ruleId={selectedIdx}
         vpnIp={vpnIp}
-        // 이전에 만든 interfaces 객체를 Select 옵션 형식으로 변환 [{value: 'wan', label: 'LANDLINE'}, ...]
-        interfaceOptions={Object.entries(interfaces).map(([key, label]) => ({
-          value: key,
-          label,
-        }))}
-        onSuccess={fetchPortForwardData} // 수정 성공 시 데이터 새로고침
+        interfaceOptions={interfaceOptions}
+        onSuccess={fetchPortForwardData}
+      />
+
+      {/* ✅ Port Forward 추가 모달 연결 */}
+      <PortForwardAddModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        vpnIp={vpnIp}
+        interfaceOptions={interfaceOptions}
+        onSuccess={fetchPortForwardData}
       />
     </div>
   );
