@@ -54,11 +54,10 @@ const SortHeader = ({
     >
       <span>{label}</span>
       <div className="relative flex h-4 w-4 items-center justify-center">
-        {/* ✅ 화이트 테마용 아이콘: width, height 명시 */}
         <Image
           src="/images/icons/ic_sortable_d.png"
           alt="sort"
-          width={16} // 4 * 4(px) = 16
+          width={16}
           height={16}
           className={`transition-opacity dark:hidden ${
             active ? "opacity-100" : "opacity-30 group-hover:opacity-60"
@@ -67,7 +66,6 @@ const SortHeader = ({
             transform: active && sortDir === "desc" ? "rotate(180deg)" : "none",
           }}
         />
-        {/* ✅ 다크 테마용 아이콘: width, height 명시 */}
         <Image
           src="/images/icons/ic_sortable_g.png"
           alt="sort"
@@ -94,8 +92,12 @@ export default function VesselTableOne() {
   const [sortKey, setSortKey] = useState<SortKey>("company");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
+  // --- 삭제 관련 상태 ---
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [selectedImo, setSelectedImo] = useState<number | null>(null);
+  const [targetVessel, setTargetVessel] = useState<{
+    imo: number;
+    name: string;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const toggleSort = (key: SortKey) => {
@@ -121,12 +123,37 @@ export default function VesselTableOne() {
     return copy;
   }, [vessels, sortKey, sortDir]);
 
+  // --- 삭제 실행 로직 ---
+  const handleDeleteVessel = async () => {
+    if (!targetVessel) return;
+
+    try {
+      setIsDeleting(true);
+      const success = await deleteVessel([targetVessel.imo]);
+
+      if (success) {
+        // 성공 시 목록 새로고침 및 모달 닫기
+        await fetchVessels();
+        setIsDeleteAlertOpen(false);
+        setTargetVessel(null);
+      } else {
+        alert("삭제에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="p-8 text-center">
         <Loading />
       </div>
     );
+
   if (error)
     return (
       <div className="space-y-3 p-8 text-center">
@@ -139,28 +166,6 @@ export default function VesselTableOne() {
         </button>
       </div>
     );
-
-  const handleDeleteVessel = async () => {
-    if (!selectedImo) return;
-
-    try {
-      setIsDeleting(true);
-
-      const success = await deleteVessel([Number(selectedImo)]);
-
-      if (success) {
-        fetchVessels();
-      } else {
-        alert("삭제에 실패했습니다.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("오류가 발생했습니다.");
-    } finally {
-      setIsDeleting(false);
-      setSelectedImo(null);
-    }
-  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -258,7 +263,6 @@ export default function VesselTableOne() {
                 sortedVessels.map((vessel) => (
                   <TableRow
                     key={vessel.id}
-                    // ✅ 행(Row) 호버 효과 추가
                     className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                   >
                     <TableCell className="text-black-800 text-theme-sm px-4 py-3 text-start font-medium dark:text-white/90">
@@ -290,13 +294,15 @@ export default function VesselTableOne() {
                         {vessel.enabled ? "Active" : "-"}
                       </Badge>
                     </TableCell>
-
                     <TableCell className="text-theme-sm py-3 text-center text-gray-500 dark:text-gray-400">
                       <button
                         className="hover:opacity-70"
                         onClick={() => {
-                          setSelectedImo(vessel.imo); // 삭제할 선박의 IMO 저장
-                          setIsDeleteAlertOpen(true); // 모달 열기
+                          setTargetVessel({
+                            imo: vessel.imo,
+                            name: vessel.name || "this vessel",
+                          });
+                          setIsDeleteAlertOpen(true);
                         }}
                       >
                         <Image
@@ -314,6 +320,41 @@ export default function VesselTableOne() {
           </Table>
         </div>
       </div>
+
+      {/* ✅ 삭제 확인 Alert UI 통합 */}
+      {isDeleteAlertOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="animate-fadeIn w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <Alert
+              variant="warning"
+              title="Delete Vessel"
+              message={`Are you sure you want to delete [${targetVessel?.name}]? This action cannot be undone.`}
+              showLink={false}
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsDeleteAlertOpen(false);
+                  setTargetVessel(null);
+                }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400"
+                onClick={handleDeleteVessel}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Now"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
