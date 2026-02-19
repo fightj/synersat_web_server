@@ -20,11 +20,17 @@ export default function DashboardVessels() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
-  const onSelectVessel = (v: { id: any; name?: string; vpnIp?: string }) => {
+  const onSelectVessel = (v: {
+    id: string;
+    name?: string;
+    vpnIp?: string;
+    imo: number;
+  }) => {
     setSelectedVessel({
-      id: String(v.id),
+      id: v.id,
       name: v.name ?? "",
       vpnIp: v.vpnIp ?? "",
+      imo: v.imo,
     });
   };
 
