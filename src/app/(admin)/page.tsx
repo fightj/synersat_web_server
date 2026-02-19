@@ -7,7 +7,7 @@ import React from "react";
 // import RecentOrders from "@/components/ecommerce/RecentOrders";
 // import DemographicCard from "@/components/ecommerce/DemographicCard";
 import WorldMap from "@/components/map/WorldMap";
-import DashboardInfo from "@/components/Dashboard/DashboardInfo";
+import DashboardInfo from "@/components/dashboard/DashboardInfo";
 
 export const metadata: Metadata = {
   title: "SynerSAT Fleet Manager",
