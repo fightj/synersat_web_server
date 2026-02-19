@@ -71,9 +71,15 @@ export default function VesselSearch({ className = "" }: Props) {
   }, [allMatches, visibleCount]);
 
   // ✅ 선택 적용: store에 selectedVessel 저장
-  const selectVessel = (v: { id: any; name?: string; vpnIp?: string }) => {
+  const selectVessel = (v: {
+    id: any;
+    imo: number;
+    name?: string;
+    vpnIp?: string;
+  }) => {
     const payload = {
       id: String(v.id),
+      imo: Number(v.imo),
       name: v.name ?? "",
       vpnIp: v.vpnIp ?? "",
     };

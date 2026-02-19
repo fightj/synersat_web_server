@@ -1,25 +1,34 @@
 // 선박 데이터 인터페이스
 export interface Vessel {
-  id: string 
-  name: string
-  callsign: string
-  imo: string
-  mmsi: string
-  vpnIp: string
-  enabled: boolean
-  description?: string
+  id: string;
+  name: string;
+  callsign: string;
+  imo: number;
+  mmsi: number;
+  vpnIp: string;
+  enabled: boolean;
+  description: string;
+  // 추가된 필드
+  logo?: string;
+  manager?: string;
+  mailAddress?: string;
 }
 
-export interface VesselApiResponse {
-  id: string[]
-  name: string[]
-  callsign: string[]
-  imo: string[] 
-  mmsi: string[] 
-  description: string[]
-  vessel_enable: boolean[]
-  vpn_ip: string[]
-  restPath: string
+export interface VesselListResponse {
+  restPath: string;
+  vessels: Array<{
+    id: string;
+    name: string;
+    callsign: string;
+    imo: number;
+    mmsi: number;
+    vpn_ip: string;
+    vessel_enable: boolean;
+    description: string;
+    logo: string | undefined;
+    manager: string | undefined;
+    mailAddress: string | undefined;
+  }>;
 }
 
 // API 응답 타입

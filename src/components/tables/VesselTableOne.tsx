@@ -13,6 +13,9 @@ import Badge from "../ui/badge/Badge";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
+import Alert from "../ui/alert/Alert";
+import Button from "../ui/button/Button";
+import { deleteVessel } from "@/api/vessel";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
@@ -91,6 +94,10 @@ export default function VesselTableOne() {
   const [sortKey, setSortKey] = useState<SortKey>("company");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedImo, setSelectedImo] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const toggleSort = (key: SortKey) => {
     if (sortKey !== key) {
       setSortKey(key);
@@ -132,6 +139,28 @@ export default function VesselTableOne() {
         </button>
       </div>
     );
+
+  const handleDeleteVessel = async () => {
+    if (!selectedImo) return;
+
+    try {
+      setIsDeleting(true);
+
+      const success = await deleteVessel([Number(selectedImo)]);
+
+      if (success) {
+        fetchVessels();
+      } else {
+        alert("삭제에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("오류가 발생했습니다.");
+    } finally {
+      setIsDeleting(false);
+      setSelectedImo(null);
+    }
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -202,9 +231,15 @@ export default function VesselTableOne() {
                 </TableCell>
                 <TableCell
                   isHeader
-                  className="text-theme-xs px-5 py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                  className="text-theme-xs px-3 py-3 text-center font-medium text-gray-500 dark:text-gray-400"
                 >
                   Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="text-theme-xs py-3 text-start font-medium text-gray-500 dark:text-gray-400"
+                >
+                  Actions
                 </TableCell>
               </TableRow>
             </TableHeader>
@@ -213,7 +248,7 @@ export default function VesselTableOne() {
               {sortedVessels.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="px-5 py-4 text-center text-gray-500"
                   >
                     No vessels found
@@ -247,13 +282,30 @@ export default function VesselTableOne() {
                     <TableCell className="text-theme-sm px-4 py-3 text-start text-gray-500 dark:text-gray-400">
                       {vessel.vpnIp || "-"}
                     </TableCell>
-                    <TableCell className="text-theme-sm px-4 py-3 text-start text-gray-500 dark:text-gray-400">
+                    <TableCell className="text-theme-sm px-4 py-3 text-center text-gray-500 dark:text-gray-400">
                       <Badge
                         size="sm"
                         color={vessel.enabled ? "success" : "error"}
                       >
                         {vessel.enabled ? "Active" : "-"}
                       </Badge>
+                    </TableCell>
+
+                    <TableCell className="text-theme-sm py-3 text-center text-gray-500 dark:text-gray-400">
+                      <button
+                        className="hover:opacity-70"
+                        onClick={() => {
+                          setSelectedImo(vessel.imo); // 삭제할 선박의 IMO 저장
+                          setIsDeleteAlertOpen(true); // 모달 열기
+                        }}
+                      >
+                        <Image
+                          src="/images/icons/ic_delete_r.png"
+                          alt="Delete"
+                          width={20}
+                          height={20}
+                        />
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))

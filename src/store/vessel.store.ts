@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import type { Vessel } from "@/types/vessel";
 import { getVessels } from "@/api/vessel";
 
-type SelectedVessel = Pick<Vessel, "id" | "name" | "vpnIp">;
+type SelectedVessel = Pick<Vessel, "id" | "imo"| "name" | "vpnIp">;
 
 type VesselStore = {
   vessels: Vessel[];

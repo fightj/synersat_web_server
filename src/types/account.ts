@@ -1,6 +1,9 @@
+export interface Account {
+  acct: string;
+  domain: string;
+  description: string;
+}
+
 export interface AccountApiResponse {
-  restPath: string
-  acct: string[]
-  domain: string[]
-  description: string[]
+  accounts: Account[];
 }
