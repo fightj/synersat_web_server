@@ -15,6 +15,7 @@ import {
   addVessel,
   imoDuplicate,
 } from "@/api/vessel";
+import { EnvelopeIcon } from "@/icons";
 
 interface VesselAddModalProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
         })
         .catch((err) => console.error(err));
     } else {
-      // 초기화
+      // 초기화 로직
       setAccount("");
       setImo("");
       setVesselId("");
@@ -173,7 +174,6 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // --- 제출 조건 (IMO, Vessel ID, VPN IP 필수) ---
   const canSubmit = useMemo(() => {
     const requiredFilled =
       imo.length >= 7 &&
@@ -243,25 +243,10 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // --- 스타일 및 렌더링 헬퍼 ---
   const inputBaseStyle =
     "h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm font-medium outline-none focus:border-brand-500 dark:border-gray-700 dark:text-gray-200 dark:placeholder-gray-500";
   const labelStyle =
     "dark:text-white text-gray-800 font-bold mb-1.5 block text-sm";
-
-  const RenderSelect = ({ options, placeholder, onChange }: any) => (
-    <div className="relative">
-      <Select
-        options={options}
-        placeholder={placeholder}
-        onChange={onChange}
-        className={inputBaseStyle}
-      />
-      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-        <ChevronDownIcon />
-      </span>
-    </div>
-  );
 
   return (
     <Modal
@@ -289,14 +274,21 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
 
         <div className="custom-scrollbar flex-1 overflow-y-auto pr-2">
           <form className="space-y-5 pb-4">
-            {/* Account */}
+            {/* 1. Account Select - 수정됨 */}
             <div>
               <Label className={labelStyle}>Account</Label>
-              <RenderSelect
-                options={options}
-                placeholder="Select Account"
-                onChange={setAccount}
-              />
+              <div className="relative">
+                <Select
+                  options={options}
+                  placeholder="Select Account"
+                  value={account} // 현재 선택된 값 전달
+                  onChange={setAccount}
+                  className={inputBaseStyle}
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                  <ChevronDownIcon />
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -367,13 +359,18 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* VPN IP (비율 1/2 고정 영역 적용) */}
+            {/* VPN IP */}
             <div>
               <RequiredLabel>VPN IP</RequiredLabel>
               <div className="flex items-center gap-2">
-                <div className="flex h-11 basis-1/2 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-gray-400">
-                  10.8.
+                <div className="flex h-11 basis-1/3 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-gray-400">
+                  10
                 </div>
+                <span className="text-gray-400">.</span>
+                <div className="flex h-11 basis-1/3 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-bold text-gray-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-gray-400">
+                  8
+                </div>
+                <span className="text-gray-400">.</span>
                 <input
                   type="text"
                   className={inputBaseStyle}
@@ -486,35 +483,57 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               </div>
               <div className="col-span-2">
                 <Label className={labelStyle}>Mail Address</Label>
-                <Input
-                  className={inputBaseStyle}
-                  type="email"
-                  placeholder="example@mail.com"
-                  value={mailAddress}
-                  onChange={(e) => setMailAddress(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    type="email"
+                    placeholder="example@mail.com"
+                    value={mailAddress}
+                    onChange={(e) => setMailAddress(e.target.value)}
+                    className="pl-[62px]"
+                  />
+                  <span className="absolute top-1/2 left-0 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <EnvelopeIcon />
+                  </span>
+                </div>
               </div>
+
+              {/* 2. Manager Select - 수정됨 */}
               <div>
                 <Label className={labelStyle}>Manager</Label>
-                <RenderSelect
-                  options={managerOptions}
-                  placeholder="Select Manager"
-                  onChange={setManager}
-                />
+                <div className="relative">
+                  <Select
+                    options={managerOptions}
+                    placeholder="Select Manager"
+                    value={manager}
+                    onChange={setManager}
+                    className={inputBaseStyle}
+                  />
+                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                    <ChevronDownIcon />
+                  </span>
+                </div>
               </div>
+
+              {/* 3. Logo Select - 수정됨 */}
               <div>
                 <Label className={labelStyle}>Logo</Label>
-                <RenderSelect
-                  options={logoOptions}
-                  placeholder="Select Logo"
-                  onChange={setLogo}
-                />
+                <div className="relative">
+                  <Select
+                    options={logoOptions}
+                    placeholder="Select Logo"
+                    value={logo}
+                    onChange={setLogo}
+                    className={inputBaseStyle}
+                  />
+                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                    <ChevronDownIcon />
+                  </span>
+                </div>
               </div>
             </div>
           </form>
         </div>
 
-        {/* Actions */}
         <div className="mt-2 flex justify-end gap-3 border-t pt-6 dark:border-white/10">
           <button
             onClick={onClose}

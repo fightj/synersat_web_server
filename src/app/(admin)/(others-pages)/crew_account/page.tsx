@@ -16,6 +16,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
 import Button from "@/components/ui/button/Button";
 import Loading from "@/components/common/Loading";
+import Checkbox from "@/components/form/input/Checkbox";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
@@ -27,7 +28,7 @@ export default function ManageCrewAccount() {
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // API 호출 및 데이터 가공
+  // --- API 호출 및 데이터 가공 ---
   const fetchCrewData = async () => {
     if (!vpnIp) return;
     setIsLoading(true);
@@ -82,26 +83,28 @@ export default function ManageCrewAccount() {
     setSelected(new Set());
   }, [vpnIp]);
 
-  // 체크박스 제어 로직
+  // --- 체크박스 제어 로직 ---
   const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
   const selectedCount = selected.size;
   const allSelected = allIds.length > 0 && selectedCount === allIds.length;
   const noneSelected = selectedCount === 0;
-  const indeterminate = selectedCount > 0 && selectedCount < allIds.length;
-  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!headerCheckboxRef.current) return;
-    headerCheckboxRef.current.indeterminate = indeterminate;
-  }, [indeterminate]);
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(allIds));
+    }
+  };
 
-  const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(allIds));
   const toggleOne = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -125,20 +128,20 @@ export default function ManageCrewAccount() {
     console.log(`Action: ${action}`, selectedUsers);
   };
 
-  // 뱃지 컬러 결정 함수
+  // --- 뱃지 컬러 결정 함수 ---
   const getBadgeProps = (type: string) => {
     const lowerType = type.toLowerCase();
     if (lowerType === "starlink")
       return { color: "success" as const, label: "Starlink" };
     if (lowerType === "vsat")
       return { color: "warning" as const, label: "VSAT" };
-    return { color: "light" as const, label: type }; // 그 외는 입력값 그대로 출력
+    return { color: "light" as const, label: type };
   };
 
+  // --- CSV 내보내기 로직 ---
   const handleExportCSV = () => {
     let dataToExport = crew;
 
-    // 로컬/실제 데이터 체크
     if (dataToExport.length === 0) {
       dataToExport = [
         {
@@ -164,7 +167,6 @@ export default function ManageCrewAccount() {
       u.varusersmaxtotaloctets,
     ]);
 
-    // 1. CSV 내용 생성
     const csvContent = [
       headers.join(","),
       ...rows.map((row) =>
@@ -174,36 +176,30 @@ export default function ManageCrewAccount() {
       ),
     ].join("\n");
 
-    // 2. HTTP 환경에서 가장 강력한 Data URI 방식 (Blob 미사용)
-    // \ufeff (BOM)를 붙여야 엑셀에서 한글이 안 깨집니다.
     const csvData =
       "data:text/csv;charset=utf-8,\ufeff" + encodeURIComponent(csvContent);
 
     try {
       const link = document.createElement("a");
-      link.setAttribute("href", csvData); // Blob URL 대신 실제 데이터 주소 삽입
+      link.setAttribute("href", csvData);
       link.setAttribute(
         "download",
         `CrewList_${selectedVessel?.name || "Export"}.csv`,
       );
-
-      // 3. 반드시 DOM에 추가 (일부 브라우저 필수)
       document.body.appendChild(link);
-
-      // 4. 클릭 및 제거
       link.click();
       document.body.removeChild(link);
-
-      console.log("Download triggered via Data URI");
     } catch (error) {
       console.error("Critical Download Error:", error);
-      alert("서버 보안 정책으로 인해 다운로드가 차단되었습니다.");
+      alert("다운로드가 차단되었습니다.");
     }
   };
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Manage Crew Account" />
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        {/* 상단 툴바 영역 */}
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-md text-gray-600 dark:text-gray-300">
             {selectedVessel ? (
@@ -218,12 +214,11 @@ export default function ManageCrewAccount() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* export csv 버튼 */}
             <Button
               size="sm"
               variant="outline"
               onClick={handleExportCSV}
-              disabled={crew.length == 0 || isLoading}
+              disabled={crew.length === 0 || isLoading}
               className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CsvIcon />
@@ -242,11 +237,8 @@ export default function ManageCrewAccount() {
                     : "text-gray-700 hover:bg-blue-50 dark:text-gray-300"
                 }`}
               >
-                {/* ✅ 각 액션에 맞는 아이콘 분기 처리 */}
                 {(act === "Reset_PW" || act === "Reset_Data") && <UpdateIcon />}
-
                 {act === "Check_PW" && <CheckIcon />}
-
                 {act === "Delete" && (
                   <Image
                     src="/images/icons/ic_delete_r.png"
@@ -255,26 +247,20 @@ export default function ManageCrewAccount() {
                     height={18}
                   />
                 )}
-
-                {/* 텍스트 표시 */}
                 {act.replace("_", " ")}
               </Button>
             ))}
           </div>
         </div>
 
+        {/* 테이블 영역 */}
         <div className="max-w-full overflow-x-auto">
           <Table>
             <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
               <TableRow>
                 <TableCell isHeader className="w-[44px] px-4 py-3 text-start">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    className="h-4.5 w-4.5 rounded border-gray-300"
-                  />
+                  {/* ✅ 전체 선택 커스텀 체크박스 */}
+                  <Checkbox checked={allSelected} onChange={toggleAll} />
                 </TableCell>
                 <TableCell
                   isHeader
@@ -336,21 +322,21 @@ export default function ManageCrewAccount() {
               ) : (
                 crew.map((u) => {
                   const badge = getBadgeProps(u.varusersterminaltype || "");
+                  const isChecked = selected.has(u.varusersusername);
                   return (
                     <TableRow
                       key={u.varusersusername}
                       className={`cursor-default transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${
-                        selected.has(u.varusersusername)
+                        isChecked
                           ? "bg-blue-50/60 dark:bg-blue-500/10"
                           : "bg-transparent"
                       } `}
                     >
                       <TableCell className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(u.varusersusername)}
+                        {/* ✅ 개별 선택 커스텀 체크박스 */}
+                        <Checkbox
+                          checked={isChecked}
                           onChange={() => toggleOne(u.varusersusername)}
-                          className="h-4 w-4 cursor-pointer rounded border-gray-300"
                         />
                       </TableCell>
                       <TableCell className="text-theme-md py-3 font-medium text-gray-800 dark:text-white/90">
