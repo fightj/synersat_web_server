@@ -15,10 +15,7 @@ export default function BasicTables() {
       {/* 선박데이터 테이블 */}
       <PageBreadcrumb pageTitle="Vessels" />
       <div className="space-y-6">
-        <VesselComponentCard
-          title="Registered Vessels"
-          vesselAddBtn="+ Add Vessel"
-        >
+        <VesselComponentCard title="" vesselAddBtn="+ Add Vessel">
           <VesselTableOne />
         </VesselComponentCard>
       </div>

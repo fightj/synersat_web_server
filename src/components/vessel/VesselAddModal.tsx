@@ -6,7 +6,7 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "../form/Select";
 import Alert from "../ui/alert/Alert";
-import { ChevronDownIcon } from "@/icons";
+import { ChevronDownIcon, EnvelopeIcon, ChevronUpIcon } from "@/icons";
 import {
   getAccounts,
   serialNumberDuplicate,
@@ -15,7 +15,7 @@ import {
   addVessel,
   imoDuplicate,
 } from "@/api/vessel";
-import { EnvelopeIcon } from "@/icons";
+import AdditionalOptionModal from "./AdditionalOptionModal";
 
 interface VesselAddModalProps {
   isOpen: boolean;
@@ -65,6 +65,8 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
   const [snChecking, setSnChecking] = useState(false);
   const [snDuplicated, setSnDuplicated] = useState<boolean | null>(null);
 
+  const [showAdditional, setShowAdditional] = useState(false);
+
   const [adding, setAdding] = useState(false);
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error";
@@ -75,6 +77,7 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
   const logoOptions = [
     { value: "synersat", label: "Synersat" },
     { value: "sktelink", label: "SK Telink" },
+    { value: "null", label: "None" },
   ];
 
   const managerOptions = [
@@ -530,6 +533,35 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
                   </span>
                 </div>
               </div>
+            </div>
+            <div className="mt-8 border-t border-dashed pt-6 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowAdditional(!showAdditional)}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                  showAdditional
+                    ? "bg-gray-100 text-gray-700 dark:bg-white/5 dark:text-gray-300"
+                    : "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                }`}
+              >
+                {showAdditional ? (
+                  <>
+                    {" "}
+                    <ChevronUpIcon /> Close Additional Device Settings{" "}
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    <ChevronDownIcon /> Open Additional Device Settings (ACU,
+                    FBB...){" "}
+                  </>
+                )}
+              </button>
+
+              {/* 토글 컴포넌트 호출 */}
+              {showAdditional && (
+                <AdditionalOptionModal imo={Number(imo)} vesselId={vesselId} />
+              )}
             </div>
           </form>
         </div>
