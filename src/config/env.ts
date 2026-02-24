@@ -4,7 +4,7 @@ const isBrowser = typeof window !== "undefined";
 
 const getBaseUrl = () => {
   // 서버 사이드 렌더링(SSR) 중이거나 브라우저 환경이 아닐 때 기본값
-  if (!isBrowser) return process.env.NEXT_PUBLIC_API_BASE_URL || "http://10.10.10.7:8080";
+  if (!isBrowser) return process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const hostname = window.location.hostname;
 

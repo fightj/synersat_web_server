@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Modal } from "@/components/ui/modal"; // Modal 컴포넌트 임포트
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "../form/Select";
@@ -11,12 +12,14 @@ interface DeviceData {
   ip2: string;
   ip3: string;
   ip4: string;
-  devicePort: string; // "80" | "443"
+  devicePort: string;
   deviceId: string;
   devicePassword: string;
 }
 
 interface AdditionalProps {
+  isOpen: boolean; // 추가
+  onClose: () => void; // 추가
   imo: number;
   vesselId: string;
 }
@@ -48,10 +51,11 @@ const PORT_OPTIONS = [
 ];
 
 export default function AdditionalOptionModal({
+  isOpen,
+  onClose,
   imo,
   vesselId,
 }: AdditionalProps) {
-  // 4개의 카테고리 상태를 객체로 관리
   const [devices, setDevices] = useState<Record<string, DeviceData>>(
     CATEGORIES.reduce(
       (acc, cat) => ({
@@ -71,6 +75,8 @@ export default function AdditionalOptionModal({
     ),
   );
 
+  const [saving, setSaving] = useState(false);
+
   const handleChange = (
     category: string,
     field: keyof DeviceData,
@@ -82,35 +88,44 @@ export default function AdditionalOptionModal({
     }));
   };
 
-  // 개별 API 호출 함수 (VesselAddModal의 제출 로직에서 호출하거나 개별 버튼으로 사용)
-  const submitDevice = async (category: (typeof CATEGORIES)[number]) => {
-    const data = devices[category.key];
-    const fullIp = `${data.ip1}.${data.ip2}.${data.ip3}.${data.ip4}`;
-
-    // IP가 하나라도 비어있으면 무시 (요구사항: IP가 필수이며 없으면 무시)
-    if (!data.ip1 || !data.ip2 || !data.ip3 || !data.ip4) return;
-
-    const payload = {
-      imo: Number(imo),
-      id: vesselId,
-      deviceCategory: category.key,
-      deviceModel: data.deviceModel,
-      deviceIp: fullIp,
-      devicePort: Number(data.devicePort),
-      deviceId: data.deviceId,
-      devicePassword: data.devicePassword,
-      deviceForwardPort: category.forwardPort,
-    };
-
+  // 모든 유효한 디바이스를 한 번에 저장하는 로직
+  const handleSaveAll = async () => {
+    setSaving(true);
     try {
-      const res = await fetch("/api/device_credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) console.log(`${category.label} registered successfully`);
+      const promises = CATEGORIES.map((cat) => {
+        const data = devices[cat.key];
+        // IP가 완성된 것만 필터링하여 전송
+        if (data.ip1 && data.ip2 && data.ip3 && data.ip4) {
+          const fullIp = `${data.ip1}.${data.ip2}.${data.ip3}.${data.ip4}`;
+          const payload = {
+            imo: Number(imo),
+            id: vesselId,
+            deviceCategory: cat.key,
+            deviceModel: data.deviceModel,
+            deviceIp: fullIp,
+            devicePort: Number(data.devicePort),
+            deviceId: data.deviceId,
+            devicePassword: data.devicePassword,
+            deviceForwardPort: cat.forwardPort,
+          };
+
+          return fetch("/api/device_credentials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
+        return null;
+      }).filter(Boolean);
+
+      await Promise.all(promises);
+      alert("Additional options have been saved.");
+      onClose(); // 저장 후 닫기
     } catch (err) {
-      console.error(`${category.label} registration failed`, err);
+      console.error("Failed to save devices", err);
+      alert("An error occurred while saving.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -120,59 +135,77 @@ export default function AdditionalOptionModal({
     "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 block";
 
   return (
-    <div className="mt-6 space-y-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-1">
-        {CATEGORIES.map((cat) => (
-          <div
-            key={cat.key}
-            className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
-          >
-            <div className="mb-4 flex items-center justify-between border-b pb-2">
-              <span className="text-brand-600 text-lg font-black uppercase">
-                {cat.label}
-              </span>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      className="max-h-[90vh] w-[95vw] max-w-[800px] overflow-hidden p-6"
+    >
+      <div className="flex h-full flex-col">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold dark:text-white">
+            Additional Device Settings
+          </h3>
+          <p className="text-sm text-gray-500">
+            Set network credentials for ACU, FBB, etc.
+          </p>
+        </div>
 
-            <div className="space-y-4">
-              {/* Device Model */}
-              <div>
-                <Label className={labelStyle}>Device Model</Label>
-                <Select
-                  options={MODEL_OPTIONS}
-                  value={devices[cat.key].deviceModel}
-                  onChange={(val) => handleChange(cat.key, "deviceModel", val)}
-                  placeholder="Select Model"
-                />
+        {/* 스크롤 가능한 본문 영역 */}
+        <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto pr-2">
+          {CATEGORIES.map((cat) => (
+            <div
+              key={cat.key}
+              className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              <div className="mb-4 flex items-center justify-between border-b pb-2">
+                <span className="text-brand-600 text-lg font-black uppercase">
+                  {cat.label}
+                </span>
               </div>
 
-              {/* Device IP (4칸 분할) */}
-              <div>
-                <Label className={labelStyle}>Device IP</Label>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4].map((num) => (
-                    <React.Fragment key={num}>
-                      <input
-                        type="text"
-                        maxLength={3}
-                        className={`${inputBase} text-center`}
-                        placeholder="0"
-                        value={devices[cat.key][`ip${num}` as keyof DeviceData]}
-                        onChange={(e) =>
-                          handleChange(
-                            cat.key,
-                            `ip${num}` as keyof DeviceData,
-                            e.target.value.replace(/\D/g, ""),
-                          )
-                        }
-                      />
-                      {num < 4 && <span className="text-gray-400">.</span>}
-                    </React.Fragment>
-                  ))}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Device Model */}
+                <div className="col-span-1 md:col-span-2">
+                  <Label className={labelStyle}>Device Model</Label>
+                  <Select
+                    options={MODEL_OPTIONS}
+                    value={devices[cat.key].deviceModel}
+                    onChange={(val) =>
+                      handleChange(cat.key, "deviceModel", val)
+                    }
+                    placeholder="Select Model"
+                  />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Device Port */}
+                {/* Device IP */}
+                <div className="col-span-1 md:col-span-2">
+                  <Label className={labelStyle}>Device IP</Label>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4].map((num) => (
+                      <React.Fragment key={num}>
+                        <input
+                          type="text"
+                          maxLength={3}
+                          className={`${inputBase} text-center`}
+                          placeholder="0"
+                          value={
+                            devices[cat.key][`ip${num}` as keyof DeviceData]
+                          }
+                          onChange={(e) =>
+                            handleChange(
+                              cat.key,
+                              `ip${num}` as keyof DeviceData,
+                              e.target.value.replace(/\D/g, ""),
+                            )
+                          }
+                        />
+                        {num < 4 && <span className="text-gray-400">.</span>}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Protocol (Port) */}
                 <div>
                   <Label className={labelStyle}>Protocol (Port)</Label>
                   <Select
@@ -181,7 +214,8 @@ export default function AdditionalOptionModal({
                     onChange={(val) => handleChange(cat.key, "devicePort", val)}
                   />
                 </div>
-                {/* Forward Port (Read Only) */}
+
+                {/* Forward Port */}
                 <div>
                   <Label className={labelStyle}>Forward Port</Label>
                   <Input
@@ -190,10 +224,8 @@ export default function AdditionalOptionModal({
                     disabled
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* ID */}
+                {/* Admin ID */}
                 <div>
                   <Label className={labelStyle}>Admin ID</Label>
                   <Input
@@ -204,6 +236,7 @@ export default function AdditionalOptionModal({
                     }
                   />
                 </div>
+
                 {/* Password */}
                 <div>
                   <Label className={labelStyle}>Password</Label>
@@ -218,13 +251,26 @@ export default function AdditionalOptionModal({
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* 하단 버튼 영역 */}
+        <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400"
+          >
+            Skip for now
+          </button>
+          <button
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="bg-brand-500 hover:bg-brand-600 rounded-lg px-6 py-2 text-sm font-bold text-white transition-all disabled:bg-gray-400"
+          >
+            {saving ? "Saving..." : "Save Options"}
+          </button>
+        </div>
       </div>
-      <p className="text-xs text-gray-500">
-        * Devices with an IP address entered will be registered automatically
-        upon vessel creation.
-      </p>
-    </div>
+    </Modal>
   );
 }

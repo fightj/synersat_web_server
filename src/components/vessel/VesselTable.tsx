@@ -13,12 +13,17 @@ import Badge from "../ui/badge/Badge";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
-import Alert from "../ui/alert/Alert";
-import Button from "../ui/button/Button";
 import { deleteVessel } from "@/api/vessel";
+import VesselDeleteAlert from "./VesselDeleteAlert";
+import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
+
+// ✅ Props 타입 정의
+interface VesselTableProps {
+  searchTerm?: string;
+}
 
 function getSortValue(v: Vessel, key: SortKey) {
   switch (key) {
@@ -83,7 +88,7 @@ const SortHeader = ({
   );
 };
 
-export default function VesselTableOne() {
+export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
   const error = useVesselStore((s) => s.error);
@@ -100,6 +105,8 @@ export default function VesselTableOne() {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const router = useRouter();
+
   const toggleSort = (key: SortKey) => {
     if (sortKey !== key) {
       setSortKey(key);
@@ -109,8 +116,17 @@ export default function VesselTableOne() {
     }
   };
 
-  const sortedVessels = useMemo(() => {
-    const copy = [...vessels];
+  const displayVessels = useMemo(() => {
+    // 1. 검색어가 있을 경우 필터링 수행
+    const filtered = vessels.filter((v) =>
+      (v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+
+    if (searchTerm.trim() !== "") {
+      return filtered;
+    }
+
+    const copy = [...filtered];
     copy.sort((a, b) => {
       const av = getSortValue(a, sortKey);
       const bv = getSortValue(b, sortKey);
@@ -121,7 +137,7 @@ export default function VesselTableOne() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
-  }, [vessels, sortKey, sortDir]);
+  }, [vessels, sortKey, sortDir, searchTerm]);
 
   // --- 삭제 실행 로직 ---
   const handleDeleteVessel = async () => {
@@ -132,7 +148,6 @@ export default function VesselTableOne() {
       const success = await deleteVessel([targetVessel.imo]);
 
       if (success) {
-        // 성공 시 목록 새로고침 및 모달 닫기
         await fetchVessels();
         setIsDeleteAlertOpen(false);
         setTargetVessel(null);
@@ -145,6 +160,12 @@ export default function VesselTableOne() {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleRowDoubleClick = (vesselName: string, vesselImo: number) => {
+    if (!vesselName) return;
+    const encodedName = encodeURIComponent(vesselName);
+    router.push(`/vessels/${encodedName}?imo=${vesselImo}`);
   };
 
   if (loading)
@@ -250,20 +271,25 @@ export default function VesselTableOne() {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {sortedVessels.length === 0 ? (
+              {displayVessels.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={9}
-                    className="px-5 py-4 text-center text-gray-500"
+                    className="px-5 py-10 text-center text-gray-500"
                   >
-                    No vessels found
+                    {searchTerm
+                      ? `No results found for "${searchTerm}"`
+                      : "No vessels found"}
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedVessels.map((vessel) => (
+                displayVessels.map((vessel) => (
                   <TableRow
                     key={vessel.id}
-                    className="transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
+                    onDoubleClick={() =>
+                      handleRowDoubleClick(vessel.name || "", vessel.imo)
+                    }
+                    className="cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                   >
                     <TableCell className="text-black-800 text-theme-sm px-4 py-3 text-start font-medium dark:text-white/90">
                       {vessel.description || "-"}
@@ -321,40 +347,16 @@ export default function VesselTableOne() {
         </div>
       </div>
 
-      {/* ✅ 삭제 확인 Alert UI 통합 */}
-      {isDeleteAlertOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="animate-fadeIn w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-            <Alert
-              variant="warning"
-              title="Delete Vessel"
-              message={`Are you sure you want to delete [${targetVessel?.name}]? This action cannot be undone.`}
-              showLink={false}
-            />
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsDeleteAlertOpen(false);
-                  setTargetVessel(null);
-                }}
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400"
-                onClick={handleDeleteVessel}
-                disabled={isDeleting}
-              >
-                {isDeleting ? "Deleting..." : "Delete Now"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <VesselDeleteAlert
+        isOpen={isDeleteAlertOpen}
+        isDeleting={isDeleting}
+        targetVesselName={targetVessel?.name || ""}
+        onClose={() => {
+          setIsDeleteAlertOpen(false);
+          setTargetVessel(null);
+        }}
+        onConfirm={handleDeleteVessel}
+      />
     </div>
   );
 }

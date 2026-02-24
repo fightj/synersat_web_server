@@ -174,37 +174,29 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
 }
 
 //선박 추가
-export async function addVessel(payload: any): Promise<boolean> {
+export async function addVessel(payload: any): Promise<any | null> {
   try {
-    // 1. 값이 없거나 "null" 문자열인 필드를 제외한 새로운 객체 생성
+  
     const filteredPayload = Object.fromEntries(
-      Object.entries(payload).filter(([_, value]) => {
-        return (
-          value !== null &&
-          value !== undefined &&
-          value !== "" &&
-          value !== "null"
-        );
-      })
+      Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
 
     const res = await fetch(`${ENV.BASE_URL}/vessels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filteredPayload), // 가공된 데이터를 전송
+      body: JSON.stringify(filteredPayload),
     });
 
-    if (res.status === 200) {
-      return true;
+    if (res.status === 200 || res.status === 201) {
+      return await res.json(); // 생성된 선박 데이터 반환
     }
 
     const errorText = await res.text();
-    console.error(`Vessel 추가 실패 (${res.status}):`, errorText);
-    console.log(filteredPayload)
-    return false;
+    console.error(`Vessel 추가 실패:`, errorText);
+    return null;
   } catch (error) {
     console.error("addVessel 네트워크 에러:", error);
-    throw error;
+    return null;
   }
 }
 

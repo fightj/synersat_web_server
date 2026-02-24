@@ -342,10 +342,10 @@ export default function ManageCrewAccount() {
                       <TableCell className="text-theme-md py-3 font-medium text-gray-800 dark:text-white/90">
                         {u.varusersusername}
                       </TableCell>
-                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-white/90">
+                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-gray-400">
                         {u.description}
                       </TableCell>
-                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-white/90">
+                      <TableCell className="text-theme-md py-3 text-gray-500 dark:text-gray-400">
                         {u.duty}
                       </TableCell>
                       <TableCell className="text-theme-md py-3">

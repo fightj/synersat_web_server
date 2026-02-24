@@ -71,3 +71,22 @@ export type VesselAddInfo = {
 
 export type VesselAddResponse = boolean;
 
+export interface VesselDetail {
+  mmsi: number;
+  name: string;
+  callsign: string;
+  description: string;
+  imo: number;
+  id: string;
+  vpn_ip: string;
+  logo: string;
+  manager: string;
+  mailAddress: string;
+  status: {
+    available: boolean;
+    currentRoute: string;
+    lastConnectedAt: string;
+    antennaServiceName: string;
+    antennaServiceColor: string;
+  };
+}
