@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useVesselStore } from "@/store/vessel.store";
-
+import { CloseLineIcon } from "@/icons";
 // 검색 텍스트 하이라이트 컴포넌트 (기존과 동일)
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const q = query.trim();
@@ -147,21 +147,9 @@ export default function VesselFiltering({
         {query && (
           <button
             onClick={handleClear}
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute top-1/2 right-3 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:hover:bg-gray-700"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseLineIcon className="h-4 w-4" />{" "}
           </button>
         )}
       </div>

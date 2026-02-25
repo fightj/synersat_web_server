@@ -1,8 +1,6 @@
 import { ENV } from "../config/env";
 import type { 
-  Vessel, SerialNumberDuplicateResponse, 
-  VpnIpDuplicateResponse, VesselDuplicateResponse, VesselAddInfo,
-  VesselListResponse 
+  Vessel, VesselListResponse, VesselDetail 
 } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
@@ -227,6 +225,25 @@ export async function deleteVessel(imos: number[]): Promise<boolean> {
     return false;
   } catch (error) {
     console.error("Error deleting vessel:", error);
+    throw error;
+  }
+}
+
+// 7. 선박 상세 정보 조회 (GET /v1/vessels/{imo})
+export async function getVesselDetail(vesselImo: string | number): Promise<VesselDetail> {
+  try {
+    const res = await fetch(`${ENV.BASE_URL}/v1/vessels/${vesselImo}`, {
+      method: "GET",
+      cache: "no-store", // CSR이므로 항상 최신 데이터를 가져오도록 설정
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch vessel details (Status: ${res.status})`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Error in getVesselDetail:", error);
     throw error;
   }
 }

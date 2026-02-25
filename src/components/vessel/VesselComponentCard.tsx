@@ -13,7 +13,7 @@ export default function VesselComponentCard() {
 
   return (
     <>
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
             {/* 검색어가 변경되면 searchTerm 상태 업데이트 */}

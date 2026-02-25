@@ -51,6 +51,7 @@ export default function WorldMap() {
         maxBounds: bounds,
         maxBoundsViscosity: 1.0,
         attributionControl: false,
+        zoomControl: false,
       });
 
       mapInstanceRef.current = map;
@@ -110,7 +111,7 @@ export default function WorldMap() {
   }, []);
 
   return (
-    <div className="relative z-0 h-full w-full">
+    <div className="relative h-full min-h-[480px] w-full">
       <div ref={mapRef} className="absolute inset-0" />
     </div>
   );
