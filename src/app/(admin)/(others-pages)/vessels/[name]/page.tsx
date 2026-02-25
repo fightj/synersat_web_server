@@ -34,7 +34,7 @@ export default async function VesselDetailPage({
           {/* 2. h-fit을 추가하여 내용물만큼만 높이를 차지하게 함 */}
           <div className="h-fit w-full lg:w-1/2">
             {/* 지도 자체에 고정 높이가 있다면 그 높이만큼만 렌더링됩니다. */}
-            <WorldMap />
+            <WorldMap vesselImo={imo} />
           </div>
         </div>
       ) : (

@@ -132,7 +132,6 @@ const AppHeader: React.FC = () => {
           <div className="2xsm:gap-3 flex items-center gap-2">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */}
 
             {/* <NotificationDropdown /> */}
             {/* <!-- Notification Menu Area --> */}

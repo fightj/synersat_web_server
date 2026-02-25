@@ -247,3 +247,52 @@ export async function getVesselDetail(vesselImo: string | number): Promise<Vesse
     throw error;
   }
 }
+
+// api/vessel.ts
+
+// 응답 데이터 타입 정의
+export interface RouteCoordinate {
+  latitude: number | null;
+  longitude: number | null;
+  vesselSpeed: number | null;     // 속도 데이터 누락 가능성
+  vesselHeading: number | null;   // 헤딩 데이터 누락 가능성
+  satSignalStrength: number | null;
+  satId: number | null;
+  timeStamp: string;
+  status: {
+    currentRoute: string | null;
+    timeStamp: string | null;
+    antennaServiceName: string | null;
+    antennaServiceColor: string | null;
+  } | null; // ✅ status 객체 자체가 null일 수 있음
+}
+
+export interface VesselRouteResponse {
+  coordinates: RouteCoordinate[];
+}
+
+// 8. 항적 정보 조회 (GET /vessels/routes)
+export async function getVesselRoutes(
+  imo: string | number,
+  startAt: string,
+  endAt: string
+): Promise<VesselRouteResponse> {
+  try {
+    const params = new URLSearchParams({
+      imo: String(imo),
+      startAt,
+      endAt,
+    });
+
+    const res = await fetch(`${ENV.BASE_URL}/vessels/routes?${params.toString()}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!res.ok) throw new Error("항적 데이터를 불러오지 못했습니다.");
+    return await res.json();
+  } catch (error) {
+    console.error("getVesselRoutes Error:", error);
+    throw error;
+  }
+}

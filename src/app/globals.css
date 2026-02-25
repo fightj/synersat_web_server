@@ -750,3 +750,22 @@ span.flatpickr-weekday,
   scrollbar-width: none;
   /* Firefox */
 }
+
+/* Leaflet Popup Custom Styling */
+.leaflet-popup-content-wrapper {
+  background: rgba(31, 41, 55, 0.9) !important;
+  /* 진한 회색 (gray-800) + 투명도 90% */
+  color: #f3f4f6 !important;
+  /* 밝은 회색 글자 */
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(31, 41, 55, 0.9) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #9ca3af !important;
+  padding: 4px !important;
+}

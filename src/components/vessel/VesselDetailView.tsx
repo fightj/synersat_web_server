@@ -14,8 +14,12 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({ vesselImo }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ 서비스별 색상을 결정하는 함수
-  const getServiceBadgeStyles = (serviceName: string = "") => {
+  const getServiceBadgeStyles = (serviceName: string | null | undefined) => {
+    // serviceName이 없거나 문자열이 아닌 경우 대비
+    if (!serviceName || typeof serviceName !== "string") {
+      return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+    }
+
     const name = serviceName.toLowerCase();
 
     if (name.includes("starlink")) {
