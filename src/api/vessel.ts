@@ -253,7 +253,7 @@ export async function getVesselDetail(vesselImo: string | number): Promise<Vesse
 // 응답 데이터 타입 정의
 export interface RouteCoordinate {
   latitude: number | null;
-  longitude: number | null;
+  longitude: number | null
   vesselSpeed: number | null;     // 속도 데이터 누락 가능성
   vesselHeading: number | null;   // 헤딩 데이터 누락 가능성
   satSignalStrength: number | null;

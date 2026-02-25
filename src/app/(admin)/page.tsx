@@ -21,7 +21,7 @@ export default function Dashboard() {
       </div>
 
       <div className="col-span-12 h-[420px] space-y-6 md:h-[550px] xl:col-span-7">
-        <WorldMap />
+        {/* <WorldMap /> */}
       </div>
 
       {/* <div className="col-span-12">

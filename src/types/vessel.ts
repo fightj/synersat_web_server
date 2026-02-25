@@ -1,3 +1,5 @@
+
+
 // 선박 데이터 인터페이스
 export interface Vessel {
   id: string;
