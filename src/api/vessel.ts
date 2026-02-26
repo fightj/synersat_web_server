@@ -1,6 +1,6 @@
 import { ENV } from "../config/env";
 import type { 
-  Vessel, VesselListResponse, VesselDetail, RouteCoordinate
+  Vessel, VesselListResponse, VesselDetail, RouteCoordinate, DataUsage
 } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
@@ -260,6 +260,7 @@ export async function getVesselDetail(vesselImo: string | number): Promise<Vesse
 
 export interface VesselRouteResponse {
   coordinates: RouteCoordinate[];
+  dataUsages: DataUsage[]; 
 }
 
 // 8. 항적 정보 조회 (GET /vessels/routes)
@@ -275,12 +276,17 @@ export async function getVesselRoutes(
       endAt,
     });
 
+    // API 호출 로직은 동일하지만, 반환되는 Promise 타입이 업데이트된 인터페이스를 따릅니다.
     const res = await fetch(`${ENV.BASE_URL}/vessels/routes?${params.toString()}`, {
       method: "GET",
       cache: "no-store",
     });
 
-    if (!res.ok) throw new Error("항적 데이터를 불러오지 못했습니다.");
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({}));
+      throw new Error(errorBody.message || "항적 데이터를 불러오지 못했습니다.");
+    }
+
     return await res.json();
   } catch (error) {
     console.error("getVesselRoutes Error:", error);

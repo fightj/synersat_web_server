@@ -97,3 +97,9 @@ export interface RouteCoordinate {
     antennaServiceColor: string | null;
   } | null; 
 }
+export interface DataUsage {
+  dataUsageAmount: number;
+  interfaceName: string;
+  name: string;
+  color: string;
+}

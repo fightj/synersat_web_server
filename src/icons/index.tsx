@@ -56,6 +56,7 @@ import FirewallIcon from "./firewall.svg";
 import CsvIcon from "./csv-export.svg";
 import UpdateIcon from "./update.svg";
 import CheckIcon from "./check.svg";
+import TimeSettingIcon from "./time-setting.svg";
 
 export {
   DownloadIcon,
@@ -116,4 +117,5 @@ export {
   CsvIcon,
   UpdateIcon,
   CheckIcon,
+  TimeSettingIcon,
 };

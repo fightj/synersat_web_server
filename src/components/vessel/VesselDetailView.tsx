@@ -5,11 +5,17 @@ import Loading from "../common/Loading";
 import type { VesselDetail } from "@/types/vessel";
 import { getVesselDetail } from "@/api/vessel";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
+import type { DataUsage } from "@/types/vessel";
+
 interface VesselDetailViewProps {
   vesselImo: string;
+  dataUsages: DataUsage[];
 }
 
-const VesselDetailView: React.FC<VesselDetailViewProps> = ({ vesselImo }) => {
+const VesselDetailView: React.FC<VesselDetailViewProps> = ({
+  vesselImo,
+  dataUsages,
+}) => {
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
