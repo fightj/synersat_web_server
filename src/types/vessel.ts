@@ -1,6 +1,11 @@
+export interface VesselStatus {
+  available: boolean;
+  currentRoute: string | null;
+  lastConnectedAt: string | null;
+  antennaServiceName: string | null;
+  antennaServiceColor: string | null;
+}
 
-
-// 선박 데이터 인터페이스
 export interface Vessel {
   id: string;
   name: string;
@@ -10,14 +15,16 @@ export interface Vessel {
   vpnIp: string;
   enabled: boolean;
   description: string;
-  // 추가된 필드
   logo?: string;
   manager?: string;
   mailAddress?: string;
+  // ✅ 새로 추가된 필드
+  status?: VesselStatus; 
 }
 
 export interface VesselListResponse {
   restPath: string;
+  // ✅ API 응답 필드 (snake_case 및 status 포함)
   vessels: Array<{
     id: string;
     name: string;
@@ -30,34 +37,15 @@ export interface VesselListResponse {
     logo: string | undefined;
     manager: string | undefined;
     mailAddress: string | undefined;
+    // ✅ API에서 새로 내려주는 객체
+    status: VesselStatus;
   }>;
 }
-
 // API 응답 타입
 export interface VesselResponse {
   data: Vessel[]
   success: boolean
   message?: string
-}
-
-// 시리얼넘버 중복확인 데이터 타입
-export type SerialNumberDuplicateResponse = {
-  serialNumber: string
-  restPath: string
-  result: string
-  sn_duplicated: boolean
-}
-
-// vpnip 중복확인 데이터 타입
-export type VpnIpDuplicateResponse = {
-  vpnip: string
-  restPath: string
-  ip_duplicated: boolean
-}
-
-// vessel 중복확인 데이터 타입
-export type VesselDuplicateResponse = {
-  id_duplicated: boolean
 }
 
 export type VesselAddInfo = {
@@ -91,4 +79,21 @@ export interface VesselDetail {
     antennaServiceName: string;
     antennaServiceColor: string;
   };
+}
+
+// 선박 위도/경도, 속도
+export interface RouteCoordinate {
+  latitude: number | null;
+  longitude: number | null
+  vesselSpeed: number | null;     
+  vesselHeading: number | null;   
+  satSignalStrength: number | null;
+  satId: number | null;
+  timeStamp: string;
+  status: {
+    currentRoute: string | null;
+    timeStamp: string | null;
+    antennaServiceName: string | null;
+    antennaServiceColor: string | null;
+  } | null; 
 }

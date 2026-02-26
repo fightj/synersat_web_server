@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Loading from "../common/Loading";
 import type { VesselDetail } from "@/types/vessel";
 import { getVesselDetail } from "@/api/vessel";
-
+import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 interface VesselDetailViewProps {
   vesselImo: string;
 }
@@ -13,39 +13,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({ vesselImo }) => {
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const getServiceBadgeStyles = (serviceName: string | null | undefined) => {
-    if (!serviceName || typeof serviceName !== "string") {
-      return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
-    }
-
-    const name = serviceName.toLowerCase();
-
-    // 1. Starlink: 은은한 보라색
-    if (name.includes("starlink")) {
-      return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
-    }
-    // 2. VSAT: 은은한 초록색
-    if (name.includes("vsat")) {
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
-    }
-
-    // ✅ 3. FX: 회색기 없는 따뜻한 베이지 (Amber 계열 활용)
-    if (name.includes("fx")) {
-      return "bg-amber-100/70 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/50";
-    }
-
-    // 4. 4G: 은은한 노란색 (FX보다 좀 더 밝은 느낌)
-    if (name.includes("4g")) {
-      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300";
-    }
-    // 5. Nexuswave: 은은한 파란색
-    if (name.includes("nexuswave")) {
-      return "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300";
-    }
-
-    return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
-  };
 
   useEffect(() => {
     const fetchVesselDetail = async () => {

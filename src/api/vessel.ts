@@ -1,33 +1,43 @@
 import { ENV } from "../config/env";
 import type { 
-  Vessel, VesselListResponse, VesselDetail 
+  Vessel, VesselListResponse, VesselDetail, RouteCoordinate
 } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
-// 1. 선박 데이터 조회 (GET /vessels)
+// 1. 선박 데이터 조회 (GET /v1/vessels)
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    const res = await fetch(`${ENV.BASE_URL}/vessels`, {
+    // 엔드포인트 v1/vessels로 호출
+    const res = await fetch(`${ENV.BASE_URL}/v1/vessels`, {
       method: "GET",
-      // 별도의 커스텀 헤더 없이 호출 (인증 쿠키는 브라우저가 자동 전송)
     });
-    
-    if (!res.ok) throw new Error("Failed to fetch vessels");
 
-    const rawData: VesselListResponse = await res.json();
-    
-    return rawData.vessels.map((v) => ({
+    if (!res.ok) throw new Error("Failed to fetch vessels from v1");
+
+    // rawData 자체가 배열인 구조 ([{...}, {...}])
+    const rawData = await res.json();
+
+    // rawData에 직접 map을 실행하여 리턴
+    return rawData.map((v: any) => ({
       id: v.id,
       name: v.name,
       callsign: v.callsign,
       imo: v.imo,
       mmsi: v.mmsi,
-      vpnIp: v.vpn_ip,
-      enabled: v.vessel_enable,
+      vpnIp: v.vpn_ip,        // API의 vpn_ip를 vpnIp로 매핑
+      enabled: v.vessel_enable, // API의 vessel_enable을 enabled로 매핑
       description: v.description,
       logo: v.logo,
       manager: v.manager,
       mailAddress: v.mailAddress,
+      // status 객체 매핑
+      status: {
+        available: v.status?.available,
+        currentRoute: v.status?.currentRoute,
+        lastConnectedAt: v.status?.lastConnectedAt,
+        antennaServiceName: v.status?.antennaServiceName,
+        antennaServiceColor: v.status?.antennaServiceColor,
+      },
     }));
   } catch (error) {
     console.error("Error fetching vessels:", error);
@@ -246,25 +256,6 @@ export async function getVesselDetail(vesselImo: string | number): Promise<Vesse
     console.error("Error in getVesselDetail:", error);
     throw error;
   }
-}
-
-// api/vessel.ts
-
-// 응답 데이터 타입 정의
-export interface RouteCoordinate {
-  latitude: number | null;
-  longitude: number | null
-  vesselSpeed: number | null;     // 속도 데이터 누락 가능성
-  vesselHeading: number | null;   // 헤딩 데이터 누락 가능성
-  satSignalStrength: number | null;
-  satId: number | null;
-  timeStamp: string;
-  status: {
-    currentRoute: string | null;
-    timeStamp: string | null;
-    antennaServiceName: string | null;
-    antennaServiceColor: string | null;
-  } | null; // ✅ status 객체 자체가 null일 수 있음
 }
 
 export interface VesselRouteResponse {

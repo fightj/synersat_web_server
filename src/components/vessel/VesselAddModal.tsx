@@ -272,7 +272,7 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-h-[95vh] w-[95vw] max-w-[750px] overflow-hidden p-8 shadow-2xl dark:border-white/10 dark:bg-[#121212]"
+      className="z-9999 max-h-[95vh] w-[95vw] max-w-[750px] overflow-hidden p-8 shadow-2xl dark:border-white/10 dark:bg-[#121212]"
     >
       <div className="flex max-h-[90vh] flex-col gap-6">
         <div className="border-b pb-4 dark:border-white/10">

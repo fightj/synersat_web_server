@@ -5,7 +5,7 @@ import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import VesselAddModal from "./VesselAddModal";
 import VesselFiltering from "./VesselFiltering";
-import VesselTable from "./VesselTable"; // 직접 임포트
+import VesselTable from "./VesselTable";
 
 export default function VesselComponentCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -13,10 +13,9 @@ export default function VesselComponentCard() {
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="sticky top-20 z-1 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
-            {/* 검색어가 변경되면 searchTerm 상태 업데이트 */}
             <VesselFiltering onFilter={(name) => setSearchTerm(name)} />
           </div>
 
@@ -31,7 +30,8 @@ export default function VesselComponentCard() {
 
         <VesselAddModal isOpen={isOpen} onClose={closeModal} />
       </div>
-      <div>
+
+      <div className="mt-4">
         <VesselTable searchTerm={searchTerm} />
       </div>
     </>
