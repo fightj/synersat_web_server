@@ -244,7 +244,7 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
                 {/* Status */}
                 <TableCell className="px-3 py-4 text-start">
                   <span
-                    className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-tight uppercase shadow-sm ${getServiceBadgeStyles(vessel.status?.antennaServiceName)}`}
+                    className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase shadow-sm ${getServiceBadgeStyles(vessel.status?.antennaServiceName)}`}
                   >
                     {vessel.status?.antennaServiceName || "N/A"}
                   </span>

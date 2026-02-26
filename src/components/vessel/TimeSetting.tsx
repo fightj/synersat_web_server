@@ -16,6 +16,8 @@ import {
   endOfDay,
   isAfter,
   differenceInDays,
+  startOfWeek,
+  endOfWeek,
 } from "date-fns";
 import { TimeSettingIcon } from "@/icons";
 
@@ -28,19 +30,47 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeRange, setActiveRange] = useState("24h");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [error, setError] = useState<string | null>(null); // 에러 상태 추가
+  const [error, setError] = useState<string | null>(null);
 
   const [range, setRange] = useState<{ start: Date | null; end: Date | null }>({
     start: subHours(new Date(), 24),
     end: new Date(),
   });
 
+  // 퀵 렌지 옵션
   const quickRanges = [
-    { label: "12h", fn: () => subHours(new Date(), 12) },
-    { label: "24h", fn: () => subHours(new Date(), 24) },
-    { label: "2d", fn: () => subDays(new Date(), 2) },
-    { label: "7d", fn: () => subDays(new Date(), 7) },
+    {
+      label: "12h",
+      fn: () => ({ start: subHours(new Date(), 12), end: new Date() }),
+    },
+    {
+      label: "24h",
+      fn: () => ({ start: subHours(new Date(), 24), end: new Date() }),
+    },
+    {
+      label: "7d",
+      fn: () => ({ start: subDays(new Date(), 7), end: new Date() }),
+    },
+    {
+      label: "This Week",
+      fn: () => ({
+        start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+        end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+      }),
+    },
+    {
+      label: "This Month",
+      fn: () => ({
+        start: startOfMonth(new Date()),
+        end: endOfMonth(new Date()),
+      }),
+    },
   ];
+
+  const convertToUTCString = (date: Date) => {
+    const utcDate = subHours(date, 9);
+    return format(utcDate, "yyyy-MM-dd'T'HH:mm:ss");
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -49,7 +79,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         !containerRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
-        setError(null); // 닫힐 때 에러 초기화
+        setError(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -65,7 +95,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
 
   const handleDateClick = (day: Date) => {
     setActiveRange("");
-    setError(null); // 클릭 시 에러 메시지 초기화
+    setError(null);
 
     if (!range.start || (range.start && range.end)) {
       setRange({ start: startOfDay(day), end: null });
@@ -77,23 +107,19 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         [start, end] = [startOfDay(day), endOfDay(start)];
       }
 
+      // 💡 최대 90일(약 3개월) 제한 로직으로 수정
       const diff = Math.abs(differenceInDays(start, end));
-
-      if (diff > 6) {
-        setError("Maximum selection is 7 days"); // 에러 텍스트 설정
+      if (diff > 90) {
+        setError("Maximum selection is 3 months (90 days)");
         return;
       }
-
       setRange({ start, end });
     }
   };
 
   const handleApply = () => {
     if (range.start && range.end) {
-      onApply(
-        format(range.start, "yyyy-MM-dd'T'HH:mm:ss"),
-        format(range.end, "yyyy-MM-dd'T'HH:mm:ss"),
-      );
+      onApply(convertToUTCString(range.start), convertToUTCString(range.end));
       setIsOpen(false);
     }
   };
@@ -116,7 +142,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
 
   return (
     <div className="relative inline-block" ref={containerRef}>
-      {/* 트리거 버튼 (동일) */}
       <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/[0.03]">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -128,6 +153,9 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
           <span className="whitespace-nowrap text-gray-700 dark:text-gray-200">
             {range.start ? format(range.start, "yyyy.MM.dd") : "Start"} ~{" "}
             {range.end ? format(range.end, "yyyy.MM.dd") : "End"}
+            <span className="ml-1.5 text-[10px] font-medium text-gray-400">
+              KST
+            </span>
           </span>
         </button>
 
@@ -138,17 +166,13 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
             <button
               key={r.label}
               onClick={() => {
-                const s = r.fn();
-                const e = new Date();
-                setRange({ start: s, end: e });
+                const { start, end } = r.fn();
+                setRange({ start, end });
                 setActiveRange(r.label);
                 setError(null);
-                onApply(
-                  format(s, "yyyy-MM-dd'T'HH:mm:ss"),
-                  format(e, "yyyy-MM-dd'T'HH:mm:ss"),
-                );
+                onApply(convertToUTCString(start), convertToUTCString(end));
               }}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${
+              className={`rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
                 activeRange === r.label
                   ? "bg-blue-600 text-white shadow-sm"
                   : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
@@ -160,7 +184,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         </div>
       </div>
 
-      {/* 팝업 */}
       {isOpen && (
         <div className="animate-in fade-in zoom-in absolute top-full left-0 z-[9999] mt-3 w-[320px] origin-top-left rounded-xl border border-gray-200 bg-white p-5 shadow-2xl duration-200 dark:border-white/10 dark:bg-[#1e1e1e]">
           <div className="mb-4 flex items-center justify-between px-1">
@@ -210,7 +233,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
             ))}
           </div>
 
-          {/* 하단 푸터 영역: 에러 메시지와 버튼 */}
           <div className="mt-5 flex items-center border-t border-gray-100 pt-4 dark:border-white/5">
             <div className="flex-1">
               {error && (
@@ -221,11 +243,17 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
               {!error && range.start && !range.end && (
                 <p className="text-[11px] text-gray-400">Select end date</p>
               )}
+              {!error && range.start && range.end && (
+                <p className="text-[10px] text-gray-400">
+                  {Math.abs(differenceInDays(range.start, range.end))} days
+                  selected
+                </p>
+              )}
             </div>
             <button
               disabled={!range.start || !range.end}
               onClick={handleApply}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none"
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
             >
               Apply Range
             </button>
