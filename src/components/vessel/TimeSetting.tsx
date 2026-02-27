@@ -153,9 +153,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
           <span className="whitespace-nowrap text-gray-700 dark:text-gray-200">
             {range.start ? format(range.start, "yyyy.MM.dd") : "Start"} ~{" "}
             {range.end ? format(range.end, "yyyy.MM.dd") : "End"}
-            <span className="ml-1.5 text-[10px] font-medium text-gray-400">
-              KST
-            </span>
           </span>
         </button>
 

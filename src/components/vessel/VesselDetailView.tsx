@@ -19,6 +19,20 @@ interface VesselDetailViewProps {
   };
 }
 
+/**
+ * 💡 데이터 크기에 따라 적절한 단위를 반환하는 유틸리티
+ */
+const formatDataSize = (bytes: number) => {
+  if (bytes === 0) return { value: "0", unit: "KB" };
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  // GB 이상은 소수점 2자리, 그 미만은 소수점 1자리
+  const value = parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1));
+  return { value: value.toLocaleString(), unit: sizes[i] };
+};
+
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
   dataUsages,
@@ -45,13 +59,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
 
-  /**
-   * 💡 1. 이름별 데이터 합산 및 평균 속도 계산 로직
-   */
   const usageStats = useMemo(() => {
     if (!dataUsages || dataUsages.length === 0) return [];
 
-    // 시간 차이(초) 계산
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
       const start = parseISO(timeRange.startAt);
@@ -60,7 +70,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
     if (totalSeconds === 0) totalSeconds = 1;
 
-    // 이름(name) 기준으로 데이터 합산
     const aggregated = dataUsages.reduce(
       (acc, current) => {
         const name = current.name || "Unknown";
@@ -82,13 +91,15 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       >,
     );
 
-    // 합산된 데이터를 기반으로 속도 및 UI용 데이터 가공
     return Object.values(aggregated).map((item) => {
       const totalBytes = item.dataUsageAmount;
       const totalBits = totalBytes * 8;
       const bps = totalBits / totalSeconds;
 
-      const gbUsage = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+      // 1. 데이터 사용량 단위 변환 (TB 대응)
+      const { value, unit } = formatDataSize(totalBytes);
+
+      // 2. 평균 속도 단위 변환
       let speedText = "";
       if (bps >= 1000000) {
         speedText = `${(bps / 1000000).toFixed(2)} Mbps`;
@@ -98,9 +109,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
       return {
         ...item,
-        gbUsage,
+        usageValue: value,
+        usageUnit: unit,
         speedText,
-        // AnntennaMapping에서 정의된 색상 코드 가져오기
         color: getServiceColor(item.name),
       };
     });
@@ -135,44 +146,68 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         <p className="mt-1 text-sm text-gray-500">{data.description}</p>
       </div>
 
-      {/* 🚀 데이터 사용량 합산 섹션 */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {/* 🚀 데이터 사용량 합산 섹션 (Usage 강조 버전) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {usageStats.map((item) => (
           <div
             key={item.name}
-            className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 dark:border-white/[0.05] dark:bg-white/[0.02]"
+            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
           >
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: item.color }} // getServiceColor에서 가져온 색상 적용
-                />
-                <span className="text-[11px] font-bold tracking-tight text-gray-400 uppercase">
-                  {item.name}
+            {/* 배경 강조 포인트 */}
+            <div
+              className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]"
+              style={{ backgroundColor: item.color, borderRadius: "50%" }}
+            />
+
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="ring-opacity-10 h-2.5 w-2.5 rounded-full ring-4"
+                    style={{
+                      backgroundColor: item.color,
+                      borderColor: item.color,
+                    }}
+                  />
+                  <span className="text-xs font-extrabold tracking-widest text-gray-500 uppercase">
+                    {item.name}
+                  </span>
+                </div>
+                <span className="font-mono text-[9px] text-gray-400">
+                  {item.interfaces.join(" · ")}
                 </span>
               </div>
-              <span className="font-mono text-[9px] text-gray-400 opacity-60">
-                {item.interfaces.join(", ")}
-              </span>
+
+              {/* Usage 강조 영역 */}
+              <div className="mb-4">
+                <p className="text-[10px] font-bold tracking-tighter text-blue-500 uppercase dark:text-blue-400">
+                  Total Data Usage
+                </p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-gray-900 dark:text-white">
+                    {item.usageValue}
+                  </span>
+                  <span className="text-sm font-bold text-gray-400 uppercase">
+                    {item.usageUnit}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-[10px] font-medium tracking-tighter text-gray-400 uppercase">
-                  Total Avg. Speed
-                </p>
-                <p className="text-xl font-black text-gray-800 dark:text-gray-100">
+            {/* 하단 Speed 정보 */}
+            <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-medium text-gray-400 uppercase">
+                  Avg. Speed
+                </span>
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                   {item.speedText}
-                </p>
+                </span>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] font-medium tracking-tighter text-gray-400 uppercase">
-                  Total Usage
-                </p>
-                <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                  {item.gbUsage} <span className="text-[10px]">GB</span>
-                </p>
+              <div className="rounded-md bg-gray-50 px-2 py-1 dark:bg-white/5">
+                <span className="text-[10px] font-bold tracking-tight text-gray-400 uppercase">
+                  Real-time Stats
+                </span>
               </div>
             </div>
           </div>
@@ -182,19 +217,19 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       {/* 📄 통합된 정보 카드 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
-          Info
+          Vessel Information
         </h4>
         <div className="grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
           <div className="space-y-4">
-            <DetailItem label="IMO" value={data.imo} />
+            <DetailItem label="IMO Number" value={data.imo} />
             <DetailItem label="MMSI" value={data.mmsi} />
             <DetailItem label="Call Sign" value={data.callsign} />
-            <DetailItem label="Vessel ID" value={data.id} />
+            <DetailItem label="System ID" value={data.id} />
           </div>
           <div className="space-y-4">
-            <DetailItem label="VPN IP" value={data.vpn_ip} />
+            <DetailItem label="VPN IP Address" value={data.vpn_ip} />
             <DetailItem label="Manager" value={data.manager} />
-            <DetailItem label="Mail" value={data.mailAddress} />
+            <DetailItem label="Contact Mail" value={data.mailAddress} />
           </div>
         </div>
       </div>
