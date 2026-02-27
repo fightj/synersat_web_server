@@ -769,3 +769,18 @@ span.flatpickr-weekday,
   color: #9ca3af !important;
   padding: 4px !important;
 }
+
+
+/* ApexCharts 라이트 모드 툴팁 투명도 */
+html:not(.dark) .apexcharts-tooltip.apexcharts-theme-light {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(229, 231, 235, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+html:not(.dark) .apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
+  background: rgba(243, 244, 246, 0.7) !important;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5) !important;
+}

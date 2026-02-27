@@ -2,21 +2,25 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Loading from "../common/Loading";
-import type { VesselDetail, DataUsage } from "@/types/vessel";
+import type { VesselDetail, DataUsage, RouteCoordinate } from "@/types/vessel";
 import { getVesselDetail } from "@/api/vessel";
 import {
   getServiceBadgeStyles,
   getServiceColor,
 } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
+// 추후 DataUsageLineChart 등으로 명칭 변경 가능
+import LineChartOne from "../charts/line/LineChartOne";
 
 interface VesselDetailViewProps {
   vesselImo: string;
-  dataUsages: DataUsage[];
+  dataUsages: DataUsage[]; // 기존 요약 데이터 (필요 시 사용)
+  coordinates: RouteCoordinate[]; // ✅ 추가된 시계열 데이터
   timeRange?: {
     startAt: string;
     endAt: string;
   };
+  onTimeRangeChange?: (start: string, end: string) => void;
 }
 
 /**
@@ -28,7 +32,6 @@ const formatDataSize = (bytes: number) => {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  // GB 이상은 소수점 2자리, 그 미만은 소수점 1자리
   const value = parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1));
   return { value: value.toLocaleString(), unit: sizes[i] };
 };
@@ -36,7 +39,9 @@ const formatDataSize = (bytes: number) => {
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
   dataUsages,
+  coordinates,
   timeRange,
+  onTimeRangeChange,
 }) => {
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,8 +64,12 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
 
+  /**
+   * 💡 coordinates 내부의 dataUsages를 순회하여 안테나별 총 사용량을 합산합니다.
+   * API 구조 변경에 따라 coordinates 기반으로 통계를 내는 것이 더 정확합니다.
+   */
   const usageStats = useMemo(() => {
-    if (!dataUsages || dataUsages.length === 0) return [];
+    if (!coordinates || coordinates.length === 0) return [];
 
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
@@ -70,24 +79,27 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
     if (totalSeconds === 0) totalSeconds = 1;
 
-    const aggregated = dataUsages.reduce(
-      (acc, current) => {
-        const name = current.name || "Unknown";
-        if (!acc[name]) {
-          acc[name] = {
-            name: name,
-            dataUsageAmount: 0,
-            interfaces: [] as string[],
-          };
-        }
-        acc[name].dataUsageAmount += current.dataUsageAmount;
-        if (current.interfaceName)
-          acc[name].interfaces.push(current.interfaceName);
+    // coordinates 내부의 모든 dataUsages를 평탄화하여 합산
+    const aggregated = coordinates.reduce(
+      (acc, coord) => {
+        coord.dataUsages.forEach((usage) => {
+          const name = usage.antennaName || "Unknown";
+          if (!acc[name]) {
+            acc[name] = {
+              name: name,
+              dataUsageAmount: 0,
+              interfaces: new Set<string>(),
+            };
+          }
+          acc[name].dataUsageAmount += usage.dataUsage;
+          if (usage.interfaceName)
+            acc[name].interfaces.add(usage.interfaceName);
+        });
         return acc;
       },
       {} as Record<
         string,
-        { name: string; dataUsageAmount: number; interfaces: string[] }
+        { name: string; dataUsageAmount: number; interfaces: Set<string> }
       >,
     );
 
@@ -96,10 +108,8 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       const totalBits = totalBytes * 8;
       const bps = totalBits / totalSeconds;
 
-      // 1. 데이터 사용량 단위 변환 (TB 대응)
       const { value, unit } = formatDataSize(totalBytes);
 
-      // 2. 평균 속도 단위 변환
       let speedText = "";
       if (bps >= 1000000) {
         speedText = `${(bps / 1000000).toFixed(2)} Mbps`;
@@ -109,13 +119,14 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
       return {
         ...item,
+        interfaces: Array.from(item.interfaces),
         usageValue: value,
         usageUnit: unit,
         speedText,
         color: getServiceColor(item.name),
       };
     });
-  }, [dataUsages, timeRange]);
+  }, [coordinates, timeRange]);
 
   if (loading)
     return (
@@ -129,7 +140,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 🚢 상단 헤더 카드 */}
+      {/* 1. 상단 헤더 카드 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="flex flex-row items-center gap-3">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
@@ -146,19 +157,17 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         <p className="mt-1 text-sm text-gray-500">{data.description}</p>
       </div>
 
-      {/* 🚀 데이터 사용량 합산 섹션 (Usage 강조 버전) */}
+      {/* 2. 데이터 사용량 요약 섹션 */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {usageStats.map((item) => (
           <div
             key={item.name}
             className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
           >
-            {/* 배경 강조 포인트 */}
             <div
               className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]"
               style={{ backgroundColor: item.color, borderRadius: "50%" }}
             />
-
             <div className="relative">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -177,8 +186,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   {item.interfaces.join(" · ")}
                 </span>
               </div>
-
-              {/* Usage 강조 영역 */}
               <div className="mb-4">
                 <p className="text-[12px] font-bold tracking-tighter text-blue-500 uppercase dark:text-blue-400">
                   Total Data Usage
@@ -193,8 +200,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* 하단 Speed 정보 */}
             <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
               <div className="flex flex-col">
                 <span className="text-[11px] font-medium text-gray-400 uppercase">
@@ -206,7 +211,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               </div>
               <div className="rounded-md bg-gray-50 px-2 py-1 dark:bg-white/5">
                 <span className="text-[10px] font-bold tracking-tight text-gray-400 uppercase">
-                  Real-time Stats
+                  Period Stats
                 </span>
               </div>
             </div>
@@ -214,7 +219,21 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         ))}
       </div>
 
-      {/* 📄 통합된 정보 카드 */}
+      {/* 3. 라인 차트 섹션 (Usage 밑 / Vessel Info 위) */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.02]">
+        <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+          Data Usage History
+        </h4>
+        <div className="h-[250px] w-full">
+          <LineChartOne
+            coordinates={coordinates}
+            timeRange={timeRange}
+            onTimeRangeChange={onTimeRangeChange}
+          />
+        </div>
+      </div>
+
+      {/* 4. 선박 정보 카드 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
           Vessel Information

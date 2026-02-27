@@ -4,10 +4,11 @@ import { useEffect, useState, use } from "react";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import WorldMap from "@/components/map/WorldMap";
 import TimeSetting from "@/components/vessel/TimeSetting";
-import { getVesselRoutes, type VesselRouteResponse } from "@/api/vessel";
-import { format, subHours, parseISO } from "date-fns";
+import { getVesselRoutes } from "@/api/vessel";
+import { format, subHours, parseISO, addHours } from "date-fns";
 import Loading from "@/components/common/Loading";
 import Link from "next/link";
+import type { VesselRouteResponse } from "@/types/vessel";
 
 interface VesselDetailPageProps {
   params: Promise<{ name: string }>;
@@ -27,26 +28,15 @@ export default function VesselDetailPage({
     dataUsages: [],
   });
 
-  /**
-   * 💡 날짜 상태 관리
-   * UI 표시용으로는 KST(현재 시간)를 유지하고,
-   * API 요청 시에만 UTC로 변환하여 보냅니다.
-   */
   const [timeRange, setTimeRange] = useState({
     startAt: format(subHours(new Date(), 24), "yyyy-MM-dd'T'HH:mm:ss"),
     endAt: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss"),
   });
 
-  // API 호출 함수
   const fetchData = async (startKST: string, endKST: string) => {
     if (!imo) return;
     try {
       setLoading(true);
-
-      /**
-       * 🚀 UTC 변환 로직 (-9시간)
-       * 서버가 UTC 기준 데이터를 가지고 있으므로, KST 문자열을 파싱해 9시간을 뺍니다.
-       */
       const startUTC = format(
         subHours(parseISO(startKST), 9),
         "yyyy-MM-dd'T'HH:mm:ss",
@@ -76,9 +66,15 @@ export default function VesselDetailPage({
       </div>
     );
   }
+  const handleChartRangeChange = (startISO: string, endISO: string) => {
+    const startUTC = format(parseISO(startISO), "yyyy-MM-dd'T'HH:mm:ss");
+    const endUTC = format(parseISO(endISO), "yyyy-MM-dd'T'HH:mm:ss");
 
+    setTimeRange({ startAt: startUTC, endAt: endUTC });
+  };
   return (
-    <div className="p-2">
+    <div className="space-y-6 p-2">
+      {/* 헤더: 뒤로가기 및 타임 피커 */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <Link
           href="/vessels"
@@ -110,24 +106,28 @@ export default function VesselDetailPage({
         </div>
       </div>
 
-      <div className="relative mt-6 flex flex-col items-start gap-6 lg:flex-row">
+      <div className="relative flex flex-col gap-6">
         {loading && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
+          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
             <Loading />
           </div>
         )}
 
-        <div className="w-full lg:w-1/2">
-          {/* 💡 VesselDetailView에도 현재 timeRange를 넘겨주어 평균 속도 계산 시 사용하게 합니다. */}
-          <VesselDetailView
-            vesselImo={imo}
-            dataUsages={routeData.dataUsages}
-            timeRange={timeRange}
-          />
-        </div>
+        {/* 1. 상단 섹션: 상세 정보(DetailView)와 지도(WorldMap)를 1:1 비율로 배치 */}
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="w-full lg:w-1/2">
+            <VesselDetailView
+              vesselImo={imo}
+              dataUsages={routeData.dataUsages}
+              coordinates={routeData.coordinates}
+              timeRange={timeRange}
+              onTimeRangeChange={handleChartRangeChange} // ✅ 콜백 전달
+            />
+          </div>
 
-        <div className="h-fit w-full lg:w-1/2">
-          <WorldMap vesselImo={imo} coordinates={routeData.coordinates} />
+          <div className="h-[450px] w-full lg:h-auto lg:w-1/2">
+            <WorldMap vesselImo={imo} coordinates={routeData.coordinates} />
+          </div>
         </div>
       </div>
     </div>
