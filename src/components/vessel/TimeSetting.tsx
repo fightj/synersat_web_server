@@ -37,7 +37,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     end: new Date(),
   });
 
-  // 퀵 렌지 옵션
   const quickRanges = [
     {
       label: "12h",
@@ -67,9 +66,9 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     },
   ];
 
-  const convertToUTCString = (date: Date) => {
-    const utcDate = subHours(date, 9);
-    return format(utcDate, "yyyy-MM-dd'T'HH:mm:ss");
+  // 💡 시간을 변환하지 않고 로컬 포맷 그대로 반환합니다.
+  const formatDateString = (date: Date) => {
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
   };
 
   useEffect(() => {
@@ -107,7 +106,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         [start, end] = [startOfDay(day), endOfDay(start)];
       }
 
-      // 💡 최대 90일(약 3개월) 제한 로직으로 수정
       const diff = Math.abs(differenceInDays(start, end));
       if (diff > 90) {
         setError("Maximum selection is 3 months (90 days)");
@@ -119,7 +117,8 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
 
   const handleApply = () => {
     if (range.start && range.end) {
-      onApply(convertToUTCString(range.start), convertToUTCString(range.end));
+      // 부모 컴포넌트로 KST 기준 포맷 문자열 전달
+      onApply(formatDateString(range.start), formatDateString(range.end));
       setIsOpen(false);
     }
   };
@@ -167,7 +166,8 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
                 setRange({ start, end });
                 setActiveRange(r.label);
                 setError(null);
-                onApply(convertToUTCString(start), convertToUTCString(end));
+                // 퀵 레인지 선택 시에도 KST 기준 문자열 전달
+                onApply(formatDateString(start), formatDateString(end));
               }}
               className={`rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
                 activeRange === r.label

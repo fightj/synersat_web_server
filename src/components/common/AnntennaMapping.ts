@@ -58,5 +58,5 @@ export const LEGEND_ITEMS = [
   { label: "Starlink / Nexuswave / 4G", color: "#a855f7" },
   { label: "VSAT / FX", color: "#10b981" },
   { label: "FBB", color: "#0ea5e9" },
-  { label: "Offline / Other", color: "#ef4444" },
+  { label: "Offline", color: "#ef4444" },
 ];

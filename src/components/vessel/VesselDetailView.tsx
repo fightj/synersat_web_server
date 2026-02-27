@@ -163,31 +163,31 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div
-                    className="ring-opacity-10 h-2.5 w-2.5 rounded-full ring-4"
+                    className="ring-opacity-10 h-2.5 w-2.5 rounded-full ring-2"
                     style={{
                       backgroundColor: item.color,
                       borderColor: item.color,
                     }}
                   />
-                  <span className="text-xs font-extrabold tracking-widest text-gray-500 uppercase">
+                  <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">
                     {item.name}
                   </span>
                 </div>
-                <span className="font-mono text-[9px] text-gray-400">
+                <span className="font-mono text-[11px] text-gray-400">
                   {item.interfaces.join(" · ")}
                 </span>
               </div>
 
               {/* Usage 강조 영역 */}
               <div className="mb-4">
-                <p className="text-[10px] font-bold tracking-tighter text-blue-500 uppercase dark:text-blue-400">
+                <p className="text-[12px] font-bold tracking-tighter text-blue-500 uppercase dark:text-blue-400">
                   Total Data Usage
                 </p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-gray-900 dark:text-white">
+                  <span className="text-4xl font-black text-gray-900 dark:text-white">
                     {item.usageValue}
                   </span>
-                  <span className="text-sm font-bold text-gray-400 uppercase">
+                  <span className="text-md font-bold text-gray-400 uppercase">
                     {item.usageUnit}
                   </span>
                 </div>
@@ -197,10 +197,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             {/* 하단 Speed 정보 */}
             <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
               <div className="flex flex-col">
-                <span className="text-[10px] font-medium text-gray-400 uppercase">
+                <span className="text-[11px] font-medium text-gray-400 uppercase">
                   Avg. Speed
                 </span>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                <span className="text-md font-bold text-gray-700 dark:text-gray-300">
                   {item.speedText}
                 </span>
               </div>
