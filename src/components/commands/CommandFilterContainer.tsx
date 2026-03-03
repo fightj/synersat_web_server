@@ -8,7 +8,23 @@ import { CommandType, CommandStatus, GetCommandsParams } from "@/types/command";
 interface CommandFilterContainerProps {
   onFilterChange: (newFilters: Partial<GetCommandsParams>) => void;
   currentFilters: GetCommandsParams;
+  stats: Record<CommandStatus, number>;
 }
+
+const ChevronDownIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
 
 const COMMAND_TYPES: CommandType[] = [
   "UPDATE_VESSEL_FIRE_WALL",
@@ -27,7 +43,6 @@ const COMMAND_TYPES: CommandType[] = [
   "UPDATE_NAT",
   "REMOVE_NAT",
 ];
-
 const COMMAND_STATUSES: CommandStatus[] = [
   "READY",
   "RUNNING",
@@ -38,85 +53,120 @@ const COMMAND_STATUSES: CommandStatus[] = [
 export default function CommandFilterContainer({
   onFilterChange,
   currentFilters,
+  stats,
 }: CommandFilterContainerProps) {
   const vessels = useVesselStore((s) => s.vessels);
 
   const handleVesselSelect = (vesselName: string) => {
-    if (!vesselName) {
-      onFilterChange({ imo: undefined });
-      return;
-    }
     const targetVessel = vessels.find((v) => v.name === vesselName);
-    if (targetVessel) {
-      onFilterChange({ imo: targetVessel.imo });
-    }
+    onFilterChange({ imo: targetVessel?.imo });
   };
 
+  const selectBaseClass =
+    "appearance-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-10 rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm font-medium transition-all outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 cursor-pointer hover:border-gray-300";
+
   return (
-    <div className="sticky top-20 z-1 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      {/* justify-between을 제거하고 justify-start + gap-x를 활용하여 
-        요소들 사이의 거리를 일정한 간격(8 = 2rem)으로 조절했습니다.
-      */}
-      <div className="flex flex-wrap items-center justify-start gap-x-8 gap-y-4 px-6 py-4">
-        {/* 1. Vessel Filter */}
-        <div className="mr-3 flex items-center gap-3">
-          <label className="shrink-0 text-sm font-bold text-gray-700 dark:text-gray-300">
-            Vessel
-          </label>
-          <VesselFiltering
-            onFilter={handleVesselSelect}
-            className="w-[220px]"
-          />
-        </div>
-
-        {/* 2. Type Filter */}
-        <div className="mr-3 flex items-center gap-3">
-          <label className="shrink-0 text-sm font-bold text-gray-700 dark:text-gray-300">
-            Type
-          </label>
-          <select
-            value={currentFilters.commandType || ""}
-            onChange={(e) =>
-              onFilterChange({
-                commandType: (e.target.value as CommandType) || undefined,
-              })
-            }
-            className="focus:border-brand-500 h-10 w-[180px] rounded-lg border border-gray-200 bg-transparent px-3 text-sm transition-colors outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+    <div className="space-y-4">
+      {/* 1. 상단 상태 요약 배지 */}
+      <div className="flex flex-wrap items-center gap-2">
+        {COMMAND_STATUSES.map((status) => (
+          <div
+            key={status}
+            className="group flex items-center gap-2.5 rounded-full border border-gray-100 bg-white px-3.5 py-1.5 transition-all hover:shadow-sm dark:border-white/5 dark:bg-white/[0.03]"
           >
-            <option value="">All Types</option>
-            {COMMAND_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </div>
+            <span
+              className={`h-2 w-2 rounded-full ${
+                status === "SUCCESS"
+                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                  : status === "FAILED"
+                    ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                    : status === "RUNNING"
+                      ? "animate-pulse bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                      : "bg-gray-400"
+              }`}
+            />
+            <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+              {status}
+            </span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
+              {stats[status] || 0}
+            </span>
+          </div>
+        ))}
+      </div>
 
-        {/* 3. Status Filter */}
-        <div className="flex items-center gap-3">
-          <label className="shrink-0 text-sm font-bold text-gray-700 dark:text-gray-300">
-            Status
-          </label>
-          <select
-            value={currentFilters.commandStatus || ""}
-            onChange={(e) =>
-              onFilterChange({
-                commandStatus: (e.target.value as CommandStatus) || undefined,
-              })
-            }
-            className="focus:border-brand-500 h-10 w-[110px] rounded-lg border border-gray-200 bg-transparent px-3 text-sm transition-colors outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white"
-          >
-            <option value="">All</option>
-            {COMMAND_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* 2. 메인 필터 카드 */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex flex-wrap items-end gap-6">
+          {/* Vessel 필터 */}
+          <div className="flex flex-col gap-2">
+            <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">
+              Vessel
+            </label>
+            <VesselFiltering
+              onFilter={handleVesselSelect}
+              className="w-[220px]"
+            />
+          </div>
 
-        {/* 4. Reset Button (오른쪽 끝으로 밀기) */}
-        <div className="ml-auto flex items-center border-l border-gray-100 pl-6 dark:border-gray-800">
+          {/* Type 필터 */}
+          <div className="flex flex-col gap-2">
+            <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">
+              Command Type
+            </label>
+            <div className="group relative">
+              <select
+                value={currentFilters.commandType || ""}
+                onChange={(e) =>
+                  onFilterChange({
+                    commandType: (e.target.value as CommandType) || undefined,
+                  })
+                }
+                className={`w-[200px] ${selectBaseClass}`}
+              >
+                <option value="">All Types</option>
+                {COMMAND_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-gray-600">
+                <ChevronDownIcon />
+              </span>
+            </div>
+          </div>
+
+          {/* Status 필터 */}
+          <div className="flex flex-col gap-2">
+            <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">
+              Status
+            </label>
+            <div className="group relative">
+              <select
+                value={currentFilters.commandStatus || ""}
+                onChange={(e) =>
+                  onFilterChange({
+                    commandStatus:
+                      (e.target.value as CommandStatus) || undefined,
+                  })
+                }
+                className={`w-[130px] ${selectBaseClass}`}
+              >
+                <option value="">All Status</option>
+                {COMMAND_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-gray-600">
+                <ChevronDownIcon />
+              </span>
+            </div>
+          </div>
+
+          {/* 리셋 버튼 */}
           <button
             onClick={() =>
               onFilterChange({
@@ -125,10 +175,10 @@ export default function CommandFilterContainer({
                 imo: undefined,
               })
             }
-            className="group flex items-center gap-1.5 text-sm font-semibold text-gray-400 transition-colors hover:text-red-500"
+            className="mb-1 ml-auto flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
           >
             <svg
-              className="h-4 w-4 transition-transform group-hover:rotate-[-45deg]"
+              className="h-4 w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -136,11 +186,11 @@ export default function CommandFilterContainer({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            Reset
+            RESET
           </button>
         </div>
       </div>

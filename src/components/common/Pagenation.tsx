@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 interface PaginationProps {
   currentPage: number;
@@ -10,16 +9,33 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+// ✅ 화살표 아이콘 컴포넌트 (내부용)
+const ChevronIcon = ({ direction }: { direction: "left" | "right" }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d={direction === "left" ? "M15 18L9 12L15 6" : "M9 18L15 12L9 6"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export default function Pagination({
   currentPage,
   totalCount,
   pageSize,
   onPageChange,
 }: PaginationProps) {
-  // 전체 페이지 수 계산
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  // 표시할 페이지 번호 범위 계산 (현재 페이지 기준 앞뒤 2개씩)
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
@@ -40,32 +56,28 @@ export default function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="mt-4 flex items-center justify-center gap-2">
+    <div className="mt-6 flex items-center justify-center gap-3">
       {/* 이전 페이지 버튼 */}
       <button
+        type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-gray-400"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
       >
-        <Image
-          src="/images/icons/ic_arrow_left.png" // 기존 프로젝트의 아이콘 경로 확인 필요
-          alt="Prev"
-          width={16}
-          height={16}
-          className="dark:invert"
-        />
+        <ChevronIcon direction="left" />
       </button>
 
       {/* 페이지 번호 목록 */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {getPageNumbers().map((number) => (
           <button
             key={number}
+            type="button"
             onClick={() => onPageChange(number)}
-            className={`text-theme-sm flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-2 font-medium transition-all ${
+            className={`flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-all ${
               currentPage === number
-                ? "border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-200"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
+                ? "border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
             }`}
           >
             {number}
@@ -75,23 +87,18 @@ export default function Pagination({
 
       {/* 다음 페이지 버튼 */}
       <button
+        type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-gray-400"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
       >
-        <Image
-          src="/images/icons/ic_arrow_right.png" // 기존 프로젝트의 아이콘 경로 확인 필요
-          alt="Next"
-          width={16}
-          height={16}
-          className="dark:invert"
-        />
+        <ChevronIcon direction="right" />
       </button>
 
-      {/* 전체 개수 정보 표시 (선택 사항) */}
-      <div className="text-theme-xs ml-4 text-gray-400">
+      {/* 정보 표시 */}
+      <div className="ml-4 hidden text-[13px] text-gray-400 sm:block">
         Total{" "}
-        <span className="font-semibold text-gray-600 dark:text-gray-300">
+        <span className="font-bold text-gray-700 dark:text-gray-200">
           {totalCount}
         </span>
       </div>

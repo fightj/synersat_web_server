@@ -13,7 +13,7 @@ export default function VesselComponentCard() {
 
   return (
     <>
-      <div className="sticky top-20 z-1 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="sticky top-5 z-99 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
             <VesselFiltering onFilter={(name) => setSearchTerm(name)} />

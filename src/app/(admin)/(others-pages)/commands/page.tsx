@@ -1,27 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { getCommands } from "@/api/command";
 import type {
   CommandApiResponse,
-  CommandContent,
   GetCommandsParams,
-  CommandType,
   CommandStatus,
 } from "@/types/command";
 
-// 하위 컴포넌트들 (생성 예정)
 import CommandFilterContainer from "@/components/commands/CommandFilterContainer";
 import CommandTable from "@/components/commands/CommandTable";
 import Pagination from "@/components/common/Pagenation";
 
 export default function CommandsPage() {
-  // 1. 데이터 및 로딩 상태 관리
   const [data, setData] = useState<CommandApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 2. 검색 필터 및 페이지네이션 상태 관리
   const [params, setParams] = useState<GetCommandsParams>({
     pageIndex: 1,
     pageSize: 20,
@@ -30,7 +25,28 @@ export default function CommandsPage() {
     imo: undefined,
   });
 
-  // 3. API 호출 함수
+  // ✅ 상태별 갯수 계산 (API 응답 데이터 기준)
+  const stats = useMemo(() => {
+    const initialStats: Record<CommandStatus, number> = {
+      SUCCESS: 0,
+      FAILED: 0,
+      RUNNING: 0,
+      READY: 0,
+    };
+
+    if (!data?.contents) return initialStats;
+
+    return data.contents.reduce(
+      (acc, curr) => {
+        if (acc[curr.commandStatus] !== undefined) {
+          acc[curr.commandStatus]++;
+        }
+        return acc;
+      },
+      { ...initialStats },
+    );
+  }, [data]);
+
   const fetchCommands = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -43,21 +59,18 @@ export default function CommandsPage() {
     }
   }, [params]);
 
-  // 4. 파라미터가 변경될 때마다 API 재호출
   useEffect(() => {
     fetchCommands();
   }, [fetchCommands]);
 
-  // 5. 필터 변경 핸들러 (FilterContainer에서 사용)
   const handleFilterChange = (newFilters: Partial<GetCommandsParams>) => {
     setParams((prev) => ({
       ...prev,
       ...newFilters,
-      pageIndex: 1, // 필터 변경 시 첫 페이지로 리셋
+      pageIndex: 1,
     }));
   };
 
-  // 6. 페이지 변경 핸들러 (Pagination에서 사용)
   const handlePageChange = (newPageIndex: number) => {
     setParams((prev) => ({
       ...prev,
@@ -70,16 +83,17 @@ export default function CommandsPage() {
       <PageBreadcrumb pageTitle="Commands" />
 
       <div className="mt-6 space-y-6">
-        {/* 상단: 필터 영역 */}
+        {/* 상단: 필터 및 상태 요약 영역 */}
         <CommandFilterContainer
           onFilterChange={handleFilterChange}
           currentFilters={params}
+          stats={stats}
         />
 
-        {/* 중앙: 테이블 영역 */}
+        {/* 중앙: 테이블 영역 (선박명 Dot 포함) */}
         <CommandTable commands={data?.contents || []} isLoading={isLoading} />
 
-        {/* 하단: 페이지네이션 영역 */}
+        {/* 하단: 페이지네이션 영역 (SVG 아이콘 사용) */}
         {data && data.totalContentCount > 0 && (
           <div className="flex justify-center py-4">
             <Pagination
