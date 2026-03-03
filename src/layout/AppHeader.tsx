@@ -98,8 +98,6 @@ const AppHeader: React.FC = () => {
             />
           </Link>
 
-          <div className="hidden h-6 w-[1px] bg-gray-200 lg:block dark:bg-gray-800"></div>
-
           <div className="min-w-[200px] lg:min-w-[300px]">
             <VesselSearch />
           </div>

@@ -9,13 +9,13 @@ import {
   getServiceColor,
 } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
-// 추후 DataUsageLineChart 등으로 명칭 변경 가능
 import LineChartOne from "../charts/line/LineChartOne";
+import VesselCommandOne from "./VesselCommandOne"; // ✅ 명령어 컴포넌트 추가
 
 interface VesselDetailViewProps {
   vesselImo: string;
-  dataUsages: DataUsage[]; // 기존 요약 데이터 (필요 시 사용)
-  coordinates: RouteCoordinate[]; // ✅ 추가된 시계열 데이터
+  dataUsages: DataUsage[];
+  coordinates: RouteCoordinate[];
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -23,18 +23,17 @@ interface VesselDetailViewProps {
   onTimeRangeChange?: (start: string, end: string) => void;
 }
 
-/**
- * 💡 데이터 크기에 따라 적절한 단위를 반환하는 유틸리티
- */
 const formatDataSize = (bytes: number) => {
   if (bytes === 0) return { value: "0", unit: "KB" };
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
   const value = parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1));
   return { value: value.toLocaleString(), unit: sizes[i] };
 };
+
+// ✅ 뷰 모드 타입 정의
+type ViewMode = "OVERVIEW" | "COMMANDS";
 
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
@@ -46,6 +45,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ 화면 전환 상태 관리 (기본값: 요약 정보)
+  const [viewMode, setViewMode] = useState<ViewMode>("OVERVIEW");
 
   useEffect(() => {
     const fetchVesselDetail = async () => {
@@ -60,17 +62,11 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         setLoading(false);
       }
     };
-
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
 
-  /**
-   * 💡 coordinates 내부의 dataUsages를 순회하여 안테나별 총 사용량을 합산합니다.
-   * API 구조 변경에 따라 coordinates 기반으로 통계를 내는 것이 더 정확합니다.
-   */
   const usageStats = useMemo(() => {
     if (!coordinates || coordinates.length === 0) return [];
-
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
       const start = parseISO(timeRange.startAt);
@@ -79,7 +75,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
     if (totalSeconds === 0) totalSeconds = 1;
 
-    // coordinates 내부의 모든 dataUsages를 평탄화하여 합산
     const aggregated = coordinates.reduce(
       (acc, coord) => {
         coord.dataUsages.forEach((usage) => {
@@ -105,17 +100,12 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
     return Object.values(aggregated).map((item) => {
       const totalBytes = item.dataUsageAmount;
-      const totalBits = totalBytes * 8;
-      const bps = totalBits / totalSeconds;
-
+      const bps = (totalBytes * 8) / totalSeconds;
       const { value, unit } = formatDataSize(totalBytes);
-
-      let speedText = "";
-      if (bps >= 1000000) {
-        speedText = `${(bps / 1000000).toFixed(2)} Mbps`;
-      } else {
-        speedText = `${(bps / 1000).toFixed(2)} kbps`;
-      }
+      const speedText =
+        bps >= 1000000
+          ? `${(bps / 1000000).toFixed(2)} Mbps`
+          : `${(bps / 1000).toFixed(2)} kbps`;
 
       return {
         ...item,
@@ -140,100 +130,124 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. 상단 헤더 카드 */}
+      {/* 1. 상단 헤더 카드 (탭 전환 버튼 포함) */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
-        <div className="flex flex-row items-center gap-3">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
-            {data.name}
-          </h3>
-          <span
-            className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(
-              data.status?.antennaServiceName,
-            )}`}
-          >
-            {data.status?.antennaServiceName || "N/A"}
-          </span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-row items-center gap-3">
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white/90">
+              {data.name}
+            </h3>
+            <span
+              className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.antennaServiceName)}`}
+            >
+              {data.status?.antennaServiceName || "N/A"}
+            </span>
+          </div>
+
+          {/* ✅ 탭 전환 버튼 그룹 */}
+          <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+            <button
+              onClick={() => setViewMode("OVERVIEW")}
+              className={`rounded-md px-4 py-2 text-xs font-bold transition-all ${
+                viewMode === "OVERVIEW"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setViewMode("COMMANDS")}
+              className={`rounded-md px-4 py-2 text-xs font-bold transition-all ${
+                viewMode === "COMMANDS"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+            >
+              Commands
+            </button>
+          </div>
         </div>
         <p className="mt-1 text-sm text-gray-500">{data.description}</p>
       </div>
 
-      {/* 2. 데이터 사용량 요약 섹션 */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {usageStats.map((item) => (
-          <div
-            key={item.name}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
-          >
-            <div
-              className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03] transition-opacity group-hover:opacity-[0.05]"
-              style={{ backgroundColor: item.color, borderRadius: "50%" }}
-            />
-            <div className="relative">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="ring-opacity-10 h-2.5 w-2.5 rounded-full ring-2"
-                    style={{
-                      backgroundColor: item.color,
-                      borderColor: item.color,
-                    }}
-                  />
-                  <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">
-                    {item.name}
-                  </span>
+      {/* 2. 조건부 컨텐츠 영역 */}
+      {viewMode === "OVERVIEW" ? (
+        <>
+          {/* 사용량 요약 그리드 */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {usageStats.map((item) => (
+              <div
+                key={item.name}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
+              >
+                <div
+                  className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]"
+                  style={{ backgroundColor: item.color, borderRadius: "50%" }}
+                />
+                <div className="relative">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">
+                        {item.name}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] text-gray-400">
+                      {item.interfaces.join(" · ")}
+                    </span>
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-[12px] font-bold text-blue-500 uppercase">
+                      Total Data Usage
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">
+                        {item.usageValue}
+                      </span>
+                      <span className="text-md font-bold text-gray-400 uppercase">
+                        {item.usageUnit}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <span className="font-mono text-[11px] text-gray-400">
-                  {item.interfaces.join(" · ")}
-                </span>
-              </div>
-              <div className="mb-4">
-                <p className="text-[12px] font-bold tracking-tighter text-blue-500 uppercase dark:text-blue-400">
-                  Total Data Usage
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-gray-900 dark:text-white">
-                    {item.usageValue}
-                  </span>
-                  <span className="text-md font-bold text-gray-400 uppercase">
-                    {item.usageUnit}
-                  </span>
+                <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-medium text-gray-400 uppercase">
+                      Avg. Speed
+                    </span>
+                    <span className="text-md font-bold text-gray-700 dark:text-gray-300">
+                      {item.speedText}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
-              <div className="flex flex-col">
-                <span className="text-[11px] font-medium text-gray-400 uppercase">
-                  Avg. Speed
-                </span>
-                <span className="text-md font-bold text-gray-700 dark:text-gray-300">
-                  {item.speedText}
-                </span>
-              </div>
-              <div className="rounded-md bg-gray-50 px-2 py-1 dark:bg-white/5">
-                <span className="text-[10px] font-bold tracking-tight text-gray-400 uppercase">
-                  Period Stats
-                </span>
-              </div>
+            ))}
+          </div>
+
+          {/* 차트 섹션 */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.02]">
+            <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+              Data Usage History
+            </h4>
+            <div className="h-[250px] w-full">
+              <LineChartOne
+                coordinates={coordinates}
+                timeRange={timeRange}
+                onTimeRangeChange={onTimeRangeChange}
+              />
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      ) : (
+        /* ✅ 명령어 이력 화면 */
+        <VesselCommandOne imo={Number(vesselImo)} />
+      )}
 
-      {/* 3. 라인 차트 섹션 (Usage 밑 / Vessel Info 위) */}
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.02]">
-        <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
-          Data Usage History
-        </h4>
-        <div className="h-[250px] w-full">
-          <LineChartOne
-            coordinates={coordinates}
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
-          />
-        </div>
-      </div>
-
-      {/* 4. 선박 정보 카드 */}
+      {/* 3. 공통 선박 상세 정보 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
           Vessel Information
@@ -243,7 +257,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             <DetailItem label="IMO Number" value={data.imo} />
             <DetailItem label="MMSI" value={data.mmsi} />
             <DetailItem label="Call Sign" value={data.callsign} />
-            <DetailItem label="System ID" value={data.id} />
           </div>
           <div className="space-y-4">
             <DetailItem label="VPN IP Address" value={data.vpn_ip} />
@@ -256,7 +269,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   );
 };
 
-/* --- 보조 컴포넌트 --- */
 const DetailItem = ({
   label,
   value,

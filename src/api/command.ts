@@ -2,7 +2,8 @@ import { ENV } from "../config/env";
 // ✅ 분리한 타입들을 import 합니다.
 import type { 
   CommandApiResponse, 
-  GetCommandsParams 
+  GetCommandsParams,
+  CommandDetailContent 
 } from "@/types/command";
 
 /**
@@ -34,6 +35,27 @@ export async function getCommands(params: GetCommandsParams): Promise<CommandApi
     return await res.json();
   } catch (error) {
     console.error("getCommands Error:", error);
+    throw error;
+  }
+}
+
+export async function getCommandDetail(commandId: number): Promise<CommandDetailContent> {
+  try {
+    const url = `${ENV.BASE_URL}/vessels/commands/${commandId}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to fetch command detail (${commandId}): ${res.status} ${errorText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("getCommandDetail Error:", error);
     throw error;
   }
 }

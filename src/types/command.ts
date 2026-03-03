@@ -51,3 +51,17 @@ export interface GetCommandsParams {
   commandStatus?: CommandStatus;
   imo?: number;
 }
+
+export interface CommandDetailContent {
+  commandId: number;
+  imo: number;
+  vesselName: string;
+  commandType: CommandType;
+  commandStatus: CommandStatus;
+  createdAt: string;
+  startAt: string | null;  // 실행 전일 수 있으므로 null 허용 권장
+  endAt: string | null;    // 완료 전일 수 있으므로 null 허용 권장
+  totalTryCount: number;
+  failedTryCount: number;
+  reason: string | null;   // 실패 사유가 없을 수 있으므로 null 허용 권장
+}
