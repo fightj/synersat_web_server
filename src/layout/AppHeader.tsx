@@ -10,7 +10,6 @@ import VesselSearch from "@/components/vessel/VesselSearch";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
-
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
 
   const handleToggle = () => {
@@ -24,6 +23,7 @@ const AppHeader: React.FC = () => {
   const toggleApplicationMenu = () => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
   };
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,20 +33,18 @@ const AppHeader: React.FC = () => {
         inputRef.current?.focus();
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   return (
-    <header className="sticky top-0 z-9 flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4 dark:border-gray-800">
+    // 전체 헤더 컨테이너는 투명하게 유지
+    <header className="top-0 z-30 flex w-full bg-transparent px-4 py-4 lg:px-6">
+      <div className="flex w-full items-center justify-between gap-4">
+        {/* 🟢 왼쪽 영역: 토글 + 로고 + 검색창 (흰색/다크 배경 카드) */}
+        <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-3 py-2 lg:px-4 dark:border-gray-800 dark:bg-gray-900">
           <button
-            className="z-99999 h-10 w-10 items-center justify-center rounded-lg border-gray-200 text-gray-500 lg:flex lg:h-11 lg:w-11 lg:border dark:border-gray-800 dark:text-gray-400"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border-gray-100 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
           >
@@ -81,32 +79,42 @@ const AppHeader: React.FC = () => {
                 />
               </svg>
             )}
-            {/* Cross Icon */}
           </button>
 
-          <Link href="/" className="lg:hidden">
+          <Link href="/" className="hidden sm:block lg:hidden">
             <Image
-              width={154}
-              height={32}
+              width={120}
+              height={28}
               className="dark:hidden"
-              src="./images/logo/logo.svg"
+              src="/images/logo/logo.svg"
               alt="Logo"
             />
             <Image
-              width={154}
-              height={32}
+              width={120}
+              height={28}
               className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
+              src="/images/logo/logo-dark.svg"
               alt="Logo"
             />
           </Link>
-          <div>
+
+          <div className="hidden h-6 w-[1px] bg-gray-200 lg:block dark:bg-gray-800"></div>
+
+          <div className="min-w-[200px] lg:min-w-[300px]">
             <VesselSearch />
           </div>
+        </div>
 
+        {/* 🟡 오른쪽 영역: 알림 + 테마 + 사용자 (흰색/다크 배경 카드) */}
+        <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white p-2 lg:gap-3 lg:px-4 dark:border-gray-800 dark:bg-gray-900">
+          <ThemeToggleButton />
+
+          <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div>
+
+          {/* 모바일 앱 메뉴 버튼 (필요 시) */}
           <button
             onClick={toggleApplicationMenu}
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
           >
             <svg
               width="24"
@@ -123,20 +131,14 @@ const AppHeader: React.FC = () => {
               />
             </svg>
           </button>
-        </div>
-        <div
-          className={`${
-            isApplicationMenuOpen ? "flex" : "hidden"
-          } shadow-theme-md w-full items-center justify-between gap-4 px-5 py-4 lg:flex lg:justify-end lg:px-0 lg:shadow-none`}
-        >
-          <div className="2xsm:gap-3 flex items-center gap-2">
-            {/* <!-- Dark Mode Toggler --> */}
-            <ThemeToggleButton />
 
+          {/* 데스크탑 전용 메뉴 (알림/사용자 등) */}
+          <div
+            className={`${isApplicationMenuOpen ? "flex" : "hidden"} items-center gap-3 lg:flex`}
+          >
             {/* <NotificationDropdown /> */}
-            {/* <!-- Notification Menu Area --> */}
+            {/* <UserDropdown /> */}
           </div>
-          {/* <UserDropdown /> */}
         </div>
       </div>
     </header>

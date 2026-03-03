@@ -42,8 +42,14 @@ export default function VesselFiltering({
   const scrollContainerRef = useRef<HTMLUListElement>(null);
 
   const matches = useMemo(() => {
+    const sortedVessels = [...vessels].sort((a, b) => {
+      const nameA = (a.name ?? "").toLowerCase();
+      const nameB = (b.name ?? "").toLowerCase();
+      return nameA.localeCompare(nameB, "en", { numeric: true });
+    });
+
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    if (!q) return sortedVessels;
     return vessels
       .filter((v) => (v.name ?? "").toLowerCase().includes(q))
       .slice(0, 10);

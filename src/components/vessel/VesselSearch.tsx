@@ -9,6 +9,24 @@ const INITIAL_BATCH = 30;
 const LOAD_MORE_BATCH = 30;
 const SCROLL_THRESHOLD_PX = 60;
 
+const ChevronDownIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M6 9L12 15L18 9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -16,10 +34,8 @@ function escapeRegExp(s: string) {
 function HighlightedText({ text, query }: { text: string; query: string }) {
   const q = query.trim();
   if (!q) return <>{text}</>;
-
   const re = new RegExp(`(${escapeRegExp(q)})`, "ig");
   const parts = text.split(re);
-
   return (
     <>
       {parts.map((part, i) => {
@@ -41,8 +57,8 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 export default function VesselSearch({ className = "" }: Props) {
   const vessels = useVesselStore((s) => s.vessels);
-  const selectedVessel = useVesselStore((s) => s.selectedVessel); // ✅ 선택 상태(표시/동기화용)
-  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel); // ✅ 선택 설정
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -52,9 +68,17 @@ export default function VesselSearch({ className = "" }: Props) {
   const [open, setOpen] = useState(false);
 
   const allMatches = useMemo(() => {
+    const sortedVessels = [...vessels].sort((a, b) => {
+      const nameA = (a.name ?? "").toLowerCase();
+      const nameB = (b.name ?? "").toLowerCase();
+      return nameA.localeCompare(nameB, "en", { numeric: true });
+    });
     const q = query.trim().toLowerCase();
-    if (!q) return vessels;
-    return vessels.filter((v) => (v.name ?? "").toLowerCase().includes(q));
+    if (!q) return sortedVessels;
+    return sortedVessels.filter(
+      (v) =>
+        (v.name ?? "").toLowerCase().includes(q) || (v.vpnIp ?? "").includes(q),
+    );
   }, [vessels, query]);
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
@@ -66,78 +90,65 @@ export default function VesselSearch({ className = "" }: Props) {
     setActiveIndex(0);
   }, [query, open]);
 
-  const visibleMatches = useMemo(() => {
-    return allMatches.slice(0, visibleCount);
-  }, [allMatches, visibleCount]);
+  const visibleMatches = useMemo(
+    () => allMatches.slice(0, visibleCount),
+    [allMatches, visibleCount],
+  );
 
-  // ✅ 선택 적용: store에 selectedVessel 저장
-  const selectVessel = (v: {
-    id: any;
-    imo: number;
-    name?: string;
-    vpnIp?: string;
-  }) => {
-    const payload = {
+  const selectVessel = (v: any) => {
+    setSelectedVessel({
       id: String(v.id),
       imo: Number(v.imo),
       name: v.name ?? "",
       vpnIp: v.vpnIp ?? "",
-    };
-
-    setSelectedVessel(payload);
-    console.log("[selectedVessel] (from search)", payload); // ✅ 확인용
-
+    });
     setQuery("");
     setOpen(false);
+    inputRef.current?.blur(); // 선택 시 포커스 해제
   };
 
-  // ✅ 바깥 클릭하면 닫기
+  // ✅ 외부 클릭 시 닫기
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ 드롭다운 스크롤 내려서 더 로드
   const onDropdownScroll = () => {
     const el = dropdownRef.current;
-    if (!el) return;
-
-    const nearBottom =
-      el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD_PX;
-
-    if (nearBottom) {
+    if (
+      el &&
+      el.scrollTop + el.clientHeight >= el.scrollHeight - SCROLL_THRESHOLD_PX
+    ) {
       setVisibleCount((c) => Math.min(c + LOAD_MORE_BATCH, allMatches.length));
     }
   };
 
-  // ✅ activeIndex가 보이도록 자동 스크롤
   useEffect(() => {
-    if (!open) return;
-    const id = `vessel-option-${activeIndex}`;
-    const el = document.getElementById(id);
-    el?.scrollIntoView({ block: "nearest" });
+    if (open) {
+      document
+        .getElementById(`vessel-option-${activeIndex}`)
+        ?.scrollIntoView({ block: "nearest" });
+    }
   }, [activeIndex, open]);
 
-  // ✅ 키보드 조작(↑↓/Enter/Esc)
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open) return;
-
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter") setOpen(true);
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
-
       setActiveIndex((i) => {
-        const max = Math.max(allMatches.length - 1, 0);
-        const next = Math.min(i + 1, max);
-
-        if (next >= visibleCount) {
+        const next = Math.min(i + 1, allMatches.length - 1);
+        if (next >= visibleCount)
           setVisibleCount((c) =>
             Math.min(c + LOAD_MORE_BATCH, allMatches.length),
           );
-        }
         return next;
       });
     } else if (e.key === "ArrowUp") {
@@ -145,40 +156,33 @@ export default function VesselSearch({ className = "" }: Props) {
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      // ✅ visible 기준으로 선택(현재 렌더된 항목과 activeIndex 일치)
-      const target = visibleMatches[activeIndex];
-      if (target) selectVessel(target);
+      if (visibleMatches[activeIndex])
+        selectVessel(visibleMatches[activeIndex]);
     } else if (e.key === "Escape") {
       setOpen(false);
+      inputRef.current?.blur();
     }
   };
 
   return (
     <div
       ref={rootRef}
-      className={`relative w-full sm:max-w-[220px] md:max-w-[260px] lg:max-w-[320px] ${className} `}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => {
-        if (document.activeElement === inputRef.current) return;
-        setOpen(false);
-      }}
+      className={`relative w-full sm:min-w-[300px] md:min-w-[350px] lg:min-w-[400px] ${className}`}
     >
       <form onSubmit={(e) => e.preventDefault()}>
-        <div className="relative">
-          <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
+        <div className="relative flex items-center">
+          {/* 🔍 검색 아이콘 */}
+          <span className="pointer-events-none absolute left-4 z-10">
             <svg
               className="fill-gray-500 dark:fill-gray-400"
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
                 d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-                fill=""
               />
             </svg>
           </span>
@@ -192,73 +196,85 @@ export default function VesselSearch({ className = "" }: Props) {
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder={
-              selectedVessel?.name
-                ? `${selectedVessel.name}`
-                : "Search vessel name..."
-            }
-            className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 dark:placeholdertext-blue-600 dark:placeholder:font-semi-bold h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-4 pl-12 text-lg text-gray-800 placeholder:text-gray-600 focus:ring-3 focus:outline-hidden dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-blue-400"
+            placeholder={selectedVessel?.name || "Search vessel..."}
+            className={`h-11 w-full border border-gray-200 bg-white py-2.5 pr-40 pl-11 text-sm font-medium text-gray-800 transition-all placeholder:text-gray-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-400 ${
+              open
+                ? "rounded-t-xl border-b-transparent ring-4 ring-blue-500/5 focus:border-blue-500"
+                : "rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            }`}
           />
 
-          {open && (
-            <div
-              ref={dropdownRef}
-              onScroll={onDropdownScroll}
-              className="absolute top-[calc(100%+8px)] right-0 left-0 z-50 max-h-[360px] overflow-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900"
-            >
-              <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-                {query.trim()
-                  ? `Matches: ${allMatches.length} (showing ${Math.min(
-                      visibleCount,
-                      allMatches.length,
-                    )})`
-                  : ""}
+          <div className="pointer-events-none absolute right-3 flex items-center gap-2">
+            {selectedVessel?.vpnIp && !query && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 dark:border-blue-500/20 dark:bg-blue-500/10">
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  {selectedVessel.vpnIp}
+                </span>
               </div>
-
-              {allMatches.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                  No matches
-                </div>
-              ) : (
-                <ul className="py-1">
-                  {visibleMatches.map((v, idx) => {
-                    const isActive = idx === activeIndex;
-                    const isSelected =
-                      !!selectedVessel &&
-                      String(v.id) === String(selectedVessel.id);
-
-                    return (
-                      <li key={v.id ?? `${v.name}-${idx}`}>
-                        <button
-                          id={`vessel-option-${idx}`}
-                          type="button"
-                          onMouseEnter={() => setActiveIndex(idx)}
-                          onClick={() => selectVessel(v)}
-                          className={[
-                            "w-full px-4 py-2 text-left text-sm font-medium text-gray-800 dark:text-white/90",
-                            isSelected ? "bg-blue-50 dark:bg-blue-500/10" : "",
-                            isActive
-                              ? "bg-gray-100 dark:bg-white/[0.06]"
-                              : "hover:bg-gray-50 dark:hover:bg-white/[0.04]",
-                          ].join(" ")}
-                        >
-                          <HighlightedText text={v.name || "-"} query={query} />
-                        </button>
-                      </li>
-                    );
-                  })}
-
-                  {visibleCount < allMatches.length ? (
-                    <li className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
-                      Scroll to load more…
-                    </li>
-                  ) : null}
-                </ul>
-              )}
-            </div>
-          )}
+            )}
+            <span
+              className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"}`}
+            >
+              <ChevronDownIcon />
+            </span>
+          </div>
         </div>
+
+        {open && (
+          <div
+            ref={dropdownRef}
+            onScroll={onDropdownScroll}
+            className="absolute top-[43px] right-0 left-0 z-50 max-h-[360px] overflow-auto rounded-b-xl border border-t-0 border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+          >
+            {allMatches.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                No matches found
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {visibleMatches.map((v, idx) => {
+                  const isActive = idx === activeIndex;
+                  const isSelected =
+                    !!selectedVessel &&
+                    String(v.id) === String(selectedVessel.id);
+                  return (
+                    <li key={v.id ?? `${v.name}-${idx}`}>
+                      <button
+                        id={`vessel-option-${idx}`}
+                        type="button"
+                        onMouseEnter={() => setActiveIndex(idx)}
+                        onClick={() => selectVessel(v)}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
+                          isActive ? "bg-gray-100 dark:bg-white/10" : ""
+                        } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-semibold">
+                            <HighlightedText
+                              text={v.name || "-"}
+                              query={query}
+                            />
+                          </span>
+                          <span className="text-[10px] opacity-60">
+                            IMO: {v.imo}
+                          </span>
+                        </div>
+                        {v.vpnIp && (
+                          <span className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-400 dark:bg-white/5 dark:text-gray-500">
+                            {v.vpnIp}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
