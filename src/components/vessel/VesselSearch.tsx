@@ -199,7 +199,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => setOpen(true)}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Search vessel..."}
-            className={`h-11 w-full border border-gray-200 bg-white py-2.5 pr-40 pl-11 text-sm font-medium text-gray-800 transition-all placeholder:text-gray-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-400 ${
+            className={`h-11 w-full border border-gray-200 bg-white py-2.5 pr-40 pl-11 text-sm font-medium text-gray-800 transition-all placeholder:text-gray-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white ${
               open
                 ? "rounded-t-xl border-b-transparent ring-4 ring-blue-500/5 focus:border-blue-500"
                 : "rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
@@ -227,7 +227,7 @@ export default function VesselSearch({ className = "" }: Props) {
           <div
             ref={dropdownRef}
             onScroll={onDropdownScroll}
-            className="absolute top-[43px] right-0 left-0 z-50 max-h-[360px] overflow-auto rounded-b-xl border border-t-0 border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+            className="absolute top-[43px] right-0 left-0 z-100 max-h-[360px] overflow-auto rounded-b-xl border border-t-0 border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
           >
             {allMatches.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-500">
@@ -249,7 +249,7 @@ export default function VesselSearch({ className = "" }: Props) {
                         onClick={() => selectVessel(v)}
                         className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
                           isActive ? "bg-gray-100 dark:bg-white/10" : ""
-                        } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}
+                        } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
                       >
                         <div className="flex flex-col gap-0.5">
                           <span className="text-sm font-semibold">

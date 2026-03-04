@@ -42,9 +42,9 @@ const AppHeader: React.FC = () => {
     <header className="top-0 z-30 flex w-full bg-transparent px-4 py-4 lg:px-6">
       <div className="flex w-full items-center justify-between gap-4">
         {/* 🟢 왼쪽 영역: 토글 + 로고 + 검색창 (흰색/다크 배경 카드) */}
-        <div className="flex items-center gap-3 rounded-3xl border border-gray-200 bg-white px-3 py-2 lg:px-4 dark:border-gray-800 dark:bg-blue-950">
+        <div className="flex items-center gap-3 rounded-3xl bg-white px-3 py-2 shadow-sm lg:px-4 dark:bg-blue-950">
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-xl border-gray-100 text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-white dark:hover:bg-gray-800"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
           >
@@ -104,10 +104,10 @@ const AppHeader: React.FC = () => {
         </div>
 
         {/* 🟡 오른쪽 영역: 알림 + 테마 + 사용자 (흰색/다크 배경 카드) */}
-        <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white p-2 lg:gap-3 lg:px-4 dark:border-gray-800 dark:bg-blue-950">
+        <div className="flex items-center gap-2 rounded-2xl bg-white p-2 shadow-sm lg:gap-3 lg:px-4 dark:bg-blue-950">
           <ThemeToggleButton />
 
-          <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div>
+          {/* <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div> */}
 
           {/* 모바일 앱 메뉴 버튼 (필요 시) */}
           <button

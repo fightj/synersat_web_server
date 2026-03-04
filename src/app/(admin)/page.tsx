@@ -6,7 +6,7 @@ import React from "react";
 // import StatisticsChart from "@/components/ecommerce/StatisticsChart";
 // import RecentOrders from "@/components/ecommerce/RecentOrders";
 // import DemographicCard from "@/components/ecommerce/DemographicCard";
-import WorldMap from "@/components/map/WorldMap";
+// import WorldMap from "@/components/map/WorldMap";
 import DashboardInfo from "@/components/dashboard/DashboardInfo";
 
 export const metadata: Metadata = {

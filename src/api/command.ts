@@ -1,5 +1,4 @@
 import { ENV } from "../config/env";
-// ✅ 분리한 타입들을 import 합니다.
 import type { 
   CommandApiResponse, 
   GetCommandsParams,

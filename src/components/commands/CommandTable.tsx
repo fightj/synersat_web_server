@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -98,13 +97,6 @@ export default function CommandTable({
   if (commands.length === 0) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-gray-500 dark:text-gray-400">
-        <Image
-          src="/images/icons/ic_empty_data.png"
-          alt="No Data"
-          width={48}
-          height={48}
-          className="mb-3 opacity-20"
-        />
         <p className="text-sm font-medium">No commands found.</p>
       </div>
     );

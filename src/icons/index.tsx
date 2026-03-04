@@ -57,6 +57,7 @@ import CsvIcon from "./csv-export.svg";
 import UpdateIcon from "./update.svg";
 import CheckIcon from "./check.svg";
 import TimeSettingIcon from "./time-setting.svg";
+import SktelinkIcon from "./sktelink.svg";
 
 export {
   DownloadIcon,
@@ -118,4 +119,5 @@ export {
   UpdateIcon,
   CheckIcon,
   TimeSettingIcon,
+  SktelinkIcon,
 };

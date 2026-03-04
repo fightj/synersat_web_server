@@ -370,41 +370,60 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
 
               <div>
                 <RequiredLabel>VPN IP</RequiredLabel>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-11 basis-1/4 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
-                    10.8.
+                <div className="flex items-center gap-1.5">
+                  {/* 첫 번째 옥텟: 고정 (10.) */}
+                  <div className="flex h-11 flex-[3] items-center justify-center rounded-lg border border-gray-300 bg-gray-100 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
+                    10
                   </div>
-                  <input
-                    type="text"
-                    className={`${inputBaseStyle} text-center`}
-                    placeholder="0-255"
-                    value={vpnIpPart3}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, "");
-                      if (Number(val) <= 255) {
-                        setVpnIpPart3(val);
-                        setVpnDuplicated(null);
-                        lastCheckedVpnRef.current = "";
-                      }
-                    }}
-                    onBlur={handleVpnIpBlur}
-                  />
-                  <input
-                    type="text"
-                    className={`${inputBaseStyle} text-center`}
-                    placeholder="0-255"
-                    value={vpnIpPart4}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, "");
-                      if (Number(val) <= 255) {
-                        setVpnIpPart4(val);
-                        setVpnDuplicated(null);
-                        lastCheckedVpnRef.current = "";
-                      }
-                    }}
-                    onBlur={handleVpnIpBlur}
-                  />
+                  <span className="text-lg font-bold text-gray-400">.</span>
+
+                  {/* 두 번째 옥텟: 고정 (8.) */}
+                  <div className="flex h-11 flex-[3] items-center justify-center rounded-lg border border-gray-300 bg-gray-100 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
+                    8
+                  </div>
+                  <span className="text-lg font-bold text-gray-400">.</span>
+
+                  {/* 세 번째 옥텟: 입력 */}
+                  <div className="flex-[4]">
+                    <Input
+                      type="text"
+                      className={`${inputBaseStyle} w-full text-center`}
+                      placeholder="0-255"
+                      value={vpnIpPart3}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        if (Number(val) <= 255) {
+                          setVpnIpPart3(val);
+                          setVpnDuplicated(null);
+                          lastCheckedVpnRef.current = "";
+                        }
+                      }}
+                      onBlur={handleVpnIpBlur}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-gray-400">.</span>
+
+                  {/* 네 번째 옥텟: 입력 */}
+                  <div className="flex-[4]">
+                    <Input
+                      type="text"
+                      className={`${inputBaseStyle} w-full text-center`}
+                      placeholder="0-255"
+                      value={vpnIpPart4}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        if (Number(val) <= 255) {
+                          setVpnIpPart4(val);
+                          setVpnDuplicated(null);
+                          lastCheckedVpnRef.current = "";
+                        }
+                      }}
+                      onBlur={handleVpnIpBlur}
+                    />
+                  </div>
                 </div>
+
+                {/* 중복 체크 메시지 영역 */}
                 <div className="mt-1 h-4 text-xs">
                   {vpnChecking && (
                     <span className="text-gray-500">Checking...</span>

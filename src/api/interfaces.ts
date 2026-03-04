@@ -5,10 +5,7 @@ export interface DeviceInterface {
   description: string;
 }
 
-/**
- * 선박별 인터페이스 목록 조회
- * GET /interfaces?imo={imo}
- */
+// Interface 가져오기
 export async function getDeviceInterfaces(imo: number): Promise<DeviceInterface[]> {
   try {
     const urlParams = new URLSearchParams();

@@ -40,10 +40,9 @@ export default function PortForwardPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
 
-  // 💡 규칙의 총 개수 계산
   const currentRuleCount = rules.length;
 
-  // 데이터 fetch 통합
+  // Rule, InterFace 데이터 가져오기
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
     setIsLoading(true);
@@ -61,6 +60,7 @@ export default function PortForwardPage() {
     }
   }, [imo]);
 
+  // imo 변경시 Rule, Interface 가져오기
   useEffect(() => {
     if (imo) fetchAllData();
     else {
@@ -74,6 +74,7 @@ export default function PortForwardPage() {
     return found ? found.description : name;
   };
 
+  // Rule 상태 변경 핸들러
   const handleToggleStatus = async (
     originalIndex: number,
     currentEnabled: boolean,
@@ -99,12 +100,14 @@ export default function PortForwardPage() {
     }
   };
 
+  // Rule 수정 핸들러
   const handleEditClick = (rule: DeviceNat, idx: number) => {
     setSelectedRule(rule);
     setSelectedIdx(idx);
     setIsEditModalOpen(true);
   };
 
+  // Rule 삭제 핸들러
   const handleDeleteRule = async () => {
     if (ruleToDelete === null || !imo) return;
     setIsUpdating(true);
@@ -115,7 +118,7 @@ export default function PortForwardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imo, id: ruleToDelete }),
       });
-      if (!response.ok) throw new Error("삭제 실패");
+      if (!response.ok) throw new Error("fail to delete");
       await fetchAllData();
     } catch (error: any) {
       alert(error.message);
@@ -135,7 +138,7 @@ export default function PortForwardPage() {
     <div className="space-y-6">
       <PageBreadcrumb pageTitle="Port Forward (System)" />
 
-      {/* Delete Confirmation Alert */}
+      {/* 삭제 확인 alert */}
       {isDeleteAlertOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-gray-900">
@@ -168,7 +171,7 @@ export default function PortForwardPage() {
         </div>
       )}
 
-      {/* Main Container */}
+      {/* Main 컨테이너 */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
           <div className="flex items-center gap-3">
@@ -283,26 +286,28 @@ export default function PortForwardPage() {
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {rule.sourceIp}
+                        {rule.sourceIp || "*"}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center text-sm text-gray-500">
-                        {rule.sourcePort}
+                        {!rule.sourcePort || rule.sourcePort === "1-65535"
+                          ? "*"
+                          : rule.sourcePort}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
                         {rule.destinationIp}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        {rule.destinationPort}
+                        {rule.destinationPort || "*"}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center">
                         <span
                           className={`text-sm font-bold ${isActive ? "text-orange-500" : "text-gray-400"}`}
                         >
-                          {rule.targetIp}
+                          {rule.targetIp || "*"}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center font-mono text-sm text-gray-700 dark:text-gray-300">
-                        {rule.targetPort}
+                        {rule.targetPort || "*"}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-start">
                         <p
@@ -313,31 +318,28 @@ export default function PortForwardPage() {
                         </p>
                       </TableCell>
                       <TableCell className="px-5 py-4">
-                        <div className="flex items-center justify-center gap-4">
-                          <button
-                            onClick={() =>
-                              handleEditClick(rule, rule.originalIdx)
-                            }
-                          >
-                            <Image
-                              src="/images/icons/ic_modify_b.png"
-                              alt="Edit"
-                              width={18}
-                              height={18}
-                              className="dark:invert"
+                        {/* flex-nowrap으로 요소들이 줄바꿈되지 않게 하고, gap을 화면 크기에 따라 조절 */}
+                        <div className="flex items-center justify-center gap-2 sm:gap-4">
+                          {/* 1. Edit 버튼 제거 (요청사항 반영: 더블클릭으로 대체) */}
+
+                          {/* 2. 화면 크기에 따라 크기가 변하는 Switch */}
+                          <div className="origin-center scale-75 transition-transform sm:scale-90 md:scale-100">
+                            <Switch
+                              key={`${rule.originalIdx}-${isActive}`}
+                              defaultChecked={isActive}
+                              disabled={isUpdating}
+                              onChange={() =>
+                                handleToggleStatus(rule.originalIdx, isActive)
+                              }
+                              color="blue"
                             />
-                          </button>
-                          <Switch
-                            key={`${rule.originalIdx}-${isActive}`}
-                            defaultChecked={isActive}
-                            disabled={isUpdating}
-                            onChange={() =>
-                              handleToggleStatus(rule.originalIdx, isActive)
-                            }
-                            color="blue"
-                          />
+                          </div>
+
+                          {/* 3. 삭제 버튼: 작은 화면에서도 최소 크기를 유지하며 노출 */}
                           <button
-                            onClick={() => {
+                            className="flex-shrink-0 rounded-md p-1 transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                            onClick={(e) => {
+                              e.stopPropagation(); // 행 더블클릭 이벤트와 겹치지 않게 방지
                               setRuleToDelete(rule.originalIdx);
                               setIsDeleteAlertOpen(true);
                             }}
@@ -347,6 +349,7 @@ export default function PortForwardPage() {
                               alt="Delete"
                               width={18}
                               height={18}
+                              className="min-h-[16px] min-w-[16px]" // 최소 사이즈 고정
                             />
                           </button>
                         </div>
@@ -360,7 +363,6 @@ export default function PortForwardPage() {
         </div>
       </div>
 
-      {/* 💡 Modals - currentRuleCount 전달 */}
       <PortForwardEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

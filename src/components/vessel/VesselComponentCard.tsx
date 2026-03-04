@@ -39,12 +39,9 @@ export default function VesselComponentCard() {
       {/* ✅ 감시자 (Sentinel): 필터 바 바로 위에 배치 */}
       <div ref={sentinelRef} className="h-px w-full bg-transparent" />
 
-      {/* ✅ 동적 스타일 적용 
-          isSticky일 때: mx-8(좌우 여백), shadow-xl(그림자 강조), rounded-2xl 적용
-      */}
       <div
-        className={`sticky top-5 z-50 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
-          isSticky ? "mx-16 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
+        className={`sticky top-5 z-99 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
+          isSticky ? "mx-24 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
         }`}
       >
         <div className="flex items-center justify-between px-6 py-4">

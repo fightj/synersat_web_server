@@ -6,9 +6,6 @@ import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import { format, addHours } from "date-fns"; // 시간 변환을 위해 추가
 
-/**
- * 인터페이스 정의
- */
 interface WorldMapProps {
   vesselImo: string;
   coordinates: RouteCoordinate[];
