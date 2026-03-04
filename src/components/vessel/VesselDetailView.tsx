@@ -10,7 +10,9 @@ import {
 } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
-import VesselCommandOne from "./VesselCommandOne"; // ✅ 명령어 컴포넌트 추가
+import VesselCommandOne from "./VesselCommandOne";
+import VesselEditModal from "./VesselEditModal"; // ✅ 수정 모달 임포트
+import { PencilSquareIcon } from "@heroicons/react/24/outline"; // 아이콘 라이브러리 (Heroicons 예시)
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -32,7 +34,6 @@ const formatDataSize = (bytes: number) => {
   return { value: value.toLocaleString(), unit: sizes[i] };
 };
 
-// ✅ 뷰 모드 타입 정의
 type ViewMode = "OVERVIEW" | "COMMANDS";
 
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
@@ -45,9 +46,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // ✅ 화면 전환 상태 관리 (기본값: 요약 정보)
   const [viewMode, setViewMode] = useState<ViewMode>("OVERVIEW");
+
+  // ✅ 1. 모달 오픈 상태 관리
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchVesselDetail = async () => {
@@ -130,7 +132,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. 상단 헤더 카드 (탭 전환 버튼 포함) */}
+      {/* 1. 상단 헤더 카드 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-row items-center gap-3">
@@ -144,7 +146,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             </span>
           </div>
 
-          {/* ✅ 탭 전환 버튼 그룹 */}
           <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
             <button
               onClick={() => setViewMode("OVERVIEW")}
@@ -174,7 +175,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       {/* 2. 조건부 컨텐츠 영역 */}
       {viewMode === "OVERVIEW" ? (
         <>
-          {/* 사용량 요약 그리드 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {usageStats.map((item) => (
               <div
@@ -228,7 +228,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             ))}
           </div>
 
-          {/* 차트 섹션 */}
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.02]">
             <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
               Data Usage History
@@ -243,28 +242,49 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           </div>
         </>
       ) : (
-        /* ✅ 명령어 이력 화면 */
         <VesselCommandOne imo={Number(vesselImo)} />
       )}
 
-      {/* 3. 공통 선박 상세 정보 */}
+      {/* 3. 공통 선박 상세 정보 (수정 버튼 포함) */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
-        <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
-          Vessel Information
-        </h4>
+        <div className="mb-6 flex items-center justify-between">
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Vessel Info
+          </h4>
+          {/* ✅ 2. 세련된 스타일의 수정 버튼 적용 */}
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+          >
+            <PencilSquareIcon className="h-4 w-4" />
+            Edit Info
+          </button>
+        </div>
+        <hr className="mb-6 border-gray-100 dark:border-white/5" />
         <div className="grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
           <div className="space-y-4">
             <DetailItem label="IMO Number" value={data.imo} />
             <DetailItem label="MMSI" value={data.mmsi} />
             <DetailItem label="Call Sign" value={data.callsign} />
+            <DetailItem label="FW ID" value={data.fireWallId} />
           </div>
           <div className="space-y-4">
             <DetailItem label="VPN IP Address" value={data.vpn_ip} />
             <DetailItem label="Manager" value={data.manager} />
             <DetailItem label="Contact Mail" value={data.mailAddress} />
+            <DetailItem label="FW PW" value={data.fireWallPassword} />
           </div>
         </div>
       </div>
+
+      {/* ✅ 3. 수정 모달 컴포넌트 호출 */}
+      {isEditModalOpen && (
+        <VesselEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          vesselData={data} // 기존 선박 데이터를 기본값으로 전달
+        />
+      )}
     </div>
   );
 };
@@ -277,8 +297,10 @@ const DetailItem = ({
   value: string | number;
 }) => (
   <div className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0 last:pb-0 dark:border-white/[0.05]">
-    <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-    <span className="text-sm font-medium text-gray-800 dark:text-white/90">
+    <span className="text-xs font-medium tracking-wider text-gray-400 uppercase dark:text-gray-500">
+      {label}
+    </span>
+    <span className="text-sm font-semibold text-gray-800 dark:text-white/90">
       {value || "-"}
     </span>
   </div>

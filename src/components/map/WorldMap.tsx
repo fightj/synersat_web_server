@@ -187,10 +187,7 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
 
       {/* 📍 왼쪽 하단 범례 (데이터가 있을 때만 표시) */}
       {hasValidGps && (
-        <div className="absolute bottom-4 left-4 z-[1000] flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white/90 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/60">
-          <div className="mb-1 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
-            Service Legend
-          </div>
+        <div className="absolute bottom-4 left-4 z-[1000] flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white/60 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-black/60">
           {LEGEND_ITEMS.map((item) => (
             <div key={item.label} className="flex items-center gap-2">
               <div

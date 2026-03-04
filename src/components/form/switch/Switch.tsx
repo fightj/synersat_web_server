@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 
 interface SwitchProps {
-  label: string;
+  label?: string;
   defaultChecked?: boolean;
   disabled?: boolean;
   onChange?: (checked: boolean) => void;

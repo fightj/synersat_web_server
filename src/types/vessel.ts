@@ -33,7 +33,7 @@ export type VesselAddInfo = {
   acct: string
   id: string
   serialnumber: string
-  imo: string
+  imo: number
   vpnip: string
   name: string
   mmsi: string
@@ -53,6 +53,8 @@ export interface VesselDetail {
   logo: string;
   manager: string;
   mailAddress: string;
+  fireWallId: string;
+  fireWallPassword: string;
   status: {
     available: boolean;
     currentRoute: string;
@@ -95,4 +97,17 @@ export interface DataUsage {
 export interface VesselRouteResponse {
   coordinates: RouteCoordinate[];
   dataUsages: any[]; 
+}
+
+export interface UpdateVesselPayload {
+  imo: number;
+  mmsi?: number;
+  name?: string;
+  logo?: string;
+  acct?: string;
+  callSign?: string;
+  mailAddress?: string;
+  vpnIp?: string;
+  fireWallId?: string;
+  fireWallPassword?: string;
 }

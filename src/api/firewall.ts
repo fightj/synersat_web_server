@@ -29,3 +29,23 @@ export async function getDeviceNats(imo: number): Promise<DeviceNat[]> {
     throw error;
   }
 }
+
+export async function addDeviceNat(payload: any): Promise<void> {
+  try {
+    const url = `${ENV.BASE_URL}/device-nats`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to add device NAT: ${res.status} ${errorText}`);
+    }
+  } catch (error) {
+    console.error("addDeviceNat Error:", error);
+    throw error;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
@@ -12,9 +12,10 @@ interface PortForwardEditModalProps {
   onClose: () => void;
   rule: any;
   ruleId: number;
-  vpnIp: string;
-  interfaceOptions: { value: string; label: string }[];
+  imo: number | undefined; // 부모의 imo를 받음
+  interfaces: any[]; // 부모의 interfaces 객체 배열을 받음
   onSuccess: () => void;
+  currentRuleCount: number;
 }
 
 const PROTOCOL_OPTIONS = [
@@ -46,13 +47,14 @@ export default function PortForwardEditModal({
   onClose,
   rule,
   ruleId,
-  vpnIp,
-  interfaceOptions,
+  imo,
+  interfaces,
   onSuccess,
+  currentRuleCount,
 }: PortForwardEditModalProps) {
   const [formData, setFormData] = useState<any>({});
-  const [ruleType, setRuleType] = useState("[User Rule]"); // [System Rule] 또는 [User Rule]
-  const [pureDescr, setPureDescr] = useState(""); // 태그를 제외한 실제 설명 내용
+  const [ruleType, setRuleType] = useState("[User Rule]");
+  const [pureDescr, setPureDescr] = useState("");
 
   const [srcAddrMode, setSrcAddrMode] = useState("any");
   const [srcPortMode, setSrcPortMode] = useState("any");
@@ -67,10 +69,18 @@ export default function PortForwardEditModal({
   const sectionCardStyle =
     "bg-gray-50/50 dark:bg-white/[0.03] p-4 rounded-xl border border-gray-100 dark:border-white/[0.05]";
 
+  // 부모에서 받은 interfaces 배열을 Select용 옵션으로 변환
+  const interfaceOptions = useMemo(() => {
+    return interfaces.map((iface) => ({
+      value: iface.interfaceName,
+      label: iface.description || iface.interfaceName,
+    }));
+  }, [interfaces]);
+
   useEffect(() => {
     if (rule && isOpen) {
-      // 1. Description 파싱 로직
-      const fullDescr = rule.descr || "";
+      // 1. Description 파싱 (부모 리스트의 필드명 description 기준)
+      const fullDescr = rule.description || "";
       if (fullDescr.startsWith("[System Rule]")) {
         setRuleType("[System Rule]");
         setPureDescr(fullDescr.replace("[System Rule]", "").trim());
@@ -82,38 +92,36 @@ export default function PortForwardEditModal({
         setPureDescr(fullDescr);
       }
 
-      // 2. 기타 데이터 로드
-      const srcAddr =
-        rule.source?.address || (rule.source?.any !== undefined ? "any" : "");
-      const srcPort =
-        rule.source?.port || (rule.source?.port === undefined ? "any" : "");
-      const dstPort = rule.destination?.port || "";
+      // 2. 부모 리스트의 데이터 구조(DeviceNat 타입)를 formData 형식으로 로드
+      const srcAddr = rule.sourceIp || "any";
+      const srcPort = rule.sourcePort || "any";
+      const dstPort = rule.destinationPort || "any";
 
       setFormData({
-        interface: rule.interface,
-        protocol: rule.protocol,
+        interface: rule.interfaceName,
+        protocol: rule.protocol?.toLowerCase() || "tcp",
         src: srcAddr === "any" ? "" : srcAddr,
         srcport: srcPort === "any" ? "" : srcPort,
-        dst: rule.destination?.network || "(self)",
+        dst: rule.destinationIp || "(self)",
         dstport: dstPort === "any" ? "" : dstPort,
-        target: rule.target,
-        "local-port": rule["local-port"],
+        target: rule.targetIp,
+        "local-port": rule.targetPort,
       });
 
-      setSrcAddrMode(srcAddr === "any" || !srcAddr ? "any" : "other");
-      setSrcPortMode(srcPort === "any" || !srcPort ? "any" : "other");
-      setDstPortMode(dstPort === "any" || !dstPort ? "any" : "other");
+      setSrcAddrMode(srcAddr === "any" ? "any" : "other");
+      setSrcPortMode(srcPort === "any" ? "any" : "other");
+      setDstPortMode(dstPort === "any" ? "any" : "other");
     }
   }, [rule, isOpen]);
 
   const handleSubmit = async () => {
     setLoading(true);
 
-    // 제출 시 타입과 내용을 합침
     const finalDescr = `${ruleType} ${pureDescr}`.trim();
 
+    // 기존 요구사항대로 vpnIp 자리에 부모의 imo를 넣어서 전송
     const payload = {
-      vpnIp,
+      vpnIp: imo,
       id: ruleId,
       ...formData,
       descr: finalDescr,
@@ -300,7 +308,7 @@ export default function PortForwardEditModal({
           </div>
         </div>
 
-        {/* 5. Description 섹션 (수정된 부분) */}
+        {/* 5. Description 섹션 */}
         <div className={`${sectionCardStyle}`}>
           <label className={labelStyle}>Description</label>
           <div className="flex gap-2">
@@ -334,7 +342,7 @@ export default function PortForwardEditModal({
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-brand-500 hover:bg-brand-600 px-8 text-white shadow-lg"
+            className="bg-blue-600 px-8 text-white shadow-lg hover:bg-blue-700 dark:bg-blue-500"
           >
             {loading ? "Saving..." : "Save Changes"}
           </Button>

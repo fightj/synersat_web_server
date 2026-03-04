@@ -1,6 +1,6 @@
 import { ENV } from "../config/env";
 import type { 
-  Vessel, VesselDetail, VesselRouteResponse
+  Vessel, VesselDetail, VesselRouteResponse, UpdateVesselPayload
 } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
@@ -286,5 +286,39 @@ export async function getVesselRoutes(
   } catch (error) {
     console.error("getVesselRoutes Error:", error);
     throw error;
+  }
+}
+
+// 선박 정보 수정 api
+export async function updateVessel(payload: UpdateVesselPayload): Promise<{ commandId: string } | null> {
+  try {
+    // 1. 불필요한 필드 필터링 (null, 빈 문자열, 문자열 "null" 제외)
+    const filteredPayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
+    );
+
+    // 2. API 호출
+    const res = await fetch(`${ENV.BASE_URL}/vessels`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(filteredPayload),
+    });
+
+    // 3. 응답 처리
+    if (res.ok) {
+      // 성공 시 commandId를 포함한 JSON 반환
+      return await res.json();
+    }
+
+    // 실패 시 에러 로그 출력
+    const errorText = await res.text();
+    console.error(`Vessel 수정 실패 (Status: ${res.status}):`, errorText);
+    return null;
+
+  } catch (error) {
+    console.error("updateVessel 네트워크 에러:", error);
+    return null;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import {
   Table,
@@ -18,84 +18,61 @@ import Image from "next/image";
 import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
 import PortForwardAddModal from "@/components/port-forward/PortForwardAddModal";
 
-interface PortForwardRule {
-  disabled?: string;
-  interface: string;
-  protocol: string;
-  source: {
-    address?: string;
-    port?: string;
-    any?: string;
-  };
-  destination: {
-    network?: string;
-    port?: string;
-  };
-  target: string;
-  "local-port": string;
-  descr: string;
-  "associated-rule-id": string;
-}
+import { DeviceNat } from "@/types/firewall";
+import { getDeviceNats } from "@/api/firewall";
+import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
 
 export default function PortForwardPage() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const vpnIp = selectedVessel?.vpnIp || "";
+  const imo = selectedVessel?.imo;
+  const vpnIp = selectedVessel?.vpnIp;
 
-  const [rules, setRules] = useState<PortForwardRule[]>([]);
-  const [interfaces, setInterfaces] = useState<Record<string, string>>({});
+  const [rules, setRules] = useState<DeviceNat[]>([]);
+  const [interfaces, setInterfaces] = useState<DeviceInterface[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedRule, setSelectedRule] = useState<any>(null);
+  const [selectedRule, setSelectedRule] = useState<DeviceNat | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
 
-  const interfaceOptions = Object.entries(interfaces).map(([key, label]) => ({
-    value: key,
-    label,
-  }));
+  // 💡 규칙의 총 개수 계산
+  const currentRuleCount = rules.length;
 
-  const fetchPortForwardData = async () => {
-    if (!vpnIp) return;
+  // 데이터 fetch 통합
+  const fetchAllData = useCallback(async () => {
+    if (!imo) return;
     setIsLoading(true);
     try {
-      const [rulesRes, interfaceRes] = await Promise.all([
-        fetch(`/api/port_forward?vpnIp=${vpnIp}`),
-        fetch(`/api/interface?vpnIp=${vpnIp}`),
+      const [natsData, ifaceData] = await Promise.all([
+        getDeviceNats(Number(imo)),
+        getDeviceInterfaces(Number(imo)),
       ]);
-
-      const rulesResult = await rulesRes.json();
-      const interfaceResult = await interfaceRes.json();
-
-      const interfaceMap: Record<string, string> = {};
-      if (interfaceResult.data) {
-        Object.entries(interfaceResult.data).forEach(
-          ([key, value]: [string, any]) => {
-            interfaceMap[key] = value.descr || key;
-          },
-        );
-      }
-
-      setInterfaces(interfaceMap);
-      setRules(Array.isArray(rulesResult.data) ? rulesResult.data : []);
+      setRules(Array.isArray(natsData) ? natsData : []);
+      setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
     } catch (error) {
       console.error("Fetch Error:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [imo]);
 
   useEffect(() => {
-    if (vpnIp) fetchPortForwardData();
+    if (imo) fetchAllData();
     else {
       setRules([]);
-      setInterfaces({});
+      setInterfaces([]);
     }
-  }, [vpnIp]);
+  }, [imo, fetchAllData]);
+
+  const getInterfaceLabel = (name: string) => {
+    const found = interfaces.find((i) => i.interfaceName === name);
+    return found ? found.description : name;
+  };
 
   const handleToggleStatus = async (
     originalIndex: number,
@@ -114,43 +91,32 @@ export default function PortForwardPage() {
         }),
       });
       if (!response.ok) throw new Error("Update failed");
-      await fetchPortForwardData();
+      await fetchAllData();
     } catch (error) {
-      alert("상태 변경에 실패했습니다.");
+      alert("fail to set status.");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleEditClick = (rule: any, originalIdx: number) => {
+  const handleEditClick = (rule: DeviceNat, idx: number) => {
     setSelectedRule(rule);
-    setSelectedIdx(originalIdx); // 필터링된 순서가 아닌 원본 인덱스 전달
+    setSelectedIdx(idx);
     setIsEditModalOpen(true);
   };
 
   const handleDeleteRule = async () => {
-    if (ruleToDelete === null || !vpnIp) return;
-
-    setIsUpdating(true); // 진행 중 표시 (오버레이)
-    setIsDeleteAlertOpen(false); // 알럿 닫기
-
+    if (ruleToDelete === null || !imo) return;
+    setIsUpdating(true);
+    setIsDeleteAlertOpen(false);
     try {
-      const response = await fetch("/api/port_forward", {
+      const response = await fetch("/api/device-nats", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vpnIp,
-          id: ruleToDelete,
-        }),
+        body: JSON.stringify({ imo, id: ruleToDelete }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "삭제에 실패했습니다.");
-      }
-
-      // 성공 시 데이터 갱신
-      await fetchPortForwardData();
+      if (!response.ok) throw new Error("삭제 실패");
+      await fetchAllData();
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -159,145 +125,108 @@ export default function PortForwardPage() {
     }
   };
 
-  // descr에 "[User Rule]"이 포함되지 않은 것들만 필터링합니다.
-  const systemRules = rules
-    .map((rule, index) => ({ ...rule, originalIdx: index })) // 원본 인덱스 저장
-    .filter((rule) => !rule.descr?.includes("[User Rule]")); // User Rule 제외
+  const systemRules = useMemo(() => {
+    return rules
+      .map((rule, index) => ({ ...rule, originalIdx: index }))
+      .filter((rule) => !rule.description?.includes("[User Rule]"));
+  }, [rules]);
 
   return (
-    <div>
-      <PageBreadcrumb pageTitle="Firewall / Port Forward(System)" />
-      {/* ✅ 1. 삭제 확인 Alert UI */}
+    <div className="space-y-6">
+      <PageBreadcrumb pageTitle="Port Forward (System)" />
+
+      {/* Delete Confirmation Alert */}
       {isDeleteAlertOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-gray-900">
-            <Alert
-              variant="warning"
-              title="Delete Rule"
-              message="Are you sure you want to delete this rule? This action cannot be undone."
-              showLink={false}
-            />
-            <div className="mt-4 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsDeleteAlertOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="bg-red-600 text-white hover:bg-red-700"
-                onClick={handleDeleteRule}
-              >
-                Delete Now
-              </Button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-gray-900">
+            <div className="p-6">
+              <Alert
+                variant="warning"
+                title="Delete Rule"
+                message="Are you sure you want to delete this rule? This action cannot be undone."
+                showLink={false}
+              />
+              <div className="mt-6 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDeleteAlertOpen(false)}
+                  className="dark:border-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
+                  onClick={handleDeleteRule}
+                >
+                  Delete Now
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pt-4 pb-3 sm:px-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-md text-gray-600 dark:text-gray-300">
-            {selectedVessel ? (
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {selectedVessel.name} ({vpnIp})
+
+      {/* Main Container */}
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-500/10">
+              <span className="text-sm font-bold text-blue-700 dark:text-blue-400">
+                {selectedVessel ? selectedVessel.name : "No vessel selected"}
               </span>
-            ) : (
-              <span className="text-gray-500 dark:text-gray-400">
-                No vessel selected
+            </div>
+            {imo && (
+              <span className="text-xs font-medium text-gray-400 italic">
+                IMO: {imo}
               </span>
             )}
           </div>
           <Button
             size="sm"
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-blue-600 font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
             onClick={() => setIsAddModalOpen(true)}
           >
-            + Add new rule
+            + Add New Rule
           </Button>
         </div>
 
         <div className="max-w-full overflow-x-auto">
-          <Table>
-            <TableHeader className="border-gray-200 bg-blue-50 dark:border-gray-700 dark:bg-slate-800">
+          <Table className="min-w-[1200px]">
+            <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
               <TableRow>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-center font-medium text-gray-500 dark:text-white"
-                >
-                  Status
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Interface
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Protocol
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Source Address
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Source Ports
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Dest. Address
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Dest. Ports
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  NAT IP
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  NAT Ports
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-start font-medium text-gray-500 dark:text-white"
-                >
-                  Description
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className="text-theme-sm py-3 text-center font-medium text-gray-500 dark:text-white"
-                >
-                  Actions
-                </TableCell>
+                {[
+                  "Status",
+                  "Interface",
+                  "Protocol",
+                  "Source. Add",
+                  "Source. Port",
+                  "Dest. Add",
+                  "Dest. Port",
+                  "NAT IP",
+                  "NAT Port",
+                  "Description",
+                  "Actions",
+                ].map((head) => (
+                  <TableCell
+                    key={head}
+                    isHeader
+                    className="px-5 py-4 text-center text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400"
+                  >
+                    {head}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHeader>
 
-            <TableBody className="relative divide-y divide-gray-100 dark:divide-gray-800">
+            <TableBody className="relative divide-y divide-gray-100 dark:divide-white/[0.05]">
               {isUpdating && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
-                  <div className="flex flex-col items-center gap-2 rounded-xl bg-white p-4 shadow-lg dark:bg-gray-800">
+                  <div className="flex flex-col items-center gap-2 rounded-xl border bg-white p-4 shadow-xl dark:border-white/10 dark:bg-gray-800">
                     <Loading />
-                    <span className="text-xs font-semibold text-blue-600">
-                      APPLYING...
+                    <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase">
+                      Updating
                     </span>
                   </div>
                 </div>
@@ -305,86 +234,87 @@ export default function PortForwardPage() {
 
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="py-24 text-center">
+                  <TableCell colSpan={11} className="py-32 text-center">
                     <Loading />
                   </TableCell>
                 </TableRow>
               ) : systemRules.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={11}
-                    className="py-10 text-center dark:text-white"
-                  >
-                    No system rules available.
+                  <TableCell colSpan={11} className="py-24 text-center">
+                    <p className="text-sm font-medium opacity-30 dark:text-gray-400">
+                      No system rules found.
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : (
                 systemRules.map((rule) => {
-                  const isEnabled = rule.disabled === undefined;
-                  const displayInterface =
-                    interfaces[rule.interface] || rule.interface;
-
-                  const srcAddr =
-                    rule.source.any !== undefined
-                      ? "*"
-                      : rule.source.address || "*";
-                  const srcPort = rule.source.port || "*";
-                  const dstAddr = rule.destination.network || "*";
-                  const dstPort = rule.destination.port || "*";
-
+                  const isActive = !rule.disabled;
                   return (
                     <TableRow
-                      key={rule.originalIdx} // 고유 인덱스 사용
+                      key={rule.originalIdx}
                       onDoubleClick={() =>
                         handleEditClick(rule, rule.originalIdx)
                       }
-                      className={`transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-white/5 ${!isEnabled ? "opacity-40 grayscale-[0.5]" : ""}`}
+                      className={`group cursor-pointer transition-all duration-200 ${
+                        isActive
+                          ? "hover:bg-blue-50/50 dark:hover:bg-blue-500/5"
+                          : "bg-gray-50/50 opacity-60 dark:bg-white/[0.02]"
+                      }`}
                     >
-                      <TableCell className="py-3 text-center">
+                      <TableCell className="px-5 py-4 text-center">
                         <Image
-                          src={`/images/icons/ic_check_${isEnabled ? "on" : "off"}.png`}
+                          src={`/images/icons/ic_check_${isActive ? "on" : "off"}.png`}
                           alt="Status"
                           width={22}
                           height={22}
-                          className="mx-auto"
+                          className={`mx-auto ${!isActive ? "opacity-50 grayscale" : ""}`}
                         />
                       </TableCell>
-                      <TableCell className="py-3 text-sm font-medium text-gray-800 uppercase dark:text-white/90">
-                        {displayInterface}
-                        {displayInterface !== rule.interface && (
-                          <span className="ml-1 text-[10px] text-gray-400 lowercase italic">
-                            ({rule.interface})
-                          </span>
-                        )}
+                      <TableCell className="px-5 py-4 text-center">
+                        <span className="text-sm font-bold text-gray-800 dark:text-white/90">
+                          {getInterfaceLabel(rule.interfaceName)}
+                        </span>
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 uppercase dark:text-gray-400">
-                        {rule.protocol}
+                      <TableCell className="px-5 py-4 text-center">
+                        <span
+                          className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${isActive ? "bg-gray-100 text-gray-600 dark:bg-white/10" : "bg-gray-200/50 text-gray-400"}`}
+                        >
+                          {rule.protocol}
+                        </span>
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {srcAddr}
+                      <TableCell className="px-5 py-4 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {rule.sourceIp}
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {srcPort}
+                      <TableCell className="px-5 py-4 text-center text-sm text-gray-500">
+                        {rule.sourcePort}
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {dstAddr}
+                      <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {rule.destinationIp}
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {dstPort}
+                      <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {rule.destinationPort}
                       </TableCell>
-                      <TableCell className="py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {rule.target}
+                      <TableCell className="px-5 py-4 text-center">
+                        <span
+                          className={`text-sm font-bold ${isActive ? "text-orange-500" : "text-gray-400"}`}
+                        >
+                          {rule.targetIp}
+                        </span>
                       </TableCell>
-                      <TableCell className="py-3 font-mono text-sm text-gray-500 dark:text-gray-400">
-                        {rule["local-port"]}
+                      <TableCell className="px-5 py-4 text-center font-mono text-sm text-gray-700 dark:text-gray-300">
+                        {rule.targetPort}
                       </TableCell>
-                      <TableCell className="max-w-[150px] truncate py-3 text-sm text-gray-400 italic dark:text-gray-500">
-                        {rule.descr}
+                      <TableCell className="px-5 py-4 text-start">
+                        <p
+                          className="max-w-[200px] truncate text-xs text-gray-400 italic"
+                          title={rule.description}
+                        >
+                          {rule.description}
+                        </p>
                       </TableCell>
-                      <TableCell className="py-3 pr-4">
-                        <div className="flex items-center justify-center gap-3">
+                      <TableCell className="px-5 py-4">
+                        <div className="flex items-center justify-center gap-4">
                           <button
-                            className="hover:opacity-70"
                             onClick={() =>
                               handleEditClick(rule, rule.originalIdx)
                             }
@@ -392,22 +322,21 @@ export default function PortForwardPage() {
                             <Image
                               src="/images/icons/ic_modify_b.png"
                               alt="Edit"
-                              width={20}
-                              height={20}
+                              width={18}
+                              height={18}
+                              className="dark:invert"
                             />
                           </button>
                           <Switch
-                            key={`${rule.originalIdx}-${isEnabled}`}
-                            label=""
-                            defaultChecked={isEnabled}
+                            key={`${rule.originalIdx}-${isActive}`}
+                            defaultChecked={isActive}
                             disabled={isUpdating}
                             onChange={() =>
-                              handleToggleStatus(rule.originalIdx, isEnabled)
+                              handleToggleStatus(rule.originalIdx, isActive)
                             }
                             color="blue"
                           />
                           <button
-                            className="hover:opacity-70"
                             onClick={() => {
                               setRuleToDelete(rule.originalIdx);
                               setIsDeleteAlertOpen(true);
@@ -416,8 +345,8 @@ export default function PortForwardPage() {
                             <Image
                               src="/images/icons/ic_delete_r.png"
                               alt="Delete"
-                              width={20}
-                              height={20}
+                              width={18}
+                              height={18}
                             />
                           </button>
                         </div>
@@ -430,24 +359,25 @@ export default function PortForwardPage() {
           </Table>
         </div>
       </div>
-      {/* ✅ Port Forward 수정 모달 */}
+
+      {/* 💡 Modals - currentRuleCount 전달 */}
       <PortForwardEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         rule={selectedRule}
         ruleId={selectedIdx}
-        vpnIp={vpnIp}
-        interfaceOptions={interfaceOptions}
-        onSuccess={fetchPortForwardData}
+        imo={imo}
+        interfaces={interfaces}
+        onSuccess={fetchAllData}
+        currentRuleCount={currentRuleCount}
       />
 
-      {/* ✅ Port Forward 추가 모달 연결 */}
       <PortForwardAddModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        vpnIp={vpnIp}
-        interfaceOptions={interfaceOptions}
-        onSuccess={fetchPortForwardData}
+        imo={imo}
+        interfaces={interfaces}
+        onSuccess={fetchAllData}
       />
     </div>
   );

@@ -123,7 +123,7 @@ export default function LineChartOne({
         toolbar: {
           show: true,
           tools: {
-            download: false,
+            download: true,
             selection: true,
             zoom: false,
             zoomin: false,
@@ -244,7 +244,7 @@ export default function LineChartOne({
               onMouseLeave={() => setHoveredAntenna(null)} // ✅ 호버 종료
               className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
                 isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
-              } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+              } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
             >
               <span
                 className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
