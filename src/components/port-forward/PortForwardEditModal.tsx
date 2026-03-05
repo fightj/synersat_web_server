@@ -6,6 +6,12 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "@/icons";
+import {
+  PROTOCOL_OPTIONS,
+  ANY_OTHER_OPTIONS,
+  RULE_TYPE_OPTIONS,
+} from "./Constants";
+import { portForwardModalStyles } from "./Styles";
 
 interface PortForwardEditModalProps {
   isOpen: boolean;
@@ -17,30 +23,6 @@ interface PortForwardEditModalProps {
   onSuccess: () => void;
   currentRuleCount: number;
 }
-
-const PROTOCOL_OPTIONS = [
-  { value: "tcp", label: "TCP" },
-  { value: "udp", label: "UDP" },
-  { value: "tcp/udp", label: "TCP/UDP" },
-  { value: "icmp", label: "ICMP" },
-  { value: "esp", label: "ESP" },
-  { value: "ah", label: "AH" },
-  { value: "gre", label: "GRE" },
-  { value: "ipv6", label: "IPV6" },
-  { value: "igmp", label: "IGMP" },
-  { value: "pim", label: "PIM" },
-  { value: "ospf", label: "OSPF" },
-];
-
-const ANY_OTHER_OPTIONS = [
-  { value: "any", label: "Any" },
-  { value: "other", label: "Other" },
-];
-
-const RULE_TYPE_OPTIONS = [
-  { value: "[System Rule]", label: "[System Rule]" },
-  { value: "[User Rule]", label: "[User Rule]" },
-];
 
 export default function PortForwardEditModal({
   isOpen,
@@ -60,14 +42,6 @@ export default function PortForwardEditModal({
   const [srcPortMode, setSrcPortMode] = useState("any");
   const [dstPortMode, setDstPortMode] = useState("any");
   const [loading, setLoading] = useState(false);
-
-  // 다크모드 대응 스타일
-  const inputStyle =
-    "dark:bg-gray-200 dark:text-gray-900 dark:border-gray-300 font-medium placeholder:text-gray-500";
-  const labelStyle =
-    "dark:text-white text-gray-800 font-bold mb-1.5 block text-sm";
-  const sectionCardStyle =
-    "bg-gray-50/50 dark:bg-white/[0.03] p-4 rounded-xl border border-gray-100 dark:border-white/[0.05]";
 
   // 부모에서 받은 interfaces 배열을 Select용 옵션으로 변환
   const interfaceOptions = useMemo(() => {
@@ -153,7 +127,7 @@ export default function PortForwardEditModal({
         options={options}
         defaultValue={defaultValue}
         onChange={onChange}
-        className={inputStyle}
+        className={portForwardModalStyles.input}
       />
       <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-700">
         <ChevronDownIcon />
@@ -176,9 +150,11 @@ export default function PortForwardEditModal({
 
         <div className="grid grid-cols-2 gap-4">
           {/* 1. Interface & Protocol 섹션 */}
-          <div className={`${sectionCardStyle} flex flex-col gap-4`}>
+          <div
+            className={`${portForwardModalStyles.sectionCard} flex flex-col gap-4`}
+          >
             <div className="space-y-1">
-              <label className={labelStyle}>Interface</label>
+              <label className={portForwardModalStyles.label}>Interface</label>
               <RenderSelect
                 options={interfaceOptions}
                 defaultValue={formData.interface}
@@ -188,7 +164,7 @@ export default function PortForwardEditModal({
               />
             </div>
             <div className="space-y-1">
-              <label className={labelStyle}>Protocol</label>
+              <label className={portForwardModalStyles.label}>Protocol</label>
               <RenderSelect
                 options={PROTOCOL_OPTIONS}
                 defaultValue={formData.protocol}
@@ -200,9 +176,13 @@ export default function PortForwardEditModal({
           </div>
 
           {/* 2. Source Info 섹션 */}
-          <div className={`${sectionCardStyle} flex flex-col gap-4`}>
+          <div
+            className={`${portForwardModalStyles.sectionCard} flex flex-col gap-4`}
+          >
             <div className="space-y-1">
-              <label className={labelStyle}>Source Address</label>
+              <label className={portForwardModalStyles.label}>
+                Source Address
+              </label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
                   <RenderSelect
@@ -213,7 +193,7 @@ export default function PortForwardEditModal({
                 </div>
                 {srcAddrMode === "other" && (
                   <Input
-                    className={inputStyle}
+                    className={portForwardModalStyles.input}
                     value={formData.src ?? ""}
                     onChange={(e) =>
                       setFormData({ ...formData, src: e.target.value })
@@ -224,7 +204,9 @@ export default function PortForwardEditModal({
               </div>
             </div>
             <div className="space-y-1">
-              <label className={labelStyle}>Source Port</label>
+              <label className={portForwardModalStyles.label}>
+                Source Port
+              </label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
                   <RenderSelect
@@ -235,7 +217,7 @@ export default function PortForwardEditModal({
                 </div>
                 {srcPortMode === "other" && (
                   <Input
-                    className={inputStyle}
+                    className={portForwardModalStyles.input}
                     value={formData.srcport ?? ""}
                     onChange={(e) =>
                       setFormData({ ...formData, srcport: e.target.value })
@@ -248,17 +230,19 @@ export default function PortForwardEditModal({
           </div>
 
           {/* 3. External Dest 섹션 */}
-          <div className={`${sectionCardStyle} space-y-4`}>
+          <div className={`${portForwardModalStyles.sectionCard} space-y-4`}>
             <div className="space-y-1">
-              <label className={labelStyle}>Destination IP</label>
+              <label className={portForwardModalStyles.label}>
+                Destination IP
+              </label>
               <Input
-                className={`${inputStyle} opacity-60`}
+                className={`${portForwardModalStyles.input} opacity-60`}
                 value={formData.dst ?? ""}
                 disabled
               />
             </div>
             <div className="space-y-1">
-              <label className={labelStyle}>Dest. Port</label>
+              <label className={portForwardModalStyles.label}>Dest. Port</label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
                   <RenderSelect
@@ -269,7 +253,7 @@ export default function PortForwardEditModal({
                 </div>
                 {dstPortMode === "other" && (
                   <Input
-                    className={inputStyle}
+                    className={portForwardModalStyles.input}
                     value={formData.dstport ?? ""}
                     onChange={(e) =>
                       setFormData({ ...formData, dstport: e.target.value })
@@ -282,11 +266,11 @@ export default function PortForwardEditModal({
           </div>
 
           {/* 4. NAT Target 섹션 */}
-          <div className={`${sectionCardStyle} space-y-4`}>
+          <div className={`${portForwardModalStyles.sectionCard} space-y-4`}>
             <div className="space-y-1">
-              <label className={labelStyle}>NAT IP</label>
+              <label className={portForwardModalStyles.label}>NAT IP</label>
               <Input
-                className={inputStyle}
+                className={portForwardModalStyles.input}
                 value={formData.target ?? ""}
                 onChange={(e) =>
                   setFormData({ ...formData, target: e.target.value })
@@ -295,9 +279,9 @@ export default function PortForwardEditModal({
               />
             </div>
             <div className="space-y-1">
-              <label className={labelStyle}>NAT Port</label>
+              <label className={portForwardModalStyles.label}>NAT Port</label>
               <Input
-                className={inputStyle}
+                className={portForwardModalStyles.input}
                 value={formData["local-port"] ?? ""}
                 onChange={(e) =>
                   setFormData({ ...formData, "local-port": e.target.value })
@@ -309,8 +293,8 @@ export default function PortForwardEditModal({
         </div>
 
         {/* 5. Description 섹션 */}
-        <div className={`${sectionCardStyle}`}>
-          <label className={labelStyle}>Description</label>
+        <div className={`${portForwardModalStyles.sectionCard}`}>
+          <label className={portForwardModalStyles.label}>Description</label>
           <div className="flex gap-2">
             <div className="w-[160px] shrink-0">
               <RenderSelect
@@ -320,7 +304,7 @@ export default function PortForwardEditModal({
               />
             </div>
             <Input
-              className={inputStyle}
+              className={portForwardModalStyles.input}
               value={pureDescr ?? ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setPureDescr(e.target.value)

@@ -180,11 +180,6 @@ export default function PortForwardPage() {
                 {selectedVessel ? selectedVessel.name : "No vessel selected"}
               </span>
             </div>
-            {imo && (
-              <span className="text-xs font-medium text-gray-400 italic">
-                IMO: {imo}
-              </span>
-            )}
           </div>
           <Button
             size="sm"
@@ -203,10 +198,10 @@ export default function PortForwardPage() {
                   "Status",
                   "Interface",
                   "Protocol",
-                  "Source. Add",
-                  "Source. Port",
-                  "Dest. Add",
-                  "Dest. Port",
+                  "Source IP",
+                  "Source Port",
+                  "Dest IP",
+                  "Dest Port",
                   "NAT IP",
                   "NAT Port",
                   "Description",
@@ -215,7 +210,9 @@ export default function PortForwardPage() {
                   <TableCell
                     key={head}
                     isHeader
-                    className="px-5 py-4 text-center text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400"
+                    className={`px-5 py-4 text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400 ${
+                      head === "Description" ? "text-start" : "text-center"
+                    }`}
                   >
                     {head}
                   </TableCell>
@@ -319,7 +316,7 @@ export default function PortForwardPage() {
                       </TableCell>
                       <TableCell className="px-5 py-4">
                         {/* flex-nowrap으로 요소들이 줄바꿈되지 않게 하고, gap을 화면 크기에 따라 조절 */}
-                        <div className="flex items-center justify-center gap-2 sm:gap-4">
+                        <div className="flex items-center justify-center gap-1 sm:gap-4">
                           {/* 1. Edit 버튼 제거 (요청사항 반영: 더블클릭으로 대체) */}
 
                           {/* 2. 화면 크기에 따라 크기가 변하는 Switch */}
@@ -347,8 +344,8 @@ export default function PortForwardPage() {
                             <Image
                               src="/images/icons/ic_delete_r.png"
                               alt="Delete"
-                              width={18}
-                              height={18}
+                              width={19}
+                              height={19}
                               className="min-h-[16px] min-w-[16px]" // 최소 사이즈 고정
                             />
                           </button>
@@ -380,6 +377,7 @@ export default function PortForwardPage() {
         imo={imo}
         interfaces={interfaces}
         onSuccess={fetchAllData}
+        isSystem="[System Rule]"
       />
     </div>
   );

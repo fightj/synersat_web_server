@@ -382,6 +382,7 @@ export default function PortForwardUserPage() {
         imo={imo}
         interfaces={interfaces}
         onSuccess={fetchAllData}
+        isSystem="[User Rule]"
       />
     </div>
   );
