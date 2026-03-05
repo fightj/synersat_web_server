@@ -82,7 +82,7 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
   const error = useVesselStore((s) => s.error);
   const fetchVessels = useVesselStore((s) => s.fetchVessels);
 
-  const [sortKey, setSortKey] = useState<SortKey>("company");
+  const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [targetVessel, setTargetVessel] = useState<{
