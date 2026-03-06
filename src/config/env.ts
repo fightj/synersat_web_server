@@ -22,9 +22,12 @@ const getBaseUrl = () => {
   } 
   
   // 내부망 접속 시 (프론트 10.10.10.9 -> 백엔드 10.10.10.7)
-  else if (hostname === "10.10.10.9") {
-    return "http://10.10.10.7:8080";
-  }
+  else if (
+  hostname === "10.10.10.9" ||
+  hostname === "dashboard.synersatfleet.net" // ✅ 추가
+) {
+  return "http://10.10.10.7:8080";
+}
 
   // 그 외 기본값
   return process.env.NEXT_PUBLIC_API_BASE_URL || "http://10.8.0.227:8080";
