@@ -12,14 +12,16 @@ import {
   RULE_TYPE_OPTIONS,
 } from "./Constants";
 import { portForwardModalStyles } from "./Styles";
+import { updateDeviceNat } from "@/api/firewall";
+import { DeviceNatRow } from "@/types/firewall";
 
 interface PortForwardEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  rule: any;
+  rule: DeviceNatRow | null;
   ruleId: number;
-  imo: number | undefined; // 부모의 imo를 받음
-  interfaces: any[]; // 부모의 interfaces 객체 배열을 받음
+  imo: number | undefined;
+  interfaces: any[];
   onSuccess: () => void;
   currentRuleCount: number;
 }
@@ -37,13 +39,11 @@ export default function PortForwardEditModal({
   const [formData, setFormData] = useState<any>({});
   const [ruleType, setRuleType] = useState("[User Rule]");
   const [pureDescr, setPureDescr] = useState("");
-
   const [srcAddrMode, setSrcAddrMode] = useState("any");
   const [srcPortMode, setSrcPortMode] = useState("any");
   const [dstPortMode, setDstPortMode] = useState("any");
   const [loading, setLoading] = useState(false);
 
-  // 부모에서 받은 interfaces 배열을 Select용 옵션으로 변환
   const interfaceOptions = useMemo(() => {
     return interfaces.map((iface) => ({
       value: iface.interfaceName,
@@ -52,70 +52,70 @@ export default function PortForwardEditModal({
   }, [interfaces]);
 
   useEffect(() => {
-    if (rule && isOpen) {
-      // 1. Description 파싱 (부모 리스트의 필드명 description 기준)
-      const fullDescr = rule.description || "";
-      if (fullDescr.startsWith("[System Rule]")) {
-        setRuleType("[System Rule]");
-        setPureDescr(fullDescr.replace("[System Rule]", "").trim());
-      } else if (fullDescr.startsWith("[User Rule]")) {
-        setRuleType("[User Rule]");
-        setPureDescr(fullDescr.replace("[User Rule]", "").trim());
-      } else {
-        setRuleType("[User Rule]");
-        setPureDescr(fullDescr);
-      }
+    if (!rule || !isOpen) return;
 
-      // 2. 부모 리스트의 데이터 구조(DeviceNat 타입)를 formData 형식으로 로드
-      const srcAddr = rule.sourceIp || "any";
-      const srcPort = rule.sourcePort || "any";
-      const dstPort = rule.destinationPort || "any";
-
-      setFormData({
-        interface: rule.interfaceName,
-        protocol: rule.protocol?.toLowerCase() || "tcp",
-        src: srcAddr === "any" ? "" : srcAddr,
-        srcport: srcPort === "any" ? "" : srcPort,
-        dst: rule.destinationIp || "(self)",
-        dstport: dstPort === "any" ? "" : dstPort,
-        target: rule.targetIp,
-        "local-port": rule.targetPort,
-      });
-
-      setSrcAddrMode(srcAddr === "any" ? "any" : "other");
-      setSrcPortMode(srcPort === "any" ? "any" : "other");
-      setDstPortMode(dstPort === "any" ? "any" : "other");
+    // description 파싱
+    const fullDescr = rule.description || "";
+    if (fullDescr.startsWith("[System Rule]")) {
+      setRuleType("[System Rule]");
+      setPureDescr(fullDescr.replace("[System Rule]", "").trim());
+    } else if (fullDescr.startsWith("[User Rule]")) {
+      setRuleType("[User Rule]");
+      setPureDescr(fullDescr.replace("[User Rule]", "").trim());
+    } else {
+      setRuleType("[User Rule]");
+      setPureDescr(fullDescr);
     }
+
+    const srcAddr = rule.sourceIp || "any";
+    const srcPort = rule.sourcePort || "any";
+    const dstPort = rule.destinationPort || "any";
+
+    setFormData({
+      interface: rule.interfaceName,
+      protocol: rule.protocol?.toLowerCase() || "tcp",
+      src: srcAddr === "any" || srcAddr === "" ? "" : srcAddr,
+      srcport: srcPort === "any" || srcPort === "" ? "" : srcPort,
+      dst: rule.destinationIp || "(self)",
+      dstport: dstPort === "any" || dstPort === "" ? "" : dstPort,
+      target: rule.targetIp,
+      "local-port": rule.targetPort,
+    });
+
+    setSrcAddrMode(srcAddr === "any" || srcAddr === "" ? "any" : "other");
+    setSrcPortMode(srcPort === "any" || srcPort === "" ? "any" : "other");
+    setDstPortMode(dstPort === "any" || dstPort === "" ? "any" : "other");
   }, [rule, isOpen]);
 
   const handleSubmit = async () => {
+    if (!imo) return;
     setLoading(true);
 
     const finalDescr = `${ruleType} ${pureDescr}`.trim();
 
-    // 기존 요구사항대로 vpnIp 자리에 부모의 imo를 넣어서 전송
-    const payload = {
-      vpnIp: imo,
-      id: ruleId,
-      ...formData,
-      descr: finalDescr,
-      src: srcAddrMode === "any" ? "any" : formData.src,
-      srcport: srcPortMode === "any" ? "any" : formData.srcport,
-      dstport: dstPortMode === "any" ? "any" : formData.dstport,
-      apply: true,
-    };
-
     try {
-      const res = await fetch("/api/port_forward", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const commandId = await updateDeviceNat({
+        index: ruleId,
+        currentRuleCount,
+        imo: Number(imo),
+        apply: true,
+        description: finalDescr,
+        disabled: rule?.disabled ?? false,
+        destinationIp: formData.dst ?? "",
+        destinationPort: dstPortMode === "any" ? "" : (formData.dstport ?? ""),
+        targetIp: formData.target ?? "",
+        targetPort: formData["local-port"] ?? "",
+        sourceIp: srcAddrMode === "any" ? "" : (formData.src ?? ""),
+        sourcePort: srcPortMode === "any" ? "" : (formData.srcport ?? ""),
+        interfaceName: formData.interface ?? "",
+        protocol: formData.protocol ?? "tcp",
+        top: false,
       });
-      if (!res.ok) throw new Error("Update Failed");
+      console.log("Update queued, command id:", commandId);
       onSuccess();
       onClose();
-    } catch (err) {
-      alert("수정 실패");
+    } catch (err: any) {
+      alert(err.message || "수정 실패");
     } finally {
       setLoading(false);
     }
@@ -149,7 +149,7 @@ export default function PortForwardEditModal({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* 1. Interface & Protocol 섹션 */}
+          {/* 1. Interface & Protocol */}
           <div
             className={`${portForwardModalStyles.sectionCard} flex flex-col gap-4`}
           >
@@ -175,7 +175,7 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 2. Source Info 섹션 */}
+          {/* 2. Source */}
           <div
             className={`${portForwardModalStyles.sectionCard} flex flex-col gap-4`}
           >
@@ -229,7 +229,7 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 3. External Dest 섹션 */}
+          {/* 3. Destination */}
           <div className={`${portForwardModalStyles.sectionCard} space-y-4`}>
             <div className="space-y-1">
               <label className={portForwardModalStyles.label}>
@@ -265,7 +265,7 @@ export default function PortForwardEditModal({
             </div>
           </div>
 
-          {/* 4. NAT Target 섹션 */}
+          {/* 4. NAT Target */}
           <div className={`${portForwardModalStyles.sectionCard} space-y-4`}>
             <div className="space-y-1">
               <label className={portForwardModalStyles.label}>NAT IP</label>
@@ -292,8 +292,8 @@ export default function PortForwardEditModal({
           </div>
         </div>
 
-        {/* 5. Description 섹션 */}
-        <div className={`${portForwardModalStyles.sectionCard}`}>
+        {/* 5. Description */}
+        <div className={portForwardModalStyles.sectionCard}>
           <label className={portForwardModalStyles.label}>Description</label>
           <div className="flex gap-2">
             <div className="w-[160px] shrink-0">

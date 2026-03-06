@@ -22,6 +22,8 @@ export default function PortForwardPageTemplate({
     imo,
     interfaces,
     filteredRules,
+    isLocked,
+    statusCounts,
     isLoading,
     isUpdating,
     isEditModalOpen,
@@ -60,20 +62,37 @@ export default function PortForwardPageTemplate({
               </span>
             </div>
           </div>
-          <Button
-            size="sm"
-            className="bg-blue-600 font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            + Add New Rule
-          </Button>
+
+          <div className="relative">
+            <Button
+              size="sm"
+              disabled={isLocked}
+              className={`font-semibold shadow-md transition-all ${
+                isLocked
+                  ? "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none dark:bg-white/5 dark:text-white/20"
+                  : "bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              }`}
+              onClick={() => {
+                if (isLocked) return;
+                setIsAddModalOpen(true);
+              }}
+            >
+              + Add New Rule
+            </Button>
+            {isLocked && (
+              <p className="absolute top-full right-0 mt-1 text-[10px] whitespace-nowrap text-red-400">
+                Resolve pending CREATE/DELETE first
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* 테이블 */}
         <PortForwardTable
           rules={filteredRules}
           isLoading={isLoading}
           isUpdating={isUpdating}
+          isLocked={isLocked}
+          statusCounts={statusCounts}
           getInterfaceLabel={getInterfaceLabel}
           onEditClick={handleEditClick}
           onToggleStatus={handleToggleStatus}

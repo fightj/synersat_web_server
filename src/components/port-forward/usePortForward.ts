@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useVesselStore } from "@/store/vessel.store";
-import { DeviceNat } from "@/types/firewall";
-import { getDeviceNats } from "@/api/firewall";
+import { DeviceNatRow } from "@/types/firewall";
+import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
 import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
 
 export type RuleType = "[System Rule]" | "[User Rule]";
@@ -13,20 +13,19 @@ export function usePortForward(ruleType: RuleType) {
   const imo = selectedVessel?.imo;
   const vpnIp = selectedVessel?.vpnIp;
 
-  const [rules, setRules] = useState<DeviceNat[]>([]);
+  const [rules, setRules] = useState<DeviceNatRow[]>([]);
   const [interfaces, setInterfaces] = useState<DeviceInterface[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedRule, setSelectedRule] = useState<DeviceNat | null>(null);
+  const [selectedRule, setSelectedRule] = useState<DeviceNatRow | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
 
-  // 데이터 fetch
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
     setIsLoading(true);
@@ -52,16 +51,29 @@ export function usePortForward(ruleType: RuleType) {
     }
   }, [imo, fetchAllData]);
 
-  // ruleType에 따라 필터링
+  // 탭별 필터링된 rules
   const filteredRules = useMemo(() => {
-    return rules
-      .map((rule, index) => ({ ...rule, originalIdx: index }))
-      .filter((rule) =>
-        ruleType === "[System Rule]"
-          ? !rule.description?.includes("[User Rule]")
-          : rule.description?.includes("[User Rule]"),
-      );
+    return rules.filter((rule) =>
+      ruleType === "[System Rule]"
+        ? !rule.description?.includes("[User Rule]")
+        : rule.description?.includes("[User Rule]"),
+    );
   }, [rules, ruleType]);
+
+  // ✅ 전체 rules 기준으로 isLocked 계산 (system/user 무관)
+  const isLocked = useMemo(() => {
+    return rules.some(
+      (r) => r.changeType === "CREATE" || r.changeType === "DELETE",
+    );
+  }, [rules]);
+
+  // ✅ 전체 rules 기준으로 통계 계산 (system/user 무관)
+  const statusCounts = useMemo(() => ({
+    available: rules.filter((r) => r.changeType === null).length,
+    create: rules.filter((r) => r.changeType === "CREATE").length,
+    update: rules.filter((r) => r.changeType === "UPDATE").length,
+    delete: rules.filter((r) => r.changeType === "DELETE").length,
+  }), [rules]);
 
   const getInterfaceLabel = useCallback(
     (name: string) => {
@@ -82,7 +94,7 @@ export function usePortForward(ruleType: RuleType) {
           body: JSON.stringify({
             vpnIp,
             id: originalIndex,
-            disabled: currentEnabled,
+            disabled: !currentEnabled,
           }),
         });
         if (!response.ok) throw new Error("Update failed");
@@ -96,7 +108,7 @@ export function usePortForward(ruleType: RuleType) {
     [vpnIp, fetchAllData],
   );
 
-  const handleEditClick = useCallback((rule: DeviceNat & { originalIdx: number }) => {
+  const handleEditClick = useCallback((rule: DeviceNatRow) => {
     setSelectedRule(rule);
     setSelectedIdx(rule.originalIdx);
     setIsEditModalOpen(true);
@@ -112,12 +124,8 @@ export function usePortForward(ruleType: RuleType) {
     setIsUpdating(true);
     setIsDeleteAlertOpen(false);
     try {
-      const response = await fetch("/api/device-nats", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imo, id: ruleToDelete }),
-      });
-      if (!response.ok) throw new Error("fail to delete");
+      const commandId = await deleteDeviceNat(Number(imo), ruleToDelete, filteredRules.length);
+      console.log("Delete Rule, command id:", commandId);
       await fetchAllData();
     } catch (error: any) {
       alert(error.message);
@@ -125,20 +133,18 @@ export function usePortForward(ruleType: RuleType) {
       setIsUpdating(false);
       setRuleToDelete(null);
     }
-  }, [ruleToDelete, imo, fetchAllData]);
+  }, [ruleToDelete, imo, filteredRules.length, fetchAllData]);
 
   return {
-    // vessel
     selectedVessel,
     imo,
-    // data
     rules,
     interfaces,
     filteredRules,
-    // loading states
+    isLocked,
+    statusCounts,
     isLoading,
     isUpdating,
-    // modal states
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,
@@ -147,7 +153,6 @@ export function usePortForward(ruleType: RuleType) {
     selectedIdx,
     isDeleteAlertOpen,
     setIsDeleteAlertOpen,
-    // handlers
     fetchAllData,
     getInterfaceLabel,
     handleToggleStatus,
