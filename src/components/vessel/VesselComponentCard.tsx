@@ -40,7 +40,7 @@ export default function VesselComponentCard() {
       <div ref={sentinelRef} className="h-px w-full bg-transparent" />
 
       <div
-        className={`sticky top-5 z-10 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
+        className={`sticky top-5 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
           isSticky ? "mx-24 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
         }`}
       >
@@ -57,13 +57,12 @@ export default function VesselComponentCard() {
             + Add Vessel
           </Button>
         </div>
-
-        <VesselAddModal isOpen={isOpen} onClose={closeModal} />
       </div>
 
       <div className="mt-4">
         <VesselTable searchTerm={searchTerm} />
       </div>
+      <VesselAddModal isOpen={isOpen} onClose={closeModal} />
     </>
   );
 }

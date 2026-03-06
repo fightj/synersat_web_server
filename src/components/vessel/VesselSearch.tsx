@@ -165,14 +165,11 @@ export default function VesselSearch({ className = "" }: Props) {
   };
 
   return (
-    <div
-      ref={rootRef}
-      className={`relative w-full sm:min-w-[300px] md:min-w-[350px] lg:min-w-[400px] ${className}`}
-    >
+    <div ref={rootRef} className={`relative w-full ${className}`}>
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="relative flex items-center">
           {/* 🔍 검색 아이콘 */}
-          <span className="pointer-events-none absolute left-4 z-10">
+          <span className="pointer-events-none absolute left-4 z-100">
             <svg
               className="fill-gray-500 dark:fill-gray-400"
               width="18"
