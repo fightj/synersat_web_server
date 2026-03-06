@@ -348,7 +348,7 @@ export default function PortForwardTable({
                     isPending
                       ? "cursor-not-allowed bg-gray-50/80 opacity-50 dark:bg-white/[0.01]"
                       : isLocked
-                        ? "cursor-not-allowed opacity-60"
+                        ? "cursor-not-allowed hover:bg-blue-50/50 dark:hover:bg-blue-500/5"
                         : isActive
                           ? "cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-500/5"
                           : "cursor-pointer bg-gray-50/50 opacity-60 dark:bg-white/[0.02]"
