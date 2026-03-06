@@ -7,10 +7,14 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import VesselSearch from "@/components/vessel/VesselSearch";
+import { usePathname } from "next/navigation";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+
+  const pathname = usePathname();
+  const isDashboard = pathname === "/";
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -39,10 +43,14 @@ const AppHeader: React.FC = () => {
 
   return (
     // 전체 헤더 컨테이너는 투명하게 유지
-    <header className="top-0 z-30 flex w-full bg-transparent px-4 py-4 lg:px-6">
+    <header
+      className={`${isDashboard ? "fixed right-0 left-0" : ""} top-0 z-80 flex w-full bg-transparent px-4 py-4 lg:px-6`}
+    >
       <div className="flex w-full items-center justify-between gap-4">
         {/* 🟢 왼쪽 영역: 토글 + 로고 + 검색창 (흰색/다크 배경 카드) */}
-        <div className="flex items-center gap-3 rounded-3xl bg-white px-3 py-2 shadow-sm lg:px-4 dark:bg-blue-950">
+        <div
+          className={`flex items-center gap-3 rounded-3xl bg-white px-3 py-2 shadow-sm lg:px-4 dark:bg-blue-950 ${isDashboard ? "lg:ml-[290px]" : ""}`}
+        >
           <button
             className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-white dark:hover:bg-gray-800"
             onClick={handleToggle}

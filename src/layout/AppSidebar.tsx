@@ -52,39 +52,50 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Commands",
-    icon: <ListIcon />,
-    subItems: [{ name: "Commands", path: "/commands" }],
-  },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
+    icon: <BoxCubeIcon />,
+    name: "Manage",
     subItems: [
-      { name: "Blank Page", path: "/blank" },
-      { name: "404 Error", path: "/error-404" },
+      {
+        name: "Resource",
+        path: "/resource",
+      },
+      {
+        name: "Device Manage",
+        path: "/device_manage",
+      },
     ],
   },
+  { icon: <ListIcon />, name: "Commands", path: "/commands" },
+
+  // {
+  //   name: "Pages",
+  //   icon: <PageIcon />,
+  //   subItems: [
+  //     { name: "Blank Page", path: "/blank" },
+  //     { name: "404 Error", path: "/error-404" },
+  //   ],
+  // },
 ];
 
 const othersItems: NavItem[] = [
-  {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart" },
-      { name: "Bar Chart", path: "/bar-chart" },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts" },
-      { name: "Avatar", path: "/avatars" },
-      { name: "Badge", path: "/badge" },
-      { name: "Buttons", path: "/buttons" },
-    ],
-  },
+  // {
+  //   icon: <PieChartIcon />,
+  //   name: "Charts",
+  //   subItems: [
+  //     { name: "Line Chart", path: "/line-chart" },
+  //     { name: "Bar Chart", path: "/bar-chart" },
+  //   ],
+  // },
+  // {
+  //   icon: <BoxCubeIcon />,
+  //   name: "UI Elements",
+  //   subItems: [
+  //     { name: "Alerts", path: "/alerts" },
+  //     { name: "Avatar", path: "/avatars" },
+  //     { name: "Badge", path: "/badge" },
+  //     { name: "Buttons", path: "/buttons" },
+  //   ],
+  // },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -228,7 +239,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-28 left-0 z-40 flex flex-col rounded-4xl border border-white/10 bg-blue-700 p-4 shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-0 z-9999 flex flex-col rounded-4xl border border-white/10 bg-blue-700 p-4 shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

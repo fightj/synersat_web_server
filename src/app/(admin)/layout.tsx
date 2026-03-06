@@ -6,6 +6,7 @@ import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
 import React from "react";
 import VesselBootstrap from "@/components/bootstrap/VesselBootstrap";
+import { usePathname } from "next/navigation";
 
 export default function AdminLayout({
   children,
@@ -13,6 +14,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const pathname = usePathname();
+  const isDashboard = pathname === "/";
 
   const mainContentMargin = isMobileOpen
     ? "ml-0"
@@ -37,7 +40,9 @@ export default function AdminLayout({
         <AppHeader />
 
         {/* Page Content */}
-        <div className="mx-auto max-w-(--breakpoint-2xl) md:p-6">
+        <div
+          className={`mx-auto max-w-(--breakpoint-2xl) md:p-6 ${isDashboard ? "!p-0" : ""}`}
+        >
           {children}
         </div>
       </div>
