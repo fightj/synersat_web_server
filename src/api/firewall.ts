@@ -10,7 +10,7 @@ export async function getDeviceNats(imo: number): Promise<DeviceNat[]> {
     const urlParams = new URLSearchParams();
     urlParams.append("imo", String(imo));
 
-    const url = `${ENV.BASE_URL}/v1/device-nats?${urlParams.toString()}`;
+    const url = `${ENV.BASE_URL}/device-nats?${urlParams.toString()}`;
 
     const res = await fetch(url, {
       method: "GET",
