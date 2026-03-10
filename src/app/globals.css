@@ -785,11 +785,12 @@ html:not(.dark) .apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-t
   /* border-bottom: 1px solid rgba(229, 231, 235, 0.5) !important; */
 }
 html {
-  background-color: #ffffff; /* 모서리 밖으로 보일 색 */
-  padding: 1px; /* body가 html 안에 들어오도록 */
+  background-color: #eff6ff;
 }
-
-body {
-  border-radius: 12px;
+html.dark {
+  background-color: #101828;
+  /* dark 모드 body 배경색 */
+}
+/* body {
   overflow: hidden;
-}
+} */

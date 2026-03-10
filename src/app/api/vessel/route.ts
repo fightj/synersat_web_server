@@ -1,7 +1,8 @@
 // app/api/vessel/route.ts
 import { NextResponse } from "next/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const BASE_URL = "api-dashboard.synersatfleet.net"
 
 export async function GET() {
   try {
@@ -38,7 +39,7 @@ export async function GET() {
 
     return NextResponse.json(vessels);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message,}, { status: 500 });
   }
 }
 

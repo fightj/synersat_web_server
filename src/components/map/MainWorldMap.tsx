@@ -176,7 +176,7 @@ export default function WorldMap() {
   };
 
   return (
-    <div className="fixed inset-0 z-0 flex flex-col overflow-hidden rounded-2xl">
+    <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 90% */}
       <div ref={mapRef} className="relative w-full" style={{ height: "90vh" }}>
         {/* 스타일 선택 패널 - 오른쪽 하단 */}
