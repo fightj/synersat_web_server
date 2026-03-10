@@ -1,14 +1,24 @@
-// app/api/vessel/route.ts
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-// const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const BASE_URL = "https://api-dashboard.synersatfleet.net"
+const BASE_URL = "https://api-dashboard.synersatfleet.net";
+
+async function getTeleportCookie(): Promise<string> {
+  const cookieStore = await cookies();
+  const grv = cookieStore.get("grv_session");
+  return grv ? `grv_session=${grv.value}` : "";
+}
 
 export async function GET() {
   try {
+    const cookieHeader = await getTeleportCookie();
+
     const res = await fetch(`${BASE_URL}/v1/vessels`, {
       method: "GET",
       cache: "no-store",
+      headers: {
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
     });
 
     if (!res.ok) throw new Error("Failed to fetch vessels from backend");
@@ -39,12 +49,13 @@ export async function GET() {
 
     return NextResponse.json(vessels);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message,}, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookie();
     const body = await req.json();
 
     const filteredPayload = Object.fromEntries(
@@ -53,7 +64,10 @@ export async function POST(req: Request) {
 
     const res = await fetch(`${BASE_URL}/vessels`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(filteredPayload),
     });
 
@@ -71,6 +85,7 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookie();
     const body = await req.json();
 
     const filteredPayload = Object.fromEntries(
@@ -79,7 +94,10 @@ export async function PUT(req: Request) {
 
     const res = await fetch(`${BASE_URL}/vessels`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(filteredPayload),
     });
 
@@ -97,11 +115,15 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookie();
     const body = await req.json();
 
     const res = await fetch(`${BASE_URL}/vessels`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(body),
     });
 
