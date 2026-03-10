@@ -7,16 +7,17 @@ import Input from "@/components/form/input/InputField";
 import Select from "../form/Select";
 import Alert from "../ui/alert/Alert";
 import { EnvelopeIcon } from "@/icons";
+
+import { useRouter } from "next/navigation";
 import {
+  addVessel,
   getAccounts,
   serialNumberDuplicate,
   vpnIpDuplicate,
   VesselDuplicate,
-  addVessel,
   imoDuplicate,
-} from "@/api/vessel";
-import { useRouter } from "next/navigation";
-
+} from "@/app/api/vessel/vessel";
+import Loading from "../common/Loading";
 // API 응답 데이터 타입 정의
 interface VesselResponse {
   imo: number;
@@ -576,9 +577,16 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={handleAddVesselEvent}
                 disabled={!canSubmit}
-                className="bg-brand-500 hover:bg-brand-600 shadow-brand-500/20 rounded-lg px-8 py-2.5 text-sm font-bold text-white shadow-lg transition-all disabled:bg-gray-400 disabled:shadow-none"
+                className="bg-brand-500 hover:bg-brand-600 shadow-brand-500/20 flex items-center gap-2 rounded-lg px-8 py-2.5 text-sm font-bold text-white shadow-lg transition-all disabled:bg-gray-400 disabled:shadow-none"
               >
-                {adding ? "Creating..." : "Create Vessel"}
+                {adding ? (
+                  <>
+                    <Loading className="h-4 w-4" />
+                    Creating..
+                  </>
+                ) : (
+                  "Create Vessel"
+                )}
               </button>
             </>
           ) : (

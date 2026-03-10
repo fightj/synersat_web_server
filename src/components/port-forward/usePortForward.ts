@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useVesselStore } from "@/store/vessel.store";
 import { DeviceNatRow } from "@/types/firewall";
-import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
-import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
-
+import { getDeviceNats, deleteDeviceNat } from "@/app/api/port_forward_ssr/port_forward_ssr";
+import { getDeviceInterfaces, DeviceInterface } from "@/app/api/interfaces/interfaces";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
 export function usePortForward(ruleType: RuleType) {

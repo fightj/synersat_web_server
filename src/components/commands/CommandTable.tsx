@@ -15,8 +15,7 @@ import type {
 } from "@/types/command";
 import Loading from "../common/Loading";
 import { format } from "date-fns";
-import { getCommandDetail } from "@/api/command"; // 위에서 작성한 API 함수
-
+import { getCommandDetail } from "@/app/api/commands/commands";
 interface CommandTableProps {
   commands: CommandContent[];
   isLoading: boolean;
@@ -64,6 +63,12 @@ export default function CommandTable({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<CommandDetailContent | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+
+  const toKST = (dateStr: string) => {
+    const date = new Date(dateStr);
+    date.setHours(date.getHours() + 9);
+    return date;
+  };
 
   // ✅ 행 더블클릭 핸들러
   const handleRowDoubleClick = async (commandId: number) => {
@@ -195,7 +200,7 @@ export default function CommandTable({
                     </span>
                   </TableCell>
                   <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                    {format(new Date(command.createdAt), "yyyy-MM-dd HH:mm:ss")}
+                    {format(toKST(command.createdAt), "yyyy-MM-dd HH:mm:ss")}
                   </TableCell>
                 </TableRow>
               );
@@ -257,7 +262,7 @@ export default function CommandTable({
                     <DetailItem
                       label="Created At"
                       value={format(
-                        new Date(detail.createdAt),
+                        toKST(detail.createdAt),
                         "yyyy-MM-dd HH:mm:ss",
                       )}
                     />
@@ -265,10 +270,7 @@ export default function CommandTable({
                       label="Started At"
                       value={
                         detail.startAt
-                          ? format(
-                              new Date(detail.startAt),
-                              "yyyy-MM-dd HH:mm:ss",
-                            )
+                          ? format(toKST(detail.startAt), "yyyy-MM-dd HH:mm:ss")
                           : "-"
                       }
                     />

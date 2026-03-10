@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import WorldMap from "@/components/map/WorldMap";
 import TimeSetting from "@/components/vessel/TimeSetting";
-import { getVesselRoutes } from "@/api/vessel";
+import { getVesselRoutes } from "@/app/api/vessel/vessel";
 import { format, subHours, parseISO, addHours } from "date-fns";
 import Loading from "@/components/common/Loading";
 import Link from "next/link";

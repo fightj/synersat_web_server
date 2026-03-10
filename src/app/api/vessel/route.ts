@@ -26,6 +26,7 @@ export async function GET() {
       logo: v.logo,
       manager: v.manager,
       mailAddress: v.mailAddress,
+      acct: v.acct,
       status: {
         available: v.status?.available,
         currentRoute: v.status?.currentRoute,
@@ -36,6 +37,83 @@ export async function GET() {
     }));
 
     return NextResponse.json(vessels);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+
+    const filteredPayload = Object.fromEntries(
+      Object.entries(body).filter(([_, v]) => v !== null && v !== "" && v !== "null")
+    );
+
+    const res = await fetch(`${BASE_URL}/vessels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filteredPayload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      return NextResponse.json({ error: errorText }, { status: res.status });
+    }
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+
+    const filteredPayload = Object.fromEntries(
+      Object.entries(body).filter(([_, v]) => v !== null && v !== "" && v !== "null")
+    );
+
+    const res = await fetch(`${BASE_URL}/vessels`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filteredPayload),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      return NextResponse.json({ error: errorText }, { status: res.status });
+    }
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json();
+
+    const res = await fetch(`${BASE_URL}/vessels`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (res.status === 204) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      return NextResponse.json({ error: errorText }, { status: res.status });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

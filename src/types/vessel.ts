@@ -18,7 +18,7 @@ export interface Vessel {
   logo?: string;
   manager?: string;
   mailAddress?: string;
-  // ✅ 새로 추가된 필드
+  acct:string;
   status?: VesselStatus; 
 }
 

@@ -6,8 +6,8 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
 import { ChevronDownIcon } from "@/icons";
-import { addDeviceNat } from "@/api/firewall";
-import { DeviceInterface } from "@/api/interfaces";
+import { addDeviceNat } from "@/app/api/port_forward_ssr/port_forward_ssr";
+import { DeviceInterface } from "@/app/api/interfaces/interfaces";
 import {
   PROTOCOL_OPTIONS,
   ANY_OTHER_OPTIONS,

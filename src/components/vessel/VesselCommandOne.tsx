@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { getCommands } from "@/api/command";
+import { getCommands } from "@/app/api/commands/commands";
 import type {
   CommandContent,
   CommandStatus,

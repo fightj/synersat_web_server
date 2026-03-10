@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { getCommands } from "@/api/command";
+import { getCommands } from "@/app/api/commands/commands";
 import type {
   CommandApiResponse,
   GetCommandsParams,

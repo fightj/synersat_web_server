@@ -13,9 +13,9 @@ import {
   vpnIpDuplicate,
   VesselDuplicate,
   imoDuplicate,
-  // updateVessel API가 있다면 추가
-} from "@/api/vessel";
+} from "@/app/api/vessel/vessel";
 
+// import { updateVessel } from "@/app/api/vessel/vessel"; 나중에 구현하고 주석 해제
 // 상세 뷰에서 전달받는 데이터 타입 (기존 VesselDetail 타입 기준)
 interface VesselEditModalProps {
   isOpen: boolean;

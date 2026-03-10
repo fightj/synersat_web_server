@@ -12,10 +12,11 @@ import {
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
-import { deleteVessel } from "@/api/vessel";
 import VesselDeleteAlert from "./VesselDeleteAlert";
 import { useRouter } from "next/navigation";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
+import { SktelinkIcon } from "@/icons";
+import { deleteVessel } from "@/app/api/vessel/vessel";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
@@ -235,7 +236,12 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
                 className="group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
               >
                 <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-                  {vessel.description || "-"}
+                  <div className="flex items-center gap-2">
+                    {vessel.manager === "sktelink" && (
+                      <SktelinkIcon className="h-4 w-auto" />
+                    )}
+                    {vessel.acct || "-"}
+                  </div>
                 </TableCell>
                 <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
                   {vessel.name || "-"}
