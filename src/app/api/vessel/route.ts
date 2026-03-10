@@ -1,0 +1,42 @@
+// app/api/vessel/route.ts
+import { NextResponse } from "next/server";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+export async function GET() {
+  try {
+    const res = await fetch(`${BASE_URL}/v1/vessels`, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!res.ok) throw new Error("Failed to fetch vessels from backend");
+
+    const rawData = await res.json();
+
+    const vessels = rawData.map((v: any) => ({
+      id: v.id,
+      name: v.name,
+      callsign: v.callsign,
+      imo: v.imo,
+      mmsi: v.mmsi,
+      vpnIp: v.vpn_ip,
+      enabled: v.vessel_enable,
+      description: v.description,
+      logo: v.logo,
+      manager: v.manager,
+      mailAddress: v.mailAddress,
+      status: {
+        available: v.status?.available,
+        currentRoute: v.status?.currentRoute,
+        lastConnectedAt: v.status?.lastConnectedAt,
+        antennaServiceName: v.status?.antennaServiceName,
+        antennaServiceColor: v.status?.antennaServiceColor,
+      },
+    }));
+
+    return NextResponse.json(vessels);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -5,43 +5,43 @@ import type {
 import type { AccountApiResponse } from "@/types/account";
 
 // 선박 데이터 조회 (GET /v1/vessels)
-export async function getVessels(): Promise<Vessel[]> {
-  try {
+// export async function getVessels(): Promise<Vessel[]> {
+//   try {
 
-    const res = await fetch(`${ENV.BASE_URL}/v1/vessels`, {
-      method: "GET",
-    });
+//     const res = await fetch(`${ENV.BASE_URL}/v1/vessels`, {
+//       method: "GET",
+//     });
 
-    if (!res.ok) throw new Error("Failed to fetch vessels from v1");
+//     if (!res.ok) throw new Error("Failed to fetch vessels from v1");
 
-    const rawData = await res.json();
+//     const rawData = await res.json();
 
-    return rawData.map((v: any) => ({
-      id: v.id,
-      name: v.name,
-      callsign: v.callsign,
-      imo: v.imo,
-      mmsi: v.mmsi,
-      vpnIp: v.vpn_ip,        
-      enabled: v.vessel_enable, 
-      description: v.description,
-      logo: v.logo,
-      manager: v.manager,
-      mailAddress: v.mailAddress,
-      // status 객체 매핑
-      status: {
-        available: v.status?.available,
-        currentRoute: v.status?.currentRoute,
-        lastConnectedAt: v.status?.lastConnectedAt,
-        antennaServiceName: v.status?.antennaServiceName,
-        antennaServiceColor: v.status?.antennaServiceColor,
-      },
-    }));
-  } catch (error) {
-    console.error("Error fetching vessels:", error);
-    throw error;
-  }
-}
+//     return rawData.map((v: any) => ({
+//       id: v.id,
+//       name: v.name,
+//       callsign: v.callsign,
+//       imo: v.imo,
+//       mmsi: v.mmsi,
+//       vpnIp: v.vpn_ip,        
+//       enabled: v.vessel_enable, 
+//       description: v.description,
+//       logo: v.logo,
+//       manager: v.manager,
+//       mailAddress: v.mailAddress,
+//       // status 객체 매핑
+//       status: {
+//         available: v.status?.available,
+//         currentRoute: v.status?.currentRoute,
+//         lastConnectedAt: v.status?.lastConnectedAt,
+//         antennaServiceName: v.status?.antennaServiceName,
+//         antennaServiceColor: v.status?.antennaServiceColor,
+//       },
+//     }));
+//   } catch (error) {
+//     console.error("Error fetching vessels:", error);
+//     throw error;
+//   }
+// }
 
 // 선박 추가
 export async function addVessel(payload: any): Promise<any | null> {

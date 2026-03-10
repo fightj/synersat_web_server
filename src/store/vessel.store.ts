@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Vessel } from "@/types/vessel";
-import { getVessels } from "@/api/vessel";
+import { getVessels } from "@/app/api/vessel/vessel";
 
 type SelectedVessel = Pick<Vessel, "id" | "imo"| "name" | "vpnIp">;
 
