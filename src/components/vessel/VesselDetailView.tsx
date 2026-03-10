@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Loading from "../common/Loading";
 import type { VesselDetail, DataUsage, RouteCoordinate } from "@/types/vessel";
-import { getVesselDetail } from "@/app/api/vessel/vessel";
+// import { getVesselDetail } from "@/app/api/vessel/vessel";
+import { getVesselDetail } from "@/api/vessel";
 import {
   getServiceBadgeStyles,
   getServiceColor,

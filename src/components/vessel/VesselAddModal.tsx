@@ -9,6 +9,14 @@ import Alert from "../ui/alert/Alert";
 import { EnvelopeIcon } from "@/icons";
 
 import { useRouter } from "next/navigation";
+// import {
+//   addVessel,
+//   getAccounts,
+//   serialNumberDuplicate,
+//   vpnIpDuplicate,
+//   VesselDuplicate,
+//   imoDuplicate,
+// } from "@/app/api/vessel/vessel";
 import {
   addVessel,
   getAccounts,
@@ -16,7 +24,8 @@ import {
   vpnIpDuplicate,
   VesselDuplicate,
   imoDuplicate,
-} from "@/app/api/vessel/vessel";
+} from "@/api/vessel";
+
 import Loading from "../common/Loading";
 // API 응답 데이터 타입 정의
 interface VesselResponse {

@@ -16,8 +16,8 @@ import VesselDeleteAlert from "./VesselDeleteAlert";
 import { useRouter } from "next/navigation";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import { SktelinkIcon } from "@/icons";
-import { deleteVessel } from "@/app/api/vessel/vessel";
-
+// import { deleteVessel } from "@/app/api/vessel/vessel";
+import { deleteVessel } from "@/api/vessel";
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
 

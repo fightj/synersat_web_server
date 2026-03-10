@@ -7,13 +7,20 @@ import Input from "@/components/form/input/InputField";
 import Select from "../form/Select";
 import Alert from "../ui/alert/Alert";
 import { EnvelopeIcon } from "@/icons";
+// import {
+//   getAccounts,
+//   serialNumberDuplicate,
+//   vpnIpDuplicate,
+//   VesselDuplicate,
+//   imoDuplicate,
+// } from "@/app/api/vessel/vessel";
 import {
   getAccounts,
   serialNumberDuplicate,
   vpnIpDuplicate,
   VesselDuplicate,
   imoDuplicate,
-} from "@/app/api/vessel/vessel";
+} from "@/api/vessel";
 
 // import { updateVessel } from "@/app/api/vessel/vessel"; 나중에 구현하고 주석 해제
 // 상세 뷰에서 전달받는 데이터 타입 (기존 VesselDetail 타입 기준)
