@@ -1,25 +1,25 @@
-import { ENV } from "../config/env";
+// import { ENV } from "../config/env";
 import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse} from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
+// 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
+const fetchOptions: RequestInit = {
+  credentials: "include",
+  cache: "no-store",
+};
 
-const BASE_URL = "https://api-dashboard.synersatfleet.net"; 
+const BASE_URL = "https://api-dashboard.synersatfleet.net"
+
 // -----------------중복 체크 api-----------------
-// S/N 중복 체크
 export async function serialNumberDuplicate(serialNumber: string): Promise<boolean> {
   try {
     const sn = serialNumber.trim();
     const encodedSn = encodeURIComponent(sn);
-    
     const url = `${BASE_URL}/vessels/serialNumbers/${encodedSn}/exists?serialNumber=${encodedSn}`;
     
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "GET" });
 
     if (res.status === 200) return true;
-    
     if (res.status === 204) return false;
 
     const errorBody = await res.text();
@@ -30,23 +30,17 @@ export async function serialNumberDuplicate(serialNumber: string): Promise<boole
   }
 }
 
-// VPN IP 중복 확인
 export async function vpnIpDuplicate(vpnIp: string): Promise<boolean> {
   try {
     const ip = vpnIp.trim();
     const encodedIp = encodeURIComponent(ip);
-    
     const url = `${BASE_URL}/vessels/vpnIPs/${encodedIp}/exists?vpnIp=${encodedIp}`;
     
     console.log("Checking VPN IP URL:", url);
 
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "GET" });
 
     if (res.status === 200) return true;
-    
     if (res.status === 204) return false;
 
     const errorBody = await res.text();
@@ -57,21 +51,15 @@ export async function vpnIpDuplicate(vpnIp: string): Promise<boolean> {
   }
 }
 
-// Vessel ID 중복 확인
 export async function VesselDuplicate(vesselId: string): Promise<boolean> {
   try {
     const id = vesselId.trim();
     const encodedId = encodeURIComponent(id);
-    
     const url = `${BASE_URL}/vessels/ids/${encodedId}/exists?id=${encodedId}`;
 
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "GET" });
 
     if (res.status === 200) return true;
-    
     if (res.status === 204) return false;
 
     const errorBody = await res.text();
@@ -82,21 +70,15 @@ export async function VesselDuplicate(vesselId: string): Promise<boolean> {
   }
 }
 
-// Imo 중복 확인
 export async function imoDuplicate(imo: string | number): Promise<boolean> {
   try {
-
     const cleanImo = String(imo).trim();
     const imoAsNumber = Number(cleanImo);
-
     const url = `${BASE_URL}/vessels/imos/${imoAsNumber}/exists?imo=${imoAsNumber}`;
     
     console.log("Checking IMO Duplicate URL:", url);
 
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-    });
+    const res = await fetch(url, { ...fetchOptions, method: "GET" });
 
     if (res.status === 200) return true;
     if (res.status === 204) return false;
@@ -109,14 +91,10 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
   }
 }
 
-
-
-// SSR 이동
-// 선박 데이터 조회 (GET /v1/vessels)
 export async function getVessels(): Promise<Vessel[]> {
   try {
-
     const res = await fetch(`${BASE_URL}/v1/vessels`, {
+      ...fetchOptions,
       method: "GET",
     });
 
@@ -136,7 +114,7 @@ export async function getVessels(): Promise<Vessel[]> {
       logo: v.logo,
       manager: v.manager,
       mailAddress: v.mailAddress,
-      // status 객체 매핑
+      acct: v.acct,
       status: {
         available: v.status?.available,
         currentRoute: v.status?.currentRoute,
@@ -151,22 +129,21 @@ export async function getVessels(): Promise<Vessel[]> {
   }
 }
 
-// 선박 추가
 export async function addVessel(payload: any): Promise<any | null> {
   try {
-  
     const filteredPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
 
     const res = await fetch(`${BASE_URL}/vessels`, {
+      ...fetchOptions,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filteredPayload),
     });
 
     if (res.status === 200 || res.status === 201) {
-      return await res.json(); // 생성된 선박 데이터 반환
+      return await res.json();
     }
 
     const errorText = await res.text();
@@ -178,56 +155,42 @@ export async function addVessel(payload: any): Promise<any | null> {
   }
 }
 
-// 선박 정보 수정
 export async function updateVessel(payload: UpdateVesselPayload): Promise<{ commandId: string } | null> {
   try {
-    // 1. 불필요한 필드 필터링 (null, 빈 문자열, 문자열 "null" 제외)
     const filteredPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
 
-    // 2. API 호출
     const res = await fetch(`${BASE_URL}/vessels`, {
+      ...fetchOptions,
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filteredPayload),
     });
 
-    // 3. 응답 처리
     if (res.ok) {
-      // 성공 시 commandId를 포함한 JSON 반환
       return await res.json();
     }
 
-    // 실패 시 에러 로그 출력
     const errorText = await res.text();
     console.error(`Vessel 수정 실패 (Status: ${res.status}):`, errorText);
     return null;
-
   } catch (error) {
     console.error("updateVessel 네트워크 에러:", error);
     return null;
   }
 }
 
-// 선박 삭제
 export async function deleteVessel(imos: number[]): Promise<boolean> {
   try {
     const res = await fetch(`${BASE_URL}/vessels`, {
+      ...fetchOptions,
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        vesselImos: imos,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vesselImos: imos }),
     });
 
-    if (res.status === 204) {
-      return true;
-    }
+    if (res.status === 204) return true;
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -241,14 +204,12 @@ export async function deleteVessel(imos: number[]): Promise<boolean> {
   }
 }
 
-//  계정 조회
 export async function getAccounts(): Promise<string[]> {
   try {
-    const res = await fetch(`${BASE_URL}/accounts`);
+    const res = await fetch(`${BASE_URL}/accounts`, { ...fetchOptions });
     if (!res.ok) throw new Error("Failed to fetch accounts");
     
     const rawData: AccountApiResponse = await res.json();
-    
     return rawData.accounts.map((item) => item.acct);
   } catch (error) {
     console.error("Error fetching accounts:", error);
@@ -256,12 +217,11 @@ export async function getAccounts(): Promise<string[]> {
   }
 }
 
-// 선박 상세 정보 조회 (GET /v1/vessels/{imo})
 export async function getVesselDetail(vesselImo: string | number): Promise<VesselDetail> {
   try {
     const res = await fetch(`${BASE_URL}/v1/vessels/${vesselImo}`, {
+      ...fetchOptions,
       method: "GET",
-      cache: "no-store", // CSR이므로 항상 최신 데이터를 가져오도록 설정
     });
 
     if (!res.ok) {
@@ -275,7 +235,6 @@ export async function getVesselDetail(vesselImo: string | number): Promise<Vesse
   }
 }
 
-// 8. 항적 정보 조회 (GET /vessels/routes)
 export async function getVesselRoutes(
   imo: string | number,
   startAt: string,
@@ -289,8 +248,8 @@ export async function getVesselRoutes(
     });
 
     const res = await fetch(`${BASE_URL}/vessels/routes?${params.toString()}`, {
+      ...fetchOptions,
       method: "GET",
-      cache: "no-store",
     });
 
     if (!res.ok) {

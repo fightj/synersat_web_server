@@ -272,6 +272,7 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
                 options={options}
                 value={account}
                 onChange={setAccount}
+                defaultValue={vesselData.acct}
                 placeholder="Select Account"
               />
             </div>
@@ -414,12 +415,18 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
                 <Select
                   options={managerOptions}
                   value={manager}
+                  defaultValue={vesselData.manager}
                   onChange={setManager}
                 />
               </div>
               <div>
                 <Label className={labelStyle}>Logo</Label>
-                <Select options={logoOptions} value={logo} onChange={setLogo} />
+                <Select
+                  options={logoOptions}
+                  value={logo}
+                  onChange={setLogo}
+                  defaultValue={vesselData.logo}
+                />
               </div>
             </div>
           </form>

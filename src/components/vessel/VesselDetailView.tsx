@@ -269,12 +269,14 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         <hr className="mb-6 border-gray-100 dark:border-white/5" />
         <div className="grid grid-cols-1 gap-x-12 gap-y-4 md:grid-cols-2">
           <div className="space-y-4">
+            <DetailItem label="Account" value={data.acct} />
             <DetailItem label="IMO" value={data.imo} />
             <DetailItem label="MMSI" value={data.mmsi} />
             <DetailItem label="Call Sign" value={data.callsign} />
             <DetailItem label="FW ID" value={data.fireWallId} />
           </div>
           <div className="space-y-4">
+            <DetailItem label="S/N" value={data.serialNumber} />
             <DetailItem label="VPN IP" value={data.vpn_ip} />
             <DetailItem label="Manager" value={data.manager} />
             <DetailItem label="Mail" value={data.mailAddress} />

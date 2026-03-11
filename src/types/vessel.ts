@@ -55,6 +55,8 @@ export interface VesselDetail {
   mailAddress: string;
   fireWallId: string;
   fireWallPassword: string;
+  acct: string;
+  serialNumber:string;
   status: {
     available: boolean;
     currentRoute: string;
