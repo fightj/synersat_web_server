@@ -8,7 +8,9 @@ async function getTeleportCookieHeader(): Promise<string> {
   const cookieStore = await cookies();
   const appSession = cookieStore.get("__Host-grv_app_session");
   const appSessionSubject = cookieStore.get("__Host-grv_app_session_subject");
-
+  console.log("appSession:", appSession)
+  console.log("appSessionSubject:", appSessionSubject)
+  
   return [
     appSession ? `__Host-grv_app_session=${appSession.value}` : "",
     appSessionSubject ? `__Host-grv_app_session_subject=${appSessionSubject.value}` : "",
@@ -20,7 +22,7 @@ export async function GET(req: Request) {
     const cookieHeader = await getTeleportCookieHeader();
     const { searchParams } = new URL(req.url);
     const imo = searchParams.get("imo");
-
+    console.log("cookieHeader확인:", cookieHeader);
     if (!imo) {
       return NextResponse.json({ error: "imo is required" }, { status: 400 });
     }
