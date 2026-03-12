@@ -10,6 +10,8 @@ async function getTeleportCookieHeader(): Promise<string> {
   const appSessionSubject = cookieStore.get("__Host-grv_app_session_subject");
   console.log("appSession:", appSession)
   console.log("appSessionSubject:", appSessionSubject)
+  const all = cookieStore.getAll();
+  console.log("전체 쿠키 목록:", JSON.stringify(all))
   
   return [
     appSession ? `__Host-grv_app_session=${appSession.value}` : "",
