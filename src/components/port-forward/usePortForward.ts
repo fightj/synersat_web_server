@@ -88,15 +88,6 @@ export function usePortForward(ruleType: RuleType) {
     if (!vpnIp) return;
     setIsUpdating(true);
 
-    // ✅ 즉시 UI 반전
-    setRules((prev) =>
-      prev.map((rule) =>
-        rule.originalIdx === originalIndex
-          ? { ...rule, disabled: currentEnabled } // currentEnabled가 true면 비활성화
-          : rule,
-      ),
-    );
-
     try {
       const response = await fetch("/api/port_forward", {
         method: "PUT",
@@ -108,22 +99,14 @@ export function usePortForward(ruleType: RuleType) {
         }),
       });
       if (!response.ok) throw new Error("Update failed");
-      // ✅ 성공 시 fetchAllData 불필요
+      await fetchAllData(); // ✅ 성공 시 최신 데이터로 갱신
     } catch {
-      // ✅ 실패 시 원래대로 되돌림
-      setRules((prev) =>
-        prev.map((rule) =>
-          rule.originalIdx === originalIndex
-            ? { ...rule, disabled: currentEnabled }
-            : rule,
-        ),
-      );
       alert("fail to set status.");
     } finally {
       setIsUpdating(false);
     }
   },
-  [vpnIp],
+  [vpnIp, fetchAllData],
 );
 
   const handleEditClick = useCallback((rule: DeviceNatRow) => {
