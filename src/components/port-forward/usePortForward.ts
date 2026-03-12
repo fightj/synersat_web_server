@@ -114,7 +114,7 @@ export function usePortForward(ruleType: RuleType) {
       setRules((prev) =>
         prev.map((rule) =>
           rule.originalIdx === originalIndex
-            ? { ...rule, disabled: !currentEnabled }
+            ? { ...rule, disabled: currentEnabled }
             : rule,
         ),
       );
