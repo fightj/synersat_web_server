@@ -112,4 +112,5 @@ export interface UpdateVesselPayload {
   vpnIp?: string;
   fireWallId?: string;
   fireWallPassword?: string;
+  serialNumber?: string;
 }

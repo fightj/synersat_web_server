@@ -19,11 +19,9 @@ import {
   serialNumberDuplicate,
   vpnIpDuplicate,
   VesselDuplicate,
-  imoDuplicate,
+  updateVessel,
 } from "@/api/vessel";
 
-// import { updateVessel } from "@/app/api/vessel/vessel"; 나중에 구현하고 주석 해제
-// 상세 뷰에서 전달받는 데이터 타입 (기존 VesselDetail 타입 기준)
 interface VesselEditModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +44,6 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
   // --- 상태 관리 (vesselData로 초기화) ---
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [account, setAccount] = useState("");
-  const [imo, setImo] = useState("");
   const [vesselId, setVesselId] = useState("");
   const [vpnIpPart3, setVpnIpPart3] = useState("");
   const [vpnIpPart4, setVpnIpPart4] = useState("");
@@ -61,9 +58,6 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
   const [saving, setSaving] = useState(false);
 
   // 중복 확인 상태 (수정 시에는 본인의 기존 데이터면 중복이 아닌 것으로 간주)
-  const [imoChecking, setImoChecking] = useState(false);
-  const [imoDuplicated, setImoDuplicated] = useState<boolean | null>(null);
-
   const [vesselIdChecking, setVesselIdChecking] = useState(false);
   const [vesselIdDuplicated, setVesselIdDuplicated] = useState<boolean | null>(
     null,
@@ -103,7 +97,6 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
 
       // 데이터 매핑
       setAccount(vesselData.acct || "");
-      setImo(String(vesselData.imo || ""));
       setVesselId(vesselData.id || "");
 
       const ipParts = (vesselData.vpn_ip || "").split(".");
@@ -119,24 +112,11 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
       setLogo(vesselData.logo || "");
 
       // 수정이므로 초기값은 중복 아님 처리
-      setImoDuplicated(false);
       setVesselIdDuplicated(false);
       setVpnDuplicated(false);
       setSnDuplicated(false);
     }
   }, [isOpen, vesselData]);
-
-  // --- 중복 검사 로직 (기존값과 다를 때만 실행) ---
-  const handleImoBlur = async () => {
-    if (imo === String(vesselData?.imo)) return setImoDuplicated(false);
-    if (imo.length < 7) return;
-    try {
-      setImoChecking(true);
-      setImoDuplicated(await imoDuplicate(imo));
-    } finally {
-      setImoChecking(false);
-    }
-  };
 
   const handleVesselIdBlur = async () => {
     if (vesselId === vesselData?.id) return setVesselIdDuplicated(false);
@@ -175,21 +155,13 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
 
   const canSubmit = useMemo(() => {
     const requiredFilled =
-      imo.length >= 7 &&
-      vesselId.trim() !== "" &&
-      vpnIpPart3 !== "" &&
-      vpnIpPart4 !== "";
-    const duplicateOk =
-      imoDuplicated === false &&
-      vesselIdDuplicated === false &&
-      vpnDuplicated === false;
+      vesselId.trim() !== "" && vpnIpPart3 !== "" && vpnIpPart4 !== "";
+    const duplicateOk = vesselIdDuplicated === false && vpnDuplicated === false;
     return Boolean(requiredFilled && duplicateOk && !saving);
   }, [
-    imo,
     vesselId,
     vpnIpPart3,
     vpnIpPart4,
-    imoDuplicated,
     vesselIdDuplicated,
     vpnDuplicated,
     saving,
@@ -197,7 +169,7 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
 
   const handleUpdateVesselEvent = async () => {
     const payload = {
-      imo: Number(imo),
+      imo: Number(vesselData.imo),
       id: vesselId.trim(),
       vpnIp: `10.8.${vpnIpPart3}.${vpnIpPart4}`,
       serialNumber: serialNumber.trim(),
@@ -208,22 +180,30 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
       callSign: callsign.trim(),
       name: name.trim(),
       mailAddress: mailAddress.trim(),
+      fireWallId: vesselData.fireWallId,
+      fireWallPassword: vesselData.fireWallPassword,
     };
 
     try {
       setSaving(true);
-      // const result = await updateVessel(vesselData.imo, payload); // API 호출 예시
-      // if (result) {
-      setAlertState({
-        variant: "success",
-        title: "Success",
-        message: "Updated successfully.",
-      });
-      setTimeout(() => {
-        onClose();
-        window.location.reload();
-      }, 1500);
-      // }
+      const result = await updateVessel(payload);
+      if (result) {
+        setAlertState({
+          variant: "success",
+          title: "Success",
+          message: "Updated successfully.",
+        });
+        setTimeout(() => {
+          onClose();
+          window.location.reload();
+        }, 1500);
+      } else {
+        setAlertState({
+          variant: "error",
+          title: "Error",
+          message: "Failed to update vessel.",
+        });
+      }
     } catch (e) {
       setAlertState({
         variant: "error",
@@ -278,21 +258,14 @@ const VesselEditModal: React.FC<VesselEditModalProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              {/* ✅ IMO - 읽기 전용 */}
               <div>
-                <RequiredLabel>IMO</RequiredLabel>
+                <Label className={labelStyle}>IMO</Label>
                 <Input
                   type="text"
-                  className={inputBaseStyle}
-                  value={imo}
-                  onChange={(e) => {
-                    setImo(e.target.value.replace(/[^0-9]/g, ""));
-                    setImoDuplicated(null);
-                  }}
-                  onBlur={handleImoBlur}
-                />
-                <DuplicateStatus
-                  loading={imoChecking}
-                  duplicated={imoDuplicated}
+                  className={`${inputBaseStyle} cursor-not-allowed bg-gray-100 opacity-60 dark:bg-white/5`}
+                  value={String(vesselData?.imo || "")}
+                  disabled
                 />
               </div>
               <div>

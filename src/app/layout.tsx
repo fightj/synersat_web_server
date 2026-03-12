@@ -3,6 +3,7 @@ import "./globals.css";
 
 import { SidebarProvider } from "@/context/SidebarContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import AuthInitializer from "@/components/auth/AuthInitializer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,7 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} rounded-xl dark:bg-gray-900`}>
         <ThemeProvider>
-          <SidebarProvider>{children}</SidebarProvider>
+          <SidebarProvider>
+            <AuthInitializer /> {/* ✅ 추가 */}
+            {children}
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>
