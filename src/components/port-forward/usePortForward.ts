@@ -95,7 +95,7 @@ export function usePortForward(ruleType: RuleType) {
         body: JSON.stringify({
           vpnIp,
           id: originalIndex,
-          disabled: !currentEnabled,
+          disabled: currentEnabled,
         }),
       });
       if (!response.ok) throw new Error("Update failed");
