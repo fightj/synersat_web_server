@@ -1,4 +1,3 @@
-// import { ENV } from "../config/env";
 import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse} from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 
@@ -8,7 +7,7 @@ const fetchOptions: RequestInit = {
   cache: "no-store",
 };
 
-const BASE_URL = "https://api-dashboard.synersatfleet.net"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // -----------------중복 체크 api-----------------
 export async function serialNumberDuplicate(serialNumber: string): Promise<boolean> {
