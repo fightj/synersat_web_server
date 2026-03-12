@@ -271,12 +271,7 @@ export default function PortForwardTable({
     <div className="relative max-w-full overflow-x-auto">
       {isUpdating && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
-          <div className="flex flex-col items-center gap-2 rounded-xl border bg-white p-4 shadow-xl dark:border-white/10 dark:bg-gray-800">
-            <Loading />
-            <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase">
-              Updating
-            </span>
-          </div>
+          <Loading message="updating data..." />
         </div>
       )}
 
@@ -321,7 +316,7 @@ export default function PortForwardTable({
           {isLoading ? (
             <TableRow>
               <TableCell colSpan={11} className="py-32 text-center">
-                <Loading />
+                <Loading message="Fetching data..." />
               </TableCell>
             </TableRow>
           ) : rules.length === 0 ? (

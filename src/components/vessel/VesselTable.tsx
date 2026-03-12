@@ -137,7 +137,7 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
   if (loading)
     return (
       <div className="p-8 text-center">
-        <Loading />
+        <Loading message="Fetching data..." />
       </div>
     );
 

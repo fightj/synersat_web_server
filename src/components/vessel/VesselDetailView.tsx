@@ -123,7 +123,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   if (loading)
     return (
       <div className="py-20">
-        <Loading />
+        <Loading message="Fetching data..." />
       </div>
     );
   if (error)

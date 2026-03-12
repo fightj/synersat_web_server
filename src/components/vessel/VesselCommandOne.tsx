@@ -89,7 +89,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
   if (loading && commands.length === 0)
     return (
       <div className="flex h-60 items-center justify-center">
-        <Loading />
+        <Loading message="Fetching data..." />
       </div>
     );
 

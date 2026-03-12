@@ -9,14 +9,6 @@ import Alert from "../ui/alert/Alert";
 import { EnvelopeIcon } from "@/icons";
 
 import { useRouter } from "next/navigation";
-// import {
-//   addVessel,
-//   getAccounts,
-//   serialNumberDuplicate,
-//   vpnIpDuplicate,
-//   VesselDuplicate,
-//   imoDuplicate,
-// } from "@/app/api/vessel/vessel";
 import {
   addVessel,
   getAccounts,
@@ -27,7 +19,7 @@ import {
 } from "@/api/vessel";
 
 import Loading from "../common/Loading";
-// API 응답 데이터 타입 정의
+
 interface VesselResponse {
   imo: number;
   id: string;
@@ -57,7 +49,6 @@ const RequiredLabel = ({ children }: { children: React.ReactNode }) => (
 );
 
 const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
-  // --- 상태 관리 ---
   const [options, setOptions] = useState<SelectOption[]>([]);
   const [account, setAccount] = useState("");
   const [imo, setImo] = useState("");
@@ -75,7 +66,6 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
   const [adding, setAdding] = useState(false);
   const [vesselResult, setVesselResult] = useState<VesselResponse | null>(null);
 
-  // 중복 확인 상태 및 Refs
   const lastCheckedImoRef = useRef<string>("");
   const [imoChecking, setImoChecking] = useState(false);
   const [imoDuplicated, setImoDuplicated] = useState<boolean | null>(null);
@@ -282,9 +272,18 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-h-[95vh] w-[95vw] max-w-[750px] overflow-hidden p-8 shadow-2xl dark:border-white/10 dark:bg-[#121212]"
+      className="relative max-h-[95vh] w-[95vw] max-w-[750px] overflow-hidden p-8 shadow-2xl dark:border-white/10 dark:bg-[#121212]"
     >
-      <div className="flex max-h-[90vh] flex-col gap-6">
+      {/* ✅ 로딩 오버레이 */}
+      {adding && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/50 backdrop-blur-sm dark:bg-black/40">
+          <Loading message="Creating Vessel..." className="h-12 w-12" />
+        </div>
+      )}
+
+      <div
+        className={`flex max-h-[90vh] flex-col gap-6 ${adding ? "blur-sm" : ""}`}
+      >
         <div className="border-b pb-4 dark:border-white/10">
           <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
             {vesselResult ? "Registration Successful" : "Add New Vessel"}
@@ -381,19 +380,14 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               <div>
                 <RequiredLabel>VPN IP</RequiredLabel>
                 <div className="flex items-center gap-1.5">
-                  {/* 첫 번째 옥텟: 고정 (10.) */}
                   <div className="flex h-11 flex-[3] items-center justify-center rounded-lg border border-gray-300 bg-gray-100 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
                     10
                   </div>
                   <span className="text-lg font-bold text-gray-400">.</span>
-
-                  {/* 두 번째 옥텟: 고정 (8.) */}
                   <div className="flex h-11 flex-[3] items-center justify-center rounded-lg border border-gray-300 bg-gray-100 font-bold text-gray-500 dark:border-white/10 dark:bg-white/5">
                     8
                   </div>
                   <span className="text-lg font-bold text-gray-400">.</span>
-
-                  {/* 세 번째 옥텟: 입력 */}
                   <div className="flex-[4]">
                     <Input
                       type="text"
@@ -412,8 +406,6 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
                   <span className="text-lg font-bold text-gray-400">.</span>
-
-                  {/* 네 번째 옥텟: 입력 */}
                   <div className="flex-[4]">
                     <Input
                       type="text"
@@ -432,8 +424,6 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
                 </div>
-
-                {/* 중복 체크 메시지 영역 */}
                 <div className="mt-1 h-4 text-xs">
                   {vpnChecking && (
                     <span className="text-gray-500">Checking...</span>
@@ -586,21 +576,13 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={handleAddVesselEvent}
                 disabled={!canSubmit}
-                className="bg-brand-500 hover:bg-brand-600 shadow-brand-500/20 flex items-center gap-2 rounded-lg px-8 py-2.5 text-sm font-bold text-white shadow-lg transition-all disabled:bg-gray-400 disabled:shadow-none"
+                className="bg-brand-500 hover:bg-brand-600 shadow-brand-500/20 rounded-lg px-8 py-2.5 text-sm font-bold text-white shadow-lg transition-all disabled:bg-gray-400 disabled:shadow-none"
               >
-                {adding ? (
-                  <>
-                    <Loading className="h-4 w-4" />
-                    Creating..
-                  </>
-                ) : (
-                  "Create Vessel"
-                )}
+                {adding ? "Creating..." : "Create Vessel"}
               </button>
             </>
           ) : (
             <div className="flex w-full items-center gap-3">
-              {/* Close 버튼: flex-1을 주어 남은 공간의 절반을 차지하게 함 */}
               <button
                 onClick={() => {
                   onClose();
@@ -610,13 +592,11 @@ const VesselAddModal: React.FC<VesselAddModalProps> = ({ isOpen, onClose }) => {
               >
                 Close
               </button>
-
-              {/* Show Details 버튼: 마찬가지로 flex-1을 주어 동일한 너비를 가짐 */}
               <button
                 onClick={() => {
                   if (vesselResult) {
                     const encodedName = encodeURIComponent(vesselResult.name);
-                    onClose(); // 이동 전 모달 닫기
+                    onClose();
                     router.push(
                       `/vessels/${encodedName}?imo=${vesselResult.imo}`,
                     );

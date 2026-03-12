@@ -794,3 +794,21 @@ html.dark {
 /* body {
   overflow: hidden;
 } */
+ @keyframes wave {
+
+   0%,
+   100% {
+     opacity: 0.3;
+     color: oklch(0.6 0.15 250);
+   }
+
+   50% {
+     opacity: 1;
+     color: oklch(0.7 0.2 230);
+     text-shadow: 0 0 20px oklch(0.7 0.2 230 / 0.6), 0 0 40px oklch(0.6 0.15 250 / 0.3);
+   }
+ }
+
+ .animate-wave {
+   animation: wave 1.5s ease-in-out infinite;
+ }
