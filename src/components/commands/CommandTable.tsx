@@ -15,7 +15,7 @@ import type {
 } from "@/types/command";
 import Loading from "../common/Loading";
 import { format } from "date-fns";
-import { getCommandDetail } from "@/app/api/commands/commands";
+import { getCommandDetail } from "@/api/command";
 interface CommandTableProps {
   commands: CommandContent[];
   isLoading: boolean;

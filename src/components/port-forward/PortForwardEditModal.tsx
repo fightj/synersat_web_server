@@ -12,7 +12,7 @@ import {
   RULE_TYPE_OPTIONS,
 } from "./Constants";
 import { portForwardModalStyles } from "./Styles";
-import { updateDeviceNat } from "@/app/api/port_forward_ssr/port_forward_ssr";
+import { updateDeviceNat } from "@/api/firewall";
 import { DeviceNatRow } from "@/types/firewall";
 
 interface PortForwardEditModalProps {

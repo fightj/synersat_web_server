@@ -50,14 +50,6 @@ export async function PUT(req: NextRequest) {
 
     if (!vpnIp) return NextResponse.json({ error: "VPN IP is required" }, { status: 400 });
 
-    const ALLOWED_IP = "10.8.130.249";
-    if (vpnIp !== ALLOWED_IP) {
-      return NextResponse.json(
-        { status: "forbidden", message: `허용되지 않은 IP입니다. (${ALLOWED_IP}만 가능)` }, 
-        { status: 403 }
-      );
-    }
-    
     const authString = Buffer.from(`admin:globe1@3`).toString('base64');
     const targetUrl = `http://${vpnIp}/api/v1/firewall/nat/port_forward`;
     

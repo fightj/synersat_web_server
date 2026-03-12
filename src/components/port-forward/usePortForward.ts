@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useVesselStore } from "@/store/vessel.store";
 import { DeviceNatRow } from "@/types/firewall";
-import { getDeviceNats, deleteDeviceNat } from "@/app/api/port_forward_ssr/port_forward_ssr";
-import { getDeviceInterfaces, DeviceInterface } from "@/app/api/interfaces/interfaces";
+import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
+import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
 export function usePortForward(ruleType: RuleType) {
@@ -24,6 +24,7 @@ export function usePortForward(ruleType: RuleType) {
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
+  
 
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
@@ -83,29 +84,47 @@ export function usePortForward(ruleType: RuleType) {
   );
 
   const handleToggleStatus = useCallback(
-    async (originalIndex: number, currentEnabled: boolean) => {
-      if (!vpnIp) return;
-      setIsUpdating(true);
-      try {
-        const response = await fetch("/api/port_forward", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            vpnIp,
-            id: originalIndex,
-            disabled: !currentEnabled,
-          }),
-        });
-        if (!response.ok) throw new Error("Update failed");
-        await fetchAllData();
-      } catch {
-        alert("fail to set status.");
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [vpnIp, fetchAllData],
-  );
+  async (originalIndex: number, currentEnabled: boolean) => {
+    if (!vpnIp) return;
+    setIsUpdating(true);
+
+    // ✅ 즉시 UI 반전
+    setRules((prev) =>
+      prev.map((rule) =>
+        rule.originalIdx === originalIndex
+          ? { ...rule, disabled: currentEnabled } // currentEnabled가 true면 비활성화
+          : rule,
+      ),
+    );
+
+    try {
+      const response = await fetch("/api/port_forward", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vpnIp,
+          id: originalIndex,
+          disabled: !currentEnabled,
+        }),
+      });
+      if (!response.ok) throw new Error("Update failed");
+      // ✅ 성공 시 fetchAllData 불필요
+    } catch {
+      // ✅ 실패 시 원래대로 되돌림
+      setRules((prev) =>
+        prev.map((rule) =>
+          rule.originalIdx === originalIndex
+            ? { ...rule, disabled: !currentEnabled }
+            : rule,
+        ),
+      );
+      alert("fail to set status.");
+    } finally {
+      setIsUpdating(false);
+    }
+  },
+  [vpnIp],
+);
 
   const handleEditClick = useCallback((rule: DeviceNatRow) => {
     setSelectedRule(rule);
