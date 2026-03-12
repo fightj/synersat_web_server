@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { DeviceNatResponse, DeviceNatRow } from "@/types/firewall";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// GET /api/device-nats?imo={imo}
+async function getTeleportCookieHeader(): Promise<string> {
+  const cookieStore = await cookies();
+  const appSession = cookieStore.get("__Host-grv_app_session");
+  const appSessionSubject = cookieStore.get("__Host-grv_app_session_subject");
+
+  return [
+    appSession ? `__Host-grv_app_session=${appSession.value}` : "",
+    appSessionSubject ? `__Host-grv_app_session_subject=${appSessionSubject.value}` : "",
+  ].filter(Boolean).join("; ");
+}
+
 export async function GET(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookieHeader();
     const { searchParams } = new URL(req.url);
     const imo = searchParams.get("imo");
 
@@ -16,6 +28,9 @@ export async function GET(req: Request) {
     const res = await fetch(`${BASE_URL}/v1/device-nats?imo=${imo}`, {
       method: "GET",
       cache: "no-store",
+      headers: {
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
     });
 
     if (!res.ok) {
@@ -44,14 +59,17 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/device-nats
 export async function POST(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookieHeader();
     const payload = await req.json();
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(payload),
     });
 
@@ -66,14 +84,17 @@ export async function POST(req: Request) {
   }
 }
 
-// PUT /api/device-nats
 export async function PUT(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookieHeader();
     const payload = await req.json();
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(payload),
     });
 
@@ -89,14 +110,17 @@ export async function PUT(req: Request) {
   }
 }
 
-// DELETE /api/device-nats
 export async function DELETE(req: Request) {
   try {
+    const cookieHeader = await getTeleportCookieHeader();
     const payload = await req.json();
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
       body: JSON.stringify(payload),
     });
 
