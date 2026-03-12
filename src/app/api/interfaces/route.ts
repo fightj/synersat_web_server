@@ -4,8 +4,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(req: Request) {
   try {
+    const cookieHeader = req.headers.get("cookie") || "";
+    console.log("interfaces raw cookie header:", cookieHeader);
+
     const { searchParams } = new URL(req.url);
     const imo = searchParams.get("imo");
+    console.log("interfaces cookieHeader확인:", cookieHeader);
 
     if (!imo) {
       return NextResponse.json({ error: "imo is required" }, { status: 400 });
@@ -14,6 +18,9 @@ export async function GET(req: Request) {
     const res = await fetch(`${BASE_URL}/interfaces?imo=${imo}`, {
       method: "GET",
       cache: "no-store",
+      headers: {
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
     });
 
     if (!res.ok) {

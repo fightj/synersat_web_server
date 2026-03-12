@@ -1,30 +1,21 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { DeviceNatResponse, DeviceNatRow } from "@/types/firewall";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-async function getTeleportCookieHeader(): Promise<string> {
-  const cookieStore = await cookies();
-  const appSession = cookieStore.get("__Host-grv_app_session");
-  const appSessionSubject = cookieStore.get("__Host-grv_app_session_subject");
-  console.log("appSession:", appSession)
-  console.log("appSessionSubject:", appSessionSubject)
-  const all = cookieStore.getAll();
-  console.log("전체 쿠키 목록:", JSON.stringify(all))
-  
-  return [
-    appSession ? `__Host-grv_app_session=${appSession.value}` : "",
-    appSessionSubject ? `__Host-grv_app_session_subject=${appSessionSubject.value}` : "",
-  ].filter(Boolean).join("; ");
+function getTeleportCookieHeader(req: Request): string {
+  const cookieHeader = req.headers.get("cookie") || "";
+  console.log("raw cookie header:", cookieHeader);
+  return cookieHeader;
 }
 
 export async function GET(req: Request) {
   try {
-    const cookieHeader = await getTeleportCookieHeader();
+    const cookieHeader = getTeleportCookieHeader(req);
     const { searchParams } = new URL(req.url);
     const imo = searchParams.get("imo");
     console.log("cookieHeader확인:", cookieHeader);
+
     if (!imo) {
       return NextResponse.json({ error: "imo is required" }, { status: 400 });
     }
@@ -65,8 +56,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const cookieHeader = await getTeleportCookieHeader();
+    const cookieHeader = getTeleportCookieHeader(req);
     const payload = await req.json();
+    console.log("POST cookieHeader확인:", cookieHeader);
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "POST",
@@ -90,8 +82,9 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const cookieHeader = await getTeleportCookieHeader();
+    const cookieHeader = getTeleportCookieHeader(req);
     const payload = await req.json();
+    console.log("PUT cookieHeader확인:", cookieHeader);
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "PUT",
@@ -116,8 +109,9 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const cookieHeader = await getTeleportCookieHeader();
+    const cookieHeader = getTeleportCookieHeader(req);
     const payload = await req.json();
+    console.log("DELETE cookieHeader확인:", cookieHeader);
 
     const res = await fetch(`${BASE_URL}/device-nats`, {
       method: "DELETE",
