@@ -21,8 +21,7 @@ export default function RootLayout({
       <body className={`${inter.className} rounded-xl dark:bg-gray-900`}>
         <ThemeProvider>
           <SidebarProvider>
-            <AuthInitializer /> {/* ✅ 추가 */}
-            {children}
+            <AuthInitializer>{children}</AuthInitializer>
           </SidebarProvider>
         </ThemeProvider>
       </body>
