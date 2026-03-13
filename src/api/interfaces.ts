@@ -12,7 +12,7 @@ const TEST_USER = ENV.USER_ROLE
 
 function withTestUser(options: RequestInit = {}): RequestInit {
   const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Test-User", TEST_USER);
+  existingHeaders.set("Authorization", TEST_USER);
   return {
     ...options,
     headers: existingHeaders,
