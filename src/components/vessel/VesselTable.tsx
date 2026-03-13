@@ -83,6 +83,8 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
   const error = useVesselStore((s) => s.error);
   const fetchVessels = useVesselStore((s) => s.fetchVessels);
 
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
   const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -228,11 +230,15 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
             {displayVessels.map((vessel) => (
               <TableRow
                 key={vessel.id}
-                onDoubleClick={() =>
-                  router.push(
-                    `/vessels/${encodeURIComponent(vessel.name || "")}?imo=${vessel.imo}`,
-                  )
-                }
+                onDoubleClick={() => {
+                  setSelectedVessel({
+                    id: vessel.id,
+                    imo: vessel.imo,
+                    name: vessel.name || "",
+                    vpnIp: vessel.vpnIp || "",
+                  });
+                  router.push(`/vessels/detail`);
+                }}
                 className="group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
               >
                 <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">

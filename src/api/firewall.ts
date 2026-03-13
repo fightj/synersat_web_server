@@ -1,23 +1,30 @@
 import { ENV } from "../config/env";
 import { DeviceNatResponse, DeviceNatRow } from "@/types/firewall";
 
-// 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
 const fetchOptions: RequestInit = {
   credentials: "include",
   cache: "no-store",
 };
 
-/**
- * 선박별 NAT(Port Forward) 정보 조회
- * GET /v1/device-nats?imo={imo}
- */
+const TEST_USER = ENV.USER_ROLE
+// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
+
+function withTestUser(options: RequestInit = {}): RequestInit {
+  const existingHeaders = new Headers(options.headers);
+  existingHeaders.set("Test-User", TEST_USER);
+  return {
+    ...options,
+    headers: existingHeaders,
+  };
+}
+
 export async function getDeviceNats(imo: number): Promise<DeviceNatRow[]> {
   try {
     const url = `${ENV.BASE_URL}/v1/device-nats?imo=${imo}`;
-    const res = await fetch(url, {
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -34,7 +41,7 @@ export async function getDeviceNats(imo: number): Promise<DeviceNatRow[]> {
           ...rule,
           originalIdx: idx,
           changeType: item.type,
-          next: item.next, // UPDATE hover 툴팁용
+          next: item.next,
         };
       })
       .filter((row): row is DeviceNatRow => row !== null);
@@ -49,12 +56,12 @@ export async function getDeviceNats(imo: number): Promise<DeviceNatRow[]> {
 export async function addDeviceNat(payload: any): Promise<void> {
   try {
     const url = `${ENV.BASE_URL}/device-nats`;
-    const res = await fetch(url, {
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+    }));
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Failed to add device NAT: ${res.status} ${errorText}`);
@@ -84,18 +91,17 @@ export async function updateDeviceNat(payload: {
 }): Promise<number> {
   try {
     const url = `${ENV.BASE_URL}/device-nats`;
-    const res = await fetch(url, {
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+    }));
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Failed to update device NAT: ${res.status} ${errorText}`);
     }
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (error) {
     console.error("updateDeviceNat Error:", error);
     throw error;
@@ -109,18 +115,17 @@ export async function deleteDeviceNat(
 ): Promise<number> {
   try {
     const url = `${ENV.BASE_URL}/device-nats`;
-    const res = await fetch(url, {
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index, currentRuleCount, imo }),
-    });
+    }));
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Failed to delete device NAT: ${res.status} ${errorText}`);
     }
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (error) {
     console.error("deleteDeviceNat Error:", error);
     throw error;

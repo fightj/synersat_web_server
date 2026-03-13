@@ -268,7 +268,7 @@ export default function ManageCrewAccount() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="py-32 text-center">
-                    <Loading />
+                    <Loading message="Fetching data..." />
                   </TableCell>
                 </TableRow>
               ) : crew.length === 0 ? (

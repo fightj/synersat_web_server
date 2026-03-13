@@ -1,5 +1,11 @@
 import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse} from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
+import { ENV } from "@/config/env";
+
+const BASE_URL = ENV.BASE_URL
+// ✅ 테스트용 하드코딩 헤더 (테스트 시 직접 변경)
+const TEST_USER = ENV.USER_ROLE
+// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
 
 // 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
 const fetchOptions: RequestInit = {
@@ -7,95 +13,21 @@ const fetchOptions: RequestInit = {
   cache: "no-store",
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-
-// -----------------중복 체크 api-----------------
-export async function serialNumberDuplicate(serialNumber: string): Promise<boolean> {
-  try {
-    const sn = serialNumber.trim();
-    const encodedSn = encodeURIComponent(sn);
-    const url = `${BASE_URL}/vessels/serialNumbers/${encodedSn}/exists?serialNumber=${encodedSn}`;
-    
-    const res = await fetch(url, { ...fetchOptions, method: "GET" });
-
-    if (res.status === 200) return true;
-    if (res.status === 204) return false;
-
-    const errorBody = await res.text();
-    throw new Error(`Status ${res.status}: ${errorBody}`);
-  } catch (error) {
-    console.error("SerialNumber 중복 확인 중 오류 발생:", error);
-    throw error;
-  }
-}
-
-export async function vpnIpDuplicate(vpnIp: string): Promise<boolean> {
-  try {
-    const ip = vpnIp.trim();
-    const encodedIp = encodeURIComponent(ip);
-    const url = `${BASE_URL}/vessels/vpnIPs/${encodedIp}/exists?vpnIp=${encodedIp}`;
-    
-    console.log("Checking VPN IP URL:", url);
-
-    const res = await fetch(url, { ...fetchOptions, method: "GET" });
-
-    if (res.status === 200) return true;
-    if (res.status === 204) return false;
-
-    const errorBody = await res.text();
-    throw new Error(`Status ${res.status}: ${errorBody}`);
-  } catch (error) {
-    console.error("VPN IP 중복 확인 중 오류 발생:", error);
-    throw error;
-  }
-}
-
-export async function VesselDuplicate(vesselId: string): Promise<boolean> {
-  try {
-    const id = vesselId.trim();
-    const encodedId = encodeURIComponent(id);
-    const url = `${BASE_URL}/vessels/ids/${encodedId}/exists?id=${encodedId}`;
-
-    const res = await fetch(url, { ...fetchOptions, method: "GET" });
-
-    if (res.status === 200) return true;
-    if (res.status === 204) return false;
-
-    const errorBody = await res.text();
-    throw new Error(`Status ${res.status}: ${errorBody}`);
-  } catch (error) {
-    console.error("Vessel ID 중복 확인 중 오류 발생:", error);
-    throw error;
-  }
-}
-
-export async function imoDuplicate(imo: string | number): Promise<boolean> {
-  try {
-    const cleanImo = String(imo).trim();
-    const imoAsNumber = Number(cleanImo);
-    const url = `${BASE_URL}/vessels/imos/${imoAsNumber}/exists?imo=${imoAsNumber}`;
-    
-    console.log("Checking IMO Duplicate URL:", url);
-
-    const res = await fetch(url, { ...fetchOptions, method: "GET" });
-
-    if (res.status === 200) return true;
-    if (res.status === 204) return false;
-
-    const errorBody = await res.text();
-    throw new Error(`Status ${res.status}: ${errorBody}`);
-  } catch (error) {
-    console.error("IMO 중복 확인 중 오류 발생:", error);
-    throw error;
-  }
+function withTestUser(options: RequestInit = {}): RequestInit {
+  const existingHeaders = new Headers(options.headers);
+  existingHeaders.set("Test-User", TEST_USER);
+  return {
+    ...options,
+    headers: existingHeaders,
+  };
 }
 
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    const res = await fetch(`${BASE_URL}/v1/vessels`, {
+    const res = await fetch(`${BASE_URL}/v1/vessels`, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) throw new Error("Failed to fetch vessels from v1");
 
@@ -107,8 +39,8 @@ export async function getVessels(): Promise<Vessel[]> {
       callsign: v.callsign,
       imo: v.imo,
       mmsi: v.mmsi,
-      vpnIp: v.vpn_ip,        
-      enabled: v.vessel_enable, 
+      vpnIp: v.vpn_ip,
+      enabled: v.vessel_enable,
       description: v.description,
       logo: v.logo,
       manager: v.manager,
@@ -134,16 +66,14 @@ export async function addVessel(payload: any): Promise<any | null> {
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
 
-    const res = await fetch(`${BASE_URL}/vessels`, {
+    const res = await fetch(`${BASE_URL}/vessels`, withTestUser({
       ...fetchOptions,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filteredPayload),
-    });
+    }));
 
-    if (res.status === 200 || res.status === 201) {
-      return await res.json();
-    }
+    if (res.status === 200 || res.status === 201) return await res.json();
 
     const errorText = await res.text();
     console.error(`Vessel 추가 실패:`, errorText);
@@ -160,16 +90,14 @@ export async function updateVessel(payload: UpdateVesselPayload): Promise<{ comm
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
 
-    const res = await fetch(`${BASE_URL}/vessels`, {
+    const res = await fetch(`${BASE_URL}/vessels`, withTestUser({
       ...fetchOptions,
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filteredPayload),
-    });
+    }));
 
-    if (res.ok) {
-      return await res.json();
-    }
+    if (res.ok) return await res.json();
 
     const errorText = await res.text();
     console.error(`Vessel 수정 실패 (Status: ${res.status}):`, errorText);
@@ -182,12 +110,12 @@ export async function updateVessel(payload: UpdateVesselPayload): Promise<{ comm
 
 export async function deleteVessel(imos: number[]): Promise<boolean> {
   try {
-    const res = await fetch(`${BASE_URL}/vessels`, {
+    const res = await fetch(`${BASE_URL}/vessels`, withTestUser({
       ...fetchOptions,
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ vesselImos: imos }),
-    });
+    }));
 
     if (res.status === 204) return true;
 
@@ -205,9 +133,9 @@ export async function deleteVessel(imos: number[]): Promise<boolean> {
 
 export async function getAccounts(): Promise<string[]> {
   try {
-    const res = await fetch(`${BASE_URL}/accounts`, { ...fetchOptions });
+    const res = await fetch(`${BASE_URL}/accounts`, withTestUser({ ...fetchOptions }));
     if (!res.ok) throw new Error("Failed to fetch accounts");
-    
+
     const rawData: AccountApiResponse = await res.json();
     return rawData.accounts.map((item) => item.acct);
   } catch (error) {
@@ -218,14 +146,12 @@ export async function getAccounts(): Promise<string[]> {
 
 export async function getVesselDetail(vesselImo: string | number): Promise<VesselDetail> {
   try {
-    const res = await fetch(`${BASE_URL}/v1/vessels/${vesselImo}`, {
+    const res = await fetch(`${BASE_URL}/v1/vessels/${vesselImo}`, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch vessel details (Status: ${res.status})`);
-    }
+    if (!res.ok) throw new Error(`Failed to fetch vessel details (Status: ${res.status})`);
 
     return await res.json();
   } catch (error) {
@@ -246,10 +172,10 @@ export async function getVesselRoutes(
       endAt,
     });
 
-    const res = await fetch(`${BASE_URL}/vessels/routes?${params.toString()}`, {
+    const res = await fetch(`${BASE_URL}/vessels/routes?${params.toString()}`, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) {
       const errorBody = await res.json().catch(() => ({}));
@@ -259,6 +185,83 @@ export async function getVesselRoutes(
     return await res.json();
   } catch (error) {
     console.error("getVesselRoutes Error:", error);
+    throw error;
+  }
+}
+
+// -----------------중복 체크 api-----------------
+export async function serialNumberDuplicate(serialNumber: string): Promise<boolean> {
+  try {
+    const sn = serialNumber.trim();
+    const encodedSn = encodeURIComponent(sn);
+    const url = `${BASE_URL}/vessels/serialNumbers/${encodedSn}/exists?serialNumber=${encodedSn}`;
+
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+
+    if (res.status === 200) return true;
+    if (res.status === 204) return false;
+
+    const errorBody = await res.text();
+    throw new Error(`Status ${res.status}: ${errorBody}`);
+  } catch (error) {
+    console.error("SerialNumber 중복 확인 중 오류 발생:", error);
+    throw error;
+  }
+}
+
+export async function vpnIpDuplicate(vpnIp: string): Promise<boolean> {
+  try {
+    const ip = vpnIp.trim();
+    const encodedIp = encodeURIComponent(ip);
+    const url = `${BASE_URL}/vessels/vpnIPs/${encodedIp}/exists?vpnIp=${encodedIp}`;
+
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+
+    if (res.status === 200) return true;
+    if (res.status === 204) return false;
+
+    const errorBody = await res.text();
+    throw new Error(`Status ${res.status}: ${errorBody}`);
+  } catch (error) {
+    console.error("VPN IP 중복 확인 중 오류 발생:", error);
+    throw error;
+  }
+}
+
+export async function VesselDuplicate(vesselId: string): Promise<boolean> {
+  try {
+    const id = vesselId.trim();
+    const encodedId = encodeURIComponent(id);
+    const url = `${BASE_URL}/vessels/ids/${encodedId}/exists?id=${encodedId}`;
+
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+
+    if (res.status === 200) return true;
+    if (res.status === 204) return false;
+
+    const errorBody = await res.text();
+    throw new Error(`Status ${res.status}: ${errorBody}`);
+  } catch (error) {
+    console.error("Vessel ID 중복 확인 중 오류 발생:", error);
+    throw error;
+  }
+}
+
+export async function imoDuplicate(imo: string | number): Promise<boolean> {
+  try {
+    const cleanImo = String(imo).trim();
+    const imoAsNumber = Number(cleanImo);
+    const url = `${BASE_URL}/vessels/imos/${imoAsNumber}/exists?imo=${imoAsNumber}`;
+
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+
+    if (res.status === 200) return true;
+    if (res.status === 204) return false;
+
+    const errorBody = await res.text();
+    throw new Error(`Status ${res.status}: ${errorBody}`);
+  } catch (error) {
+    console.error("IMO 중복 확인 중 오류 발생:", error);
     throw error;
   }
 }

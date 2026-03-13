@@ -1,17 +1,29 @@
 import { ENV } from "../config/env";
 
-// 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
 const fetchOptions: RequestInit = {
   credentials: "include",
   cache: "no-store",
 };
+
+// ✅ 테스트용 하드코딩 헤더 (테스트 시 직접 변경)
+const TEST_USER = ENV.USER_ROLE
+// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
+
+
+function withTestUser(options: RequestInit = {}): RequestInit {
+  const existingHeaders = new Headers(options.headers);
+  existingHeaders.set("Test-User", TEST_USER);
+  return {
+    ...options,
+    headers: existingHeaders,
+  };
+}
 
 export interface DeviceInterface {
   interfaceName: string;
   description: string;
 }
 
-// Interface 가져오기
 export async function getDeviceInterfaces(imo: number): Promise<DeviceInterface[]> {
   try {
     const urlParams = new URLSearchParams();
@@ -19,10 +31,10 @@ export async function getDeviceInterfaces(imo: number): Promise<DeviceInterface[
 
     const url = `${ENV.BASE_URL}/interfaces?${urlParams.toString()}`;
 
-    const res = await fetch(url, {
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) {
       const errorText = await res.text();

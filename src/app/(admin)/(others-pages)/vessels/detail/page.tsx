@@ -4,24 +4,23 @@ import { useEffect, useState, use } from "react";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import WorldMap from "@/components/map/WorldMap";
 import TimeSetting from "@/components/vessel/TimeSetting";
-// import { getVesselRoutes } from "@/app/api/vessel/vessel";
 import { getVesselRoutes } from "@/api/vessel";
-import { format, subHours, parseISO, addHours } from "date-fns";
+import { format, subHours, parseISO } from "date-fns";
 import Loading from "@/components/common/Loading";
 import Link from "next/link";
 import type { VesselRouteResponse } from "@/types/vessel";
+import { useVesselStore } from "@/store/vessel.store";
 
 interface VesselDetailPageProps {
   params: Promise<{ name: string }>;
-  searchParams: Promise<{ imo?: string }>;
 }
 
-export default function VesselDetailPage({
-  params,
-  searchParams,
-}: VesselDetailPageProps) {
+export default function VesselDetailPage({ params }: VesselDetailPageProps) {
   const { name } = use(params);
-  const { imo } = use(searchParams);
+
+  // ✅ searchParams 제거, selectedVessel에서만 imo 가져오기
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
 
   const [loading, setLoading] = useState(false);
   const [routeData, setRouteData] = useState<VesselRouteResponse>({
@@ -46,7 +45,6 @@ export default function VesselDetailPage({
         subHours(parseISO(endKST), 9),
         "yyyy-MM-dd'T'HH:mm:ss",
       );
-
       const data = await getVesselRoutes(imo, startUTC, endUTC);
       setRouteData(data);
     } catch (error) {
@@ -60,22 +58,23 @@ export default function VesselDetailPage({
     fetchData(timeRange.startAt, timeRange.endAt);
   }, [imo, timeRange]);
 
-  if (!imo) {
+  // ✅ selectedVessel 없으면 접근 불가
+  if (!selectedVessel || !imo) {
     return (
       <div className="p-10 text-center text-red-500">
-        Invalid Access: Vessel IMO is missing.
+        Invalid Access: No vessel selected.
       </div>
     );
   }
+
   const handleChartRangeChange = (startISO: string, endISO: string) => {
     const startUTC = format(parseISO(startISO), "yyyy-MM-dd'T'HH:mm:ss");
     const endUTC = format(parseISO(endISO), "yyyy-MM-dd'T'HH:mm:ss");
-
     setTimeRange({ startAt: startUTC, endAt: endUTC });
   };
+
   return (
     <div className="space-y-6 p-2">
-      {/* 헤더: 뒤로가기 및 타임 피커 */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <Link
           href="/vessels"
@@ -110,19 +109,19 @@ export default function VesselDetailPage({
       <div className="relative flex flex-col gap-6">
         {loading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
-            <Loading />
+            <Loading message="Loading..." />
           </div>
         )}
 
-        {/* 1. 상단 섹션: 상세 정보(DetailView)와 지도(WorldMap)를 1:1 비율로 배치 */}
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="w-full lg:w-1/2">
+            {/* ✅ vesselImo을 selectedVessel에서 받아온 imo로 전달 */}
             <VesselDetailView
               vesselImo={imo}
               dataUsages={routeData.dataUsages}
               coordinates={routeData.coordinates}
               timeRange={timeRange}
-              onTimeRangeChange={handleChartRangeChange} // ✅ 콜백 전달
+              onTimeRangeChange={handleChartRangeChange}
             />
           </div>
 

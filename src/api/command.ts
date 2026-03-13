@@ -11,6 +11,18 @@ const fetchOptions: RequestInit = {
   cache: "no-store",
 };
 
+const TEST_USER = ENV.USER_ROLE
+// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
+
+function withTestUser(options: RequestInit = {}): RequestInit {
+  const existingHeaders = new Headers(options.headers);
+  existingHeaders.set("Test-User", TEST_USER);
+  return {
+    ...options,
+    headers: existingHeaders,
+  };
+}
+
 /**
  * 전송된 명령 목록 조회 (GET /vessels/commands)
  */
@@ -27,10 +39,10 @@ export async function getCommands(params: GetCommandsParams): Promise<CommandApi
 
     const url = `${ENV.BASE_URL}/vessels/commands?${urlParams.toString()}`;
 
-    const res = await fetch(url, {
+   const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) {
       const errorText = await res.text();
