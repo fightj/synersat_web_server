@@ -22,7 +22,12 @@ import {
 import { TimeSettingIcon } from "@/icons";
 
 interface TimeSettingProps {
-  onApply: (startAt: string, endAt: string) => void;
+  onApply: (
+    startAt: string,
+    endAt: string,
+    isLive: boolean,
+    rangeFn?: () => { start: Date; end: Date },
+  ) => void;
 }
 
 export default function TimeSetting({ onApply }: TimeSettingProps) {
@@ -66,9 +71,9 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     },
   ];
 
-  // 💡 시간을 변환하지 않고 로컬 포맷 그대로 반환합니다.
-  const formatDateString = (date: Date) => {
-    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
+  // ✅ 항상 UTC 기준으로 변환
+  const toUTCString = (date: Date): string => {
+    return date.toISOString().slice(0, 19); // "2026-03-13T07:00:00" (UTC, Z 제거)
   };
 
   useEffect(() => {
@@ -115,10 +120,10 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     }
   };
 
+  // ✅ 캘린더 Apply - isLive: false (특정 날짜 범위)
   const handleApply = () => {
     if (range.start && range.end) {
-      // 부모 컴포넌트로 KST 기준 포맷 문자열 전달
-      onApply(formatDateString(range.start), formatDateString(range.end));
+      onApply(toUTCString(range.start), toUTCString(range.end), false);
       setIsOpen(false);
     }
   };
@@ -166,8 +171,14 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
                 setRange({ start, end });
                 setActiveRange(r.label);
                 setError(null);
-                // 퀵 레인지 선택 시에도 KST 기준 문자열 전달
-                onApply(formatDateString(start), formatDateString(end));
+                // ✅ This Week, This Month는 고정 범위라 isLive: false
+                const live = !["This Week", "This Month"].includes(r.label);
+                onApply(
+                  toUTCString(start),
+                  toUTCString(end),
+                  live,
+                  live ? r.fn : undefined,
+                );
               }}
               className={`rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
                 activeRange === r.label

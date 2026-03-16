@@ -3,7 +3,7 @@
 import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
-import { parseISO, addHours, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor } from "../../common/AnntennaMapping";
 
@@ -27,7 +27,6 @@ export default function LineChartOne({
 }: LineChartOneProps) {
   const [isDark, setIsDark] = useState(false);
   const [selectedAntenna, setSelectedAntenna] = useState<string | null>(null);
-  // ✅ 마우스 호버 상태 추가
   const [hoveredAntenna, setHoveredAntenna] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,22 +46,28 @@ export default function LineChartOne({
       return { allSeries: [], isLongTerm: false, dayDiff: 0 };
     }
 
+    // ✅ Z 붙여서 UTC로 명시적 파싱
     const diff = timeRange
-      ? differenceInDays(parseISO(timeRange.endAt), parseISO(timeRange.startAt))
+      ? differenceInDays(
+          new Date(timeRange.endAt + "Z"),
+          new Date(timeRange.startAt + "Z"),
+        )
       : 1;
 
     const longTerm = diff >= 7;
     const antennaNames = new Set<string>();
     const timeMap: Record<string, Record<string, number>> = {};
 
+    // ✅ Z 붙여서 UTC로 정렬
     const sortedCoords = [...coordinates].sort(
       (a, b) =>
-        parseISO(a.timeStamp).getTime() - parseISO(b.timeStamp).getTime(),
+        new Date(a.timeStamp + "Z").getTime() -
+        new Date(b.timeStamp + "Z").getTime(),
     );
 
     sortedCoords.forEach((coord) => {
-      const kstDate = addHours(parseISO(coord.timeStamp), 9);
-      const timeMs = kstDate.getTime();
+      // ✅ UTC 그대로 사용, 브라우저가 알아서 로컬 타임존으로 표시
+      const timeMs = new Date(coord.timeStamp + "Z").getTime();
       if (!timeMap[timeMs]) timeMap[timeMs] = {};
 
       coord.dataUsages.forEach((usage) => {
@@ -88,25 +93,18 @@ export default function LineChartOne({
     return { allSeries: chartSeries, isLongTerm: longTerm, dayDiff: diff };
   }, [coordinates, timeRange]);
 
-  // ✅ 클릭(Selected) 또는 호버(Hovered) 상태에 따른 필터링/강조 로직
   const series = useMemo(() => {
-    // 1. 특정 안테나가 클릭되어 선택된 경우 해당 데이터만 표시
     if (selectedAntenna) {
       return allSeries.filter((s) => s.name === selectedAntenna);
     }
-
-    // 2. 마우스 호버 중인 경우, 호버된 녀석은 그대로 두고 나머지는 투명하게 처리하고 싶지만,
-    // ApexCharts의 series 데이터 자체의 opacity를 조절하는 것이 성능상 유리합니다.
     if (hoveredAntenna) {
       return allSeries.map((s) => ({
         ...s,
-        // 호버되지 않은 시리즈는 투명도를 낮춤 (ApexCharts stroke opacity 속성 활용)
         stroke: {
           opacity: s.name === hoveredAntenna ? 1 : 0.1,
         },
       }));
     }
-
     return allSeries;
   }, [allSeries, selectedAntenna, hoveredAntenna]);
 
@@ -142,9 +140,14 @@ export default function LineChartOne({
         events: {
           selection: (chartContext, { xaxis }) => {
             if (xaxis && onTimeRangeChange) {
-              const startISO = new Date(xaxis.min).toISOString();
-              const endISO = new Date(xaxis.max).toISOString();
-              onTimeRangeChange(startISO, endISO);
+              // ✅ xaxis.min/max는 UTC ms → 그대로 ISO 변환해서 부모로 전달
+              const startUTC = new Date(xaxis.min).toISOString().slice(0, 19);
+              const endUTC = new Date(xaxis.max).toISOString().slice(0, 19);
+
+              console.log("[Chart Selection] startAt (UTC):", startUTC);
+              console.log("[Chart Selection] endAt   (UTC):", endUTC);
+
+              onTimeRangeChange(startUTC, endUTC);
             }
           },
         },
@@ -155,7 +158,6 @@ export default function LineChartOne({
       stroke: {
         curve: "smooth",
         width: 2,
-        // ✅ 호버 상태에 따라 동적으로 투명도 조절
         opacity: allSeries.map((s) => {
           if (!hoveredAntenna) return 1;
           return s.name === hoveredAntenna ? 1 : 0.1;
@@ -165,7 +167,7 @@ export default function LineChartOne({
         type: "gradient",
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: hoveredAntenna ? 0.2 : 0.35, // 호버 시 전체적인 채도 낮춤
+          opacityFrom: hoveredAntenna ? 0.2 : 0.35,
           opacityTo: 0.05,
         },
       },
@@ -181,7 +183,7 @@ export default function LineChartOne({
         type: "datetime",
         labels: {
           style: { colors: "#6B7280", fontSize: "12px", fontWeight: 700 },
-          datetimeUTC: false,
+          datetimeUTC: false, // ✅ 브라우저 로컬 타임존으로 자동 변환해서 표시
           format: isLongTerm ? "M/d" : "HH:mm",
         },
         tickAmount: isLongTerm ? Math.min(dayDiff, 8) : undefined,
@@ -206,7 +208,10 @@ export default function LineChartOne({
         theme: isDark ? "dark" : "light",
         shared: true,
         intersect: false,
-        x: { show: true, format: "MM/dd HH:mm" },
+        x: {
+          show: true,
+          format: "MM/dd HH:mm", // ✅ 브라우저 로컬 타임존 기준으로 표시
+        },
       },
       grid: {
         borderColor: "rgba(156, 163, 175, 0.1)",
@@ -231,7 +236,6 @@ export default function LineChartOne({
         {allSeries.map((s) => {
           const isSelected = selectedAntenna === s.name;
           const isHovered = hoveredAntenna === s.name;
-          // 다른 녀석이 호버되거나 선택되어 있다면 내 상태는 '투명(Ghosted)'
           const isGhosted =
             (selectedAntenna !== null && !isSelected) ||
             (hoveredAntenna !== null && !isHovered);
@@ -240,8 +244,8 @@ export default function LineChartOne({
             <button
               key={s.name}
               onClick={() => handleLegendClick(s.name)}
-              onMouseEnter={() => setHoveredAntenna(s.name)} // ✅ 호버 시작
-              onMouseLeave={() => setHoveredAntenna(null)} // ✅ 호버 종료
+              onMouseEnter={() => setHoveredAntenna(s.name)}
+              onMouseLeave={() => setHoveredAntenna(null)}
               className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
                 isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
               } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
@@ -260,7 +264,7 @@ export default function LineChartOne({
         })}
       </div>
 
-      {/* 차트 영역: 툴바 아이콘 숨김 처리 */}
+      {/* 차트 영역 */}
       <div className="min-h-0 flex-1 [&_.apexcharts-toolbar]:hidden">
         <ReactApexChart
           options={options}

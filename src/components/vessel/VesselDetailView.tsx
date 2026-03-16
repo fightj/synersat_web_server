@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Loading from "../common/Loading";
 import type { VesselDetail, DataUsage, RouteCoordinate } from "@/types/vessel";
-// import { getVesselDetail } from "@/app/api/vessel/vessel";
 import { getVesselDetail } from "@/api/vessel";
 import {
   getServiceBadgeStyles,
@@ -15,6 +14,7 @@ import VesselCommandOne from "./VesselCommandOne";
 import VesselEditModal from "./VesselEditModal";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { SktelinkIcon } from "@/icons";
+import { AnimatedCounter } from "../ui/animated-counter";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -28,12 +28,12 @@ interface VesselDetailViewProps {
 }
 
 const formatDataSize = (bytes: number) => {
-  if (bytes === 0) return { value: "0", unit: "KB" };
+  if (bytes === 0) return { raw: 0, value: "0", unit: "KB" };
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const value = parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1));
-  return { value: value.toLocaleString(), unit: sizes[i] };
+  const raw = parseFloat((bytes / Math.pow(k, i)).toFixed(i >= 3 ? 2 : 1));
+  return { raw, value: raw.toLocaleString(), unit: sizes[i] };
 };
 
 type ViewMode = "OVERVIEW" | "COMMANDS";
@@ -83,7 +83,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           const name = usage.antennaName || "Unknown";
           if (!acc[name]) {
             acc[name] = {
-              name: name,
+              name,
               dataUsageAmount: 0,
               interfaces: new Set<string>(),
             };
@@ -103,18 +103,19 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     return Object.values(aggregated).map((item) => {
       const totalBytes = item.dataUsageAmount;
       const bps = (totalBytes * 8) / totalSeconds;
-      const { value, unit } = formatDataSize(totalBytes);
-      const speedText =
-        bps >= 1000000
-          ? `${(bps / 1000000).toFixed(2)} Mbps`
-          : `${(bps / 1000).toFixed(2)} kbps`;
+      const { raw, value, unit } = formatDataSize(totalBytes);
+
+      const bpsRaw = bps >= 1000000 ? bps / 1000000 : bps / 1000;
+      const bpsSuffix = bps >= 1000000 ? " Mbps" : " kbps";
 
       return {
         ...item,
         interfaces: Array.from(item.interfaces),
-        usageValue: value,
-        usageUnit: unit,
-        speedText,
+        usageRaw: raw, // ✅ 애니메이션용 원본 숫자 (예: 1.2)
+        usageValue: value, // 표시용 문자열 (예: "1.2")
+        usageUnit: unit, // 단위 (예: "GB")
+        bpsRaw, // ✅ 애니메이션용 속도 숫자
+        bpsSuffix, // 속도 단위 (예: " Mbps")
         color: getServiceColor(item.name),
       };
     });
@@ -136,7 +137,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-row items-center gap-3">
-            {/* ✅ 선박명과 로고 아이콘 로직 */}
             <div className="flex items-center gap-2">
               {data.logo === "sktelink" && (
                 <SktelinkIcon className="h-6 w-auto" />
@@ -145,7 +145,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 {data.name}
               </h3>
             </div>
-
             <span
               className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.antennaServiceName)}`}
             >
@@ -207,28 +206,44 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                       {item.interfaces.join(" · ")}
                     </span>
                   </div>
+
                   <div className="mb-4">
                     <p className="text-[12px] font-bold text-blue-500 uppercase">
                       Total Data Usage
                     </p>
+                    {/* ✅ AnimatedCounter 적용 */}
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">
-                        {item.usageValue}
-                      </span>
+                      <AnimatedCounter
+                        value={item.usageRaw}
+                        duration={1200}
+                        formatOptions={{
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }}
+                        className="text-4xl font-black text-gray-900 dark:text-white"
+                      />
                       <span className="text-md font-bold text-gray-400 uppercase">
                         {item.usageUnit}
                       </span>
                     </div>
                   </div>
                 </div>
+
                 <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
                   <div className="flex flex-col">
                     <span className="text-[11px] font-medium text-gray-400 uppercase">
                       Avg. Speed
                     </span>
-                    <span className="text-md font-bold text-gray-700 dark:text-gray-300">
-                      {item.speedText}
-                    </span>
+                    <AnimatedCounter
+                      value={item.bpsRaw}
+                      duration={1200}
+                      suffix={item.bpsSuffix}
+                      formatOptions={{
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }}
+                      className="text-md font-bold text-gray-700 dark:text-gray-300"
+                    />
                   </div>
                 </div>
               </div>
@@ -252,7 +267,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         <VesselCommandOne imo={Number(vesselImo)} />
       )}
 
-      {/* 3. 공통 선박 상세 정보 (수정 버튼 포함) */}
+      {/* 3. 공통 선박 상세 정보 */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="mb-6 flex items-center justify-between">
           <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">

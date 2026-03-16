@@ -4,7 +4,7 @@ import { useEffect, useRef, useMemo } from "react";
 import "leaflet/dist/leaflet.css";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
-import { format, addHours } from "date-fns"; // 시간 변환을 위해 추가
+import { format, addHours, parseISO } from "date-fns"; // 시간 변환을 위해 추가
 
 interface WorldMapProps {
   vesselImo: string;
@@ -116,13 +116,19 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
          * 💡 시간 변환 로직 적용
          * DB에서 넘어온 UTC 시간 문자열을 기반으로 Date 객체를 만들고, 9시간을 더해 KST로 변환합니다.
          */
-        const kstTime = addHours(new Date(p.timeStamp), 9);
-        const formattedTime = format(kstTime, "yyyy-MM-dd HH:mm:ss");
-
+        const utcDate = new Date(p.timeStamp + "Z");
+        const formattedTime = new Intl.DateTimeFormat("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+          timeZoneName: "short", // ✅ "UTC+9", "UTC+0" 등 자동 표시
+        }).format(utcDate);
         marker.bindPopup(
           `<div class="text-[11px] font-sans">
             <strong style="color: ${getServiceColor(p.status?.antennaServiceName)}">${p.status?.antennaServiceName}</strong><br/>
-            <span class="text-gray-500">Time (KST):</span> ${formattedTime}<br/>
+            <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
             <span class="text-gray-500">Signal:</span> ${p.satSignalStrength}%
           </div>`,
         );

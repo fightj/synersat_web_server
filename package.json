@@ -34,6 +34,7 @@
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "swiper": "^11.2.10",
+    "swr": "^2.4.1",
     "tailwind-merge": "^2.6.0",
     "zustand": "^5.0.9"
   },
