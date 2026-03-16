@@ -16,7 +16,7 @@ interface VesselDetailPageProps {
   params: Promise<{ name: string }>;
 }
 
-const FIVE_MINUTES = 1 * 60 * 1000;
+const FIVE_MINUTES = 5 * 60 * 1000;
 
 // ✅ Date → UTC 문자열 변환
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
