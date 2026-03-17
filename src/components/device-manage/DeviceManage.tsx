@@ -5,10 +5,12 @@ import {
   CheckCircleIcon,
   Squares2X2Icon,
   ListBulletIcon,
+  PlusIcon,
 } from "@heroicons/react/24/solid";
 import { getDeviceCredentials } from "@/api/device-credential";
 import type { DeviceCredential } from "@/types/device";
 import Loading from "@/components/common/Loading";
+import AdditionalOptionModal from "../vessel/AdditionalOptionModal";
 
 interface DeviceManageProps {
   imo: number;
@@ -60,22 +62,34 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [layout, setLayout] = useState<LayoutMode>("grouped");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchDevices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getDeviceCredentials(imo);
+      setDevices(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch device credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getDeviceCredentials(imo);
-        setDevices(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch device credentials.");
-      } finally {
-        setLoading(false);
-      }
-    };
     if (imo) fetchDevices();
   }, [imo]);
+
+  const handleModalSaved = () => {
+    setIsModalOpen(false);
+    fetchDevices();
+  };
+
+  // ✅ 모달 저장 후 목록 새로고침
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
 
   if (loading)
     return (
@@ -85,10 +99,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
     );
   if (error)
     return <div className="py-20 text-center text-red-500">{error}</div>;
-  if (devices.length === 0)
-    return (
-      <div className="py-20 text-center text-gray-400">No devices found.</div>
-    );
 
   const grouped = devices.reduce(
     (acc, device) => {
@@ -102,8 +112,18 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
 
   return (
     <div className="space-y-4">
-      {/* ✅ 레이아웃 토글 버튼 */}
-      <div className="flex justify-end">
+      {/* ✅ 상단 툴바 */}
+      <div className="flex items-center justify-between">
+        {/* Add Device 버튼 */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Add Device
+        </button>
+
+        {/* 레이아웃 토글 */}
         <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
           <button
             onClick={() => setLayout("grouped")}
@@ -130,14 +150,18 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
         </div>
       </div>
 
-      {/* ✅ Grouped 모드 - 카테고리별 섹션 */}
-      {layout === "grouped" && (
+      {/* 디바이스 없을 때 */}
+      {devices.length === 0 && (
+        <div className="py-20 text-center text-gray-400">No devices found.</div>
+      )}
+
+      {/* ✅ Grouped 모드 */}
+      {layout === "grouped" && devices.length > 0 && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Object.entries(grouped).map(([category, items]) => {
             const style = getCategoryStyle(category);
             return (
               <div key={category} className="flex flex-col gap-3">
-                {/* 컬럼 헤더 */}
                 <div
                   className="mt-1 flex items-center gap-2 border-b-2 pb-2"
                   style={{ borderColor: "transparent" }}
@@ -152,11 +176,7 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
                     ({items.length})
                   </span>
                 </div>
-                <div
-                  className={`h-[2px] w-full rounded-full bg-gray-200 dark:bg-white/10`}
-                />
-
-                {/* 카드들 세로 나열 */}
+                <div className="h-[2px] w-full rounded-full bg-gray-200 dark:bg-white/10" />
                 <div className="flex flex-col gap-3">
                   {items.map((device, idx) => (
                     <DeviceCard key={idx} device={device} style={style} />
@@ -168,8 +188,8 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
         </div>
       )}
 
-      {/* ✅ Flat 모드 - 전체 카드 한번에 */}
-      {layout === "flat" && (
+      {/* ✅ Flat 모드 */}
+      {layout === "flat" && devices.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {devices.map((device, idx) => {
             const style = getCategoryStyle(device.deviceCategory);
@@ -177,6 +197,14 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
           })}
         </div>
       )}
+
+      {/* ✅ AdditionalOptionModal */}
+      <AdditionalOptionModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSaved={handleModalSaved}
+        imo={imo}
+      />
     </div>
   );
 }
