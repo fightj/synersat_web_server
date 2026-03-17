@@ -11,7 +11,7 @@ import {
 import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
 import VesselCommandOne from "./VesselCommandOne";
-import VesselEditModal from "./VesselEditModal";
+import VesselFormModal from "./VesselFormModal";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { SktelinkIcon } from "@/icons";
 import { AnimatedCounter } from "../ui/animated-counter";
@@ -301,9 +301,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       </div>
 
       {isEditModalOpen && (
-        <VesselEditModal
+        <VesselFormModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+          mode="edit"
           vesselData={data}
         />
       )}

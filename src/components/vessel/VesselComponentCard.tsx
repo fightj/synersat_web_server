@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
-import VesselAddModal from "./VesselAddModal";
+// import VesselAddModal from "./VesselAddModal";
+import VesselFormModal from "./VesselFormModal";
 import VesselFiltering from "./VesselFiltering";
 import VesselTable from "./VesselTable";
 
@@ -62,7 +63,8 @@ export default function VesselComponentCard() {
       <div className="mt-4">
         <VesselTable searchTerm={searchTerm} />
       </div>
-      <VesselAddModal isOpen={isOpen} onClose={closeModal} />
+      {/* <VesselAddModal isOpen={isOpen} onClose={closeModal} /> */}
+      <VesselFormModal isOpen={isOpen} onClose={closeModal} mode="add" />
     </>
   );
 }
