@@ -10,13 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Image from "next/image";
-import { CsvIcon, UpdateIcon, CheckIcon } from "@/icons";
+import { CsvIcon, UpdateIcon, CheckIcon, CalenderIcon } from "@/icons";
 import Badge from "@/components/ui/badge/Badge";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
 import Button from "@/components/ui/button/Button";
 import Loading from "@/components/common/Loading";
 import Checkbox from "@/components/form/input/Checkbox";
+import SuspensionSetupModal from "@/components/crew/SuspensionSetupModal";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
@@ -27,6 +28,14 @@ export default function ManageCrewAccount() {
   const [crew, setCrew] = useState<CrewUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const [suspensionModal, setSuspensionModal] = useState<{
+    open: boolean;
+    username: string;
+  }>({
+    open: false,
+    username: "",
+  });
 
   // 데이터 가져오기 로직
   const fetchCrewData = async () => {
@@ -307,7 +316,17 @@ export default function ManageCrewAccount() {
                         {u.description}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
-                        {u.duty}
+                        <button
+                          className="text-gray-400 transition-colors hover:text-blue-500"
+                          onClick={() =>
+                            setSuspensionModal({
+                              open: true,
+                              username: u.varusersusername,
+                            })
+                          }
+                        >
+                          <CalenderIcon />
+                        </button>
                       </TableCell>
                       <TableCell className="px-5 py-4">
                         <Badge size="sm" color={badge.color}>
@@ -335,6 +354,11 @@ export default function ManageCrewAccount() {
           </Table>
         </div>
       </div>
+      <SuspensionSetupModal
+        isOpen={suspensionModal.open}
+        onClose={() => setSuspensionModal({ open: false, username: "" })}
+        username={suspensionModal.username}
+      />
     </div>
   );
 }
