@@ -270,7 +270,7 @@ export default function PortForwardTable({
 }: PortForwardTableProps) {
   return (
     <div className="relative max-w-full overflow-x-auto">
-      {isUpdating && (
+      {isUpdating && !isLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
           <Loading message="updating data..." />
         </div>
