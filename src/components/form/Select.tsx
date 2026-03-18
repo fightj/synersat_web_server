@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface Option {
   value: string;
@@ -12,6 +12,8 @@ interface SelectProps {
   className?: string;
   defaultValue?: string;
   value?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -21,14 +23,24 @@ const Select: React.FC<SelectProps> = ({
   className = "",
   defaultValue = "",
   value,
+  onFocus,
+  onBlur,
 }) => {
-  // Manage the selected value
-  const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
+  const [selectedValue, setSelectedValue] = useState<string>(
+    value ?? defaultValue,
+  );
+
+  // ✅ value prop이 외부에서 변경될 때 내부 상태도 업데이트
+  useEffect(() => {
+    if (value !== undefined) {
+      setSelectedValue(value);
+    }
+  }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedValue(value);
-    onChange(value); // Trigger parent handler
+    const val = e.target.value;
+    setSelectedValue(val);
+    onChange(val);
   };
 
   return (
@@ -40,8 +52,9 @@ const Select: React.FC<SelectProps> = ({
       } ${className}`}
       value={selectedValue}
       onChange={handleChange}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
-      {/* Placeholder option */}
       <option
         value=""
         disabled
@@ -49,7 +62,6 @@ const Select: React.FC<SelectProps> = ({
       >
         {placeholder}
       </option>
-      {/* Map over options */}
       {options.map((option) => (
         <option
           key={option.value}

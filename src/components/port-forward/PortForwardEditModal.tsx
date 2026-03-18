@@ -3,9 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
-import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
-import { ChevronDownIcon } from "@/icons";
+import SelectWithIcon from "@/components/form/SelectWithIcon";
 import {
   PROTOCOL_OPTIONS,
   ANY_OTHER_OPTIONS,
@@ -54,7 +53,6 @@ export default function PortForwardEditModal({
   useEffect(() => {
     if (!rule || !isOpen) return;
 
-    // description 파싱
     const fullDescr = rule.description || "";
     if (fullDescr.startsWith("[System Rule]")) {
       setRuleType("[System Rule]");
@@ -121,18 +119,14 @@ export default function PortForwardEditModal({
     }
   };
 
+  // ✅ SelectWithIcon으로 교체
   const RenderSelect = ({ options, defaultValue, onChange }: any) => (
-    <div className="relative">
-      <Select
-        options={options}
-        defaultValue={defaultValue}
-        onChange={onChange}
-        className={portForwardModalStyles.input}
-      />
-      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-700">
-        <ChevronDownIcon />
-      </span>
-    </div>
+    <SelectWithIcon
+      options={options}
+      defaultValue={defaultValue}
+      onChange={onChange}
+      className={portForwardModalStyles.input}
+    />
   );
 
   return (

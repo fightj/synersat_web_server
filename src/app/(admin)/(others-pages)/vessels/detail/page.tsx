@@ -12,18 +12,12 @@ import Link from "next/link";
 import type { VesselRouteResponse } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
-interface VesselDetailPageProps {
-  params: Promise<{ name: string }>;
-}
-
 const FIVE_MINUTES = 5 * 60 * 1000;
 
 // ✅ Date → UTC 문자열 변환
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 
-export default function VesselDetailPage({ params }: VesselDetailPageProps) {
-  const { name } = use(params);
-
+export default function VesselDetailPage() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
 

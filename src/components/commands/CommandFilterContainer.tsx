@@ -4,27 +4,13 @@ import React from "react";
 import VesselFiltering from "../vessel/VesselFiltering";
 import { useVesselStore } from "@/store/vessel.store";
 import { CommandType, CommandStatus, GetCommandsParams } from "@/types/command";
+import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 
 interface CommandFilterContainerProps {
   onFilterChange: (newFilters: Partial<GetCommandsParams>) => void;
   currentFilters: GetCommandsParams;
   stats: Record<CommandStatus, number>;
 }
-
-const ChevronDownIcon = () => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M6 9l6 6 6-6" />
-  </svg>
-);
 
 const COMMAND_TYPES: CommandType[] = [
   "UPDATE_VESSEL_FIRE_WALL",
@@ -114,27 +100,22 @@ export default function CommandFilterContainer({
             <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">
               Command Type
             </label>
-            <div className="group relative">
-              <select
-                value={currentFilters.commandType || ""}
-                onChange={(e) =>
-                  onFilterChange({
-                    commandType: (e.target.value as CommandType) || undefined,
-                  })
-                }
-                className={`w-[200px] ${selectBaseClass}`}
-              >
-                <option value="">All Types</option>
-                {COMMAND_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-gray-600">
-                <ChevronDownIcon />
-              </span>
-            </div>
+            <NativeSelectWithIcon
+              value={currentFilters.commandType || ""}
+              onChange={(e) =>
+                onFilterChange({
+                  commandType: (e.target.value as CommandType) || undefined,
+                })
+              }
+              className={`w-[200px] ${selectBaseClass}`}
+            >
+              <option value="">All Types</option>
+              {COMMAND_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t.replace(/_/g, " ")}
+                </option>
+              ))}
+            </NativeSelectWithIcon>
           </div>
 
           {/* Status 필터 */}
@@ -142,28 +123,22 @@ export default function CommandFilterContainer({
             <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">
               Status
             </label>
-            <div className="group relative">
-              <select
-                value={currentFilters.commandStatus || ""}
-                onChange={(e) =>
-                  onFilterChange({
-                    commandStatus:
-                      (e.target.value as CommandStatus) || undefined,
-                  })
-                }
-                className={`w-[130px] ${selectBaseClass}`}
-              >
-                <option value="">All Status</option>
-                {COMMAND_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 transition-colors group-hover:text-gray-600">
-                <ChevronDownIcon />
-              </span>
-            </div>
+            <NativeSelectWithIcon
+              value={currentFilters.commandStatus || ""}
+              onChange={(e) =>
+                onFilterChange({
+                  commandStatus: (e.target.value as CommandStatus) || undefined,
+                })
+              }
+              className={`w-[130px] ${selectBaseClass}`}
+            >
+              <option value="">All Status</option>
+              {COMMAND_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </NativeSelectWithIcon>
           </div>
 
           {/* 리셋 버튼 */}

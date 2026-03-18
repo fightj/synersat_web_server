@@ -12,6 +12,7 @@ import { LOGO_OPTIONS, MANAGER_OPTIONS } from "./constants/vesselFormOptions";
 import Loading from "../common/Loading";
 import { useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
+import SelectWithIcon from "../form/SelectWithIcon";
 
 type Mode = "add" | "edit";
 
@@ -132,7 +133,7 @@ export default function VesselFormModal({
               <div>
                 <RequiredLabel>Account</RequiredLabel>{" "}
                 {/* ✅ Label → RequiredLabel */}
-                <Select
+                <SelectWithIcon
                   options={form.options}
                   value={form.account}
                   onChange={(v) => form.setAccount(v)}
@@ -314,7 +315,7 @@ export default function VesselFormModal({
                 </div>
                 <div>
                   <Label className={labelStyle}>Manager</Label>
-                  <Select
+                  <SelectWithIcon
                     options={MANAGER_OPTIONS}
                     value={form.manager}
                     onChange={form.setManager}
@@ -322,7 +323,7 @@ export default function VesselFormModal({
                 </div>
                 <div>
                   <Label className={labelStyle}>Logo</Label>
-                  <Select
+                  <SelectWithIcon
                     options={LOGO_OPTIONS}
                     value={form.logo}
                     onChange={form.setLogo}

@@ -3,9 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import Input from "@/components/form/input/InputField";
-import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
-import { ChevronDownIcon } from "@/icons";
 import { addDeviceNat } from "@/api/firewall";
 import { DeviceInterface } from "@/api/interfaces";
 import {
@@ -14,6 +12,7 @@ import {
   RULE_TYPE_OPTIONS,
 } from "./Constants";
 import { portForwardModalStyles } from "./Styles";
+import SelectWithIcon from "../form/SelectWithIcon";
 interface PortForwardAddModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -56,21 +55,6 @@ export default function PortForwardAddModal({
       label: iface.description || iface.interfaceName,
     }));
   }, [interfaces]);
-
-  // Edit modal과 동일한 RenderSelect 헬퍼
-  const RenderSelect = ({ options, defaultValue, onChange }: any) => (
-    <div className="relative">
-      <Select
-        options={options}
-        defaultValue={defaultValue}
-        onChange={onChange}
-        className={portForwardModalStyles.input}
-      />
-      <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 dark:text-gray-700">
-        <ChevronDownIcon />
-      </span>
-    </div>
-  );
 
   const handleSubmit = async () => {
     if (!imo) return;
@@ -130,7 +114,7 @@ export default function PortForwardAddModal({
           >
             <div className="space-y-1">
               <label className={portForwardModalStyles.label}>Interface</label>
-              <RenderSelect
+              <SelectWithIcon
                 options={interfaceOptions}
                 defaultValue={formData.interfaceName}
                 onChange={(v: string) =>
@@ -140,7 +124,7 @@ export default function PortForwardAddModal({
             </div>
             <div className="space-y-1">
               <label className={portForwardModalStyles.label}>Protocol</label>
-              <RenderSelect
+              <SelectWithIcon
                 options={PROTOCOL_OPTIONS}
                 defaultValue={formData.protocol}
                 onChange={(v: string) =>
@@ -160,7 +144,7 @@ export default function PortForwardAddModal({
               </label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
-                  <RenderSelect
+                  <SelectWithIcon
                     options={ANY_OTHER_OPTIONS}
                     defaultValue={srcAddrMode}
                     onChange={setSrcAddrMode}
@@ -184,7 +168,7 @@ export default function PortForwardAddModal({
               </label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
-                  <RenderSelect
+                  <SelectWithIcon
                     options={ANY_OTHER_OPTIONS}
                     defaultValue={srcPortMode}
                     onChange={setSrcPortMode}
@@ -220,7 +204,7 @@ export default function PortForwardAddModal({
               <label className={portForwardModalStyles.label}>Dest. Port</label>
               <div className="flex gap-2">
                 <div className="w-[100px] shrink-0">
-                  <RenderSelect
+                  <SelectWithIcon
                     options={ANY_OTHER_OPTIONS}
                     defaultValue={dstPortMode}
                     onChange={setDstPortMode}
@@ -275,7 +259,7 @@ export default function PortForwardAddModal({
           <label className={portForwardModalStyles.label}>Description</label>
           <div className="flex gap-2">
             <div className="w-[160px] shrink-0">
-              <RenderSelect
+              <SelectWithIcon
                 options={RULE_TYPE_OPTIONS}
                 defaultValue={ruleType}
                 onChange={setRuleType}

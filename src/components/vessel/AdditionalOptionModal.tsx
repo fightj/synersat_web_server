@@ -4,11 +4,8 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { createDeviceCredential } from "@/api/device-credential";
 import Label from "@/components/form/Label";
-import {
-  PlusIcon,
-  XMarkIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/solid";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 
 interface DeviceEntry {
   deviceCategory: string;
@@ -99,39 +96,6 @@ const labelClass =
 
 const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
-function SelectWithArrow({
-  value,
-  onChange,
-  children,
-  onBlur,
-  error,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-  onBlur?: () => void;
-  error?: string;
-}) {
-  return (
-    <div>
-      <div className="relative">
-        <select
-          className={`${selectClass} ${error ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={onBlur}
-        >
-          {children}
-        </select>
-        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
-          <ChevronDownIcon className="h-4 w-4" />
-        </span>
-      </div>
-      {error && <p className={errorClass}>{error}</p>}
-    </div>
-  );
-}
-
 export default function AdditionalOptionModal({
   isOpen,
   onClose,
@@ -205,7 +169,6 @@ export default function AdditionalOptionModal({
 
     entries.forEach((entry, index) => {
       const entryErrors: EntryErrors = {};
-
       if (!entry.deviceCategory) {
         entryErrors.deviceCategory = "Category is required.";
         valid = false;
@@ -230,7 +193,6 @@ export default function AdditionalOptionModal({
         entryErrors.devicePassword = "Password is required.";
         valid = false;
       }
-
       if (Object.keys(entryErrors).length > 0) {
         newErrors[index] = entryErrors;
       }
@@ -356,9 +318,11 @@ export default function AdditionalOptionModal({
                   {/* Category */}
                   <div className="md:col-span-2">
                     <Label className={labelClass}>Category</Label>
-                    <SelectWithArrow
+                    <NativeSelectWithIcon
                       value={entry.deviceCategory}
-                      onChange={(v) => handleChange(index, "deviceCategory", v)}
+                      onChange={(e) =>
+                        handleChange(index, "deviceCategory", e.target.value)
+                      }
                       onBlur={() =>
                         handleBlur(
                           index,
@@ -366,7 +330,7 @@ export default function AdditionalOptionModal({
                           entry.deviceCategory,
                         )
                       }
-                      error={entryErrors.deviceCategory}
+                      className={`${selectClass} ${entryErrors.deviceCategory ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
                     >
                       <option value="">Select Category</option>
                       {CATEGORY_OPTIONS.map((opt) => (
@@ -374,7 +338,10 @@ export default function AdditionalOptionModal({
                           {opt.label}
                         </option>
                       ))}
-                    </SelectWithArrow>
+                    </NativeSelectWithIcon>
+                    {entryErrors.deviceCategory && (
+                      <p className={errorClass}>{entryErrors.deviceCategory}</p>
+                    )}
                     {entry.deviceCategory === "other" && (
                       <div className="mt-2">
                         <input
@@ -409,20 +376,25 @@ export default function AdditionalOptionModal({
                   {/* Device Model */}
                   <div className="md:col-span-2">
                     <Label className={labelClass}>Device Model</Label>
-                    <SelectWithArrow
+                    <NativeSelectWithIcon
                       value={entry.deviceModel}
-                      onChange={(v) => handleChange(index, "deviceModel", v)}
+                      onChange={(e) =>
+                        handleChange(index, "deviceModel", e.target.value)
+                      }
                       onBlur={() =>
                         handleBlur(index, "deviceModel", entry.deviceModel)
                       }
-                      error={entryErrors.deviceModel}
+                      className={`${selectClass} ${entryErrors.deviceModel ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
                     >
                       {MODEL_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
                       ))}
-                    </SelectWithArrow>
+                    </NativeSelectWithIcon>
+                    {entryErrors.deviceModel && (
+                      <p className={errorClass}>{entryErrors.deviceModel}</p>
+                    )}
                   </div>
 
                   {/* Device IP */}
@@ -439,7 +411,7 @@ export default function AdditionalOptionModal({
                             value={entry[`ip${num}` as keyof DeviceEntry]}
                             onChange={(e) => {
                               const raw = e.target.value.replace(/\D/g, "");
-                              if (raw !== "" && Number(raw) > 255) return; // ✅ 255 초과 차단
+                              if (raw !== "" && Number(raw) > 255) return;
                               handleChange(
                                 index,
                                 `ip${num}` as keyof DeviceEntry,
@@ -462,17 +434,19 @@ export default function AdditionalOptionModal({
                   {/* Port */}
                   <div>
                     <Label className={labelClass}>Protocol (Port)</Label>
-                    <SelectWithArrow
+                    <NativeSelectWithIcon
                       value={entry.devicePort}
-                      onChange={(v) => handleChange(index, "devicePort", v)}
+                      onChange={(e) =>
+                        handleChange(index, "devicePort", e.target.value)
+                      }
+                      className={selectClass}
                     >
                       {PORT_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
                       ))}
-                    </SelectWithArrow>
-                    {/* ✅ Direct Input 선택 시 입력칸 노출 */}
+                    </NativeSelectWithIcon>
                     {entry.devicePort === "custom" && (
                       <input
                         type="text"
@@ -489,6 +463,7 @@ export default function AdditionalOptionModal({
                       />
                     )}
                   </div>
+
                   {/* Forward Port */}
                   <div>
                     <Label className={labelClass}>Forward Port</Label>
