@@ -53,8 +53,8 @@ export default function PortForwardPageTemplate({
         onConfirm={handleDeleteConfirm}
       />
 
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
-        {/* 헤더 */}
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+        {/* ✅ 헤더 - overflow 영향 없이 고정 */}
         <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-500/10">
@@ -88,17 +88,20 @@ export default function PortForwardPageTemplate({
           </div>
         </div>
 
-        <PortForwardTable
-          rules={filteredRules}
-          isLoading={isLoading}
-          isUpdating={isUpdating}
-          isLocked={isLocked}
-          statusCounts={statusCounts}
-          getInterfaceLabel={getInterfaceLabel}
-          onEditClick={handleEditClick}
-          onToggleStatus={handleToggleStatus}
-          onDeleteRequest={handleDeleteRequest}
-        />
+        {/* ✅ 테이블만 가로 스크롤 */}
+        <div className="overflow-x-auto">
+          <PortForwardTable
+            rules={filteredRules}
+            isLoading={isLoading}
+            isUpdating={isUpdating}
+            isLocked={isLocked}
+            statusCounts={statusCounts}
+            getInterfaceLabel={getInterfaceLabel}
+            onEditClick={handleEditClick}
+            onToggleStatus={handleToggleStatus}
+            onDeleteRequest={handleDeleteRequest}
+          />
+        </div>
       </div>
 
       <PortForwardEditModal

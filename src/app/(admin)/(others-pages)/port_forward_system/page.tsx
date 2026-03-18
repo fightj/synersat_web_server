@@ -2,9 +2,11 @@ import PortForwardPageTemplate from "@/components/port-forward/PortForwardPageTe
 
 export default function PortForwardSystemPage() {
   return (
-    <PortForwardPageTemplate
-      ruleType="[System Rule]"
-      pageTitle="Port Forward (System)"
-    />
+    <div className="space-y-6">
+      <PortForwardPageTemplate
+        ruleType="[System Rule]"
+        pageTitle="Port Forward (System)"
+      />
+    </div>
   );
 }

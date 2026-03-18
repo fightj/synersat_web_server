@@ -269,7 +269,7 @@ export default function PortForwardTable({
   onDeleteRequest,
 }: PortForwardTableProps) {
   return (
-    <div className="relative max-w-full overflow-x-auto">
+    <div className="relative w-full overflow-x-auto">
       {isUpdating && !isLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
           <Loading message="updating data..." />
@@ -296,7 +296,7 @@ export default function PortForwardTable({
 
       {!isLoading && <StatsBadge statusCounts={statusCounts} />}
 
-      <Table className="min-w-[1200px]">
+      <Table className="w-full">
         <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
           <TableRow>
             {TABLE_HEADERS.map((head) => (
