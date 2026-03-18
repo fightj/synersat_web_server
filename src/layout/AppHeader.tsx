@@ -118,7 +118,7 @@ const AppHeader: React.FC = () => {
           {/* <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div> */}
 
           {/* 모바일 앱 메뉴 버튼 (필요 시) */}
-          <button
+          {/* <button
             onClick={toggleApplicationMenu}
             className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
           >
@@ -136,14 +136,14 @@ const AppHeader: React.FC = () => {
                 fill="currentColor"
               />
             </svg>
-          </button>
+          </button> */}
 
           {/* 데스크탑 전용 메뉴 (알림/사용자 등) */}
           <div
             className={`${isApplicationMenuOpen ? "flex" : "hidden"} items-center gap-3 lg:flex`}
           >
-            {/* <NotificationDropdown /> */}
-            {/* <UserDropdown /> */}
+            <NotificationDropdown />
+            <UserDropdown />
           </div>
         </div>
       </div>
