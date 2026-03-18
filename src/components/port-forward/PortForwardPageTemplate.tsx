@@ -22,6 +22,7 @@ export default function PortForwardPageTemplate({
     imo,
     interfaces,
     filteredRules,
+    rules,
     isLocked,
     statusCounts,
     isLoading,
@@ -108,7 +109,7 @@ export default function PortForwardPageTemplate({
         imo={imo}
         interfaces={interfaces}
         onSuccess={fetchAllData}
-        currentRuleCount={filteredRules.length}
+        currentRuleCount={rules.length}
       />
 
       <PortForwardAddModal

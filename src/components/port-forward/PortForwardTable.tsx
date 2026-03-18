@@ -18,6 +18,7 @@ import {
 } from "@/types/firewall";
 
 const TABLE_HEADERS = [
+  "ID",
   "Status",
   "Interface",
   "Protocol",
@@ -350,6 +351,11 @@ export default function PortForwardTable({
                   }`}
                 >
                   <TableCell className="px-5 py-4 text-center">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[11px] font-black text-blue-500 dark:bg-white/10 dark:text-blue-400">
+                      {rule.originalIdx}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-5 py-4 text-center">
                     <StatusCell changeType={rule.changeType} next={rule.next} />
                   </TableCell>
                   <TableCell className="px-5 py-4 text-center">
@@ -361,8 +367,8 @@ export default function PortForwardTable({
                     <span
                       className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
                         isActive
-                          ? "bg-gray-100 text-gray-600 dark:bg-white/10"
-                          : "bg-gray-200/50 text-gray-400"
+                          ? "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300"
+                          : "bg-gray-200/20 text-gray-400"
                       }`}
                     >
                       {rule.protocol}
@@ -371,7 +377,7 @@ export default function PortForwardTable({
                   <TableCell className="px-5 py-4 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
                     {rule.sourceIp || "*"}
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center text-sm text-gray-500">
+                  <TableCell className="px-5 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
                     {!rule.sourcePort || rule.sourcePort === "1-65535"
                       ? "*"
                       : rule.sourcePort}

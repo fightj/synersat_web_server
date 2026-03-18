@@ -121,20 +121,24 @@ export function usePortForward(ruleType: RuleType) {
   }, []);
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (ruleToDelete === null || !imo) return;
-    setIsUpdating(true);
-    setIsDeleteAlertOpen(false);
-    try {
-      const commandId = await deleteDeviceNat(Number(imo), ruleToDelete, filteredRules.length);
-      console.log("Delete Rule, command id:", commandId);
-      await fetchAllData();
-    } catch (error: any) {
-      alert(error.message);
-    } finally {
-      setIsUpdating(false);
-      setRuleToDelete(null);
-    }
-  }, [ruleToDelete, imo, filteredRules.length, fetchAllData]);
+  if (ruleToDelete === null || !imo) return;
+  setIsUpdating(true);
+  setIsDeleteAlertOpen(false);
+  try {
+    const commandId = await deleteDeviceNat(
+      Number(imo),
+      ruleToDelete,
+      rules.length, // ✅ filteredRules.length → rules.length (전체 14개)
+    );
+    console.log("Delete Rule, command id:", commandId);
+    await fetchAllData();
+  } catch (error: any) {
+    alert(error.message);
+  } finally {
+    setIsUpdating(false);
+    setRuleToDelete(null);
+  }
+}, [ruleToDelete, imo, rules.length, fetchAllData]); // ✅ 의존성도 수정
 
   return {
     selectedVessel,

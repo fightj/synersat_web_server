@@ -90,6 +90,12 @@ export async function updateDeviceNat(payload: {
   top: boolean;
 }): Promise<number> {
   try {
+    // ✅ 디버깅용 콘솔
+    console.log("========================================");
+    console.log("[updateDeviceNat] currentRuleCount:", payload.currentRuleCount);
+    console.log("[updateDeviceNat] index:", payload.index);
+    console.log("[updateDeviceNat] payload 전체:", JSON.stringify(payload, null, 2));
+    console.log("========================================");
     const url = `${ENV.BASE_URL}/device-nats`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
