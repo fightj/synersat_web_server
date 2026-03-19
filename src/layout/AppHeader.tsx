@@ -59,10 +59,10 @@ const AppHeader: React.FC = () => {
       <div className="flex w-full items-center justify-between gap-4">
         {/* 🟢 왼쪽 영역: 토글 + 로고 + 검색창 (흰색/다크 배경 카드) */}
         <div
-          className={`flex items-center gap-3 rounded-3xl bg-white px-3 py-2 shadow-sm lg:px-4 dark:bg-blue-950 ${isDashboard ? "lg:ml-[290px]" : ""}`}
+          className={`flex items-center gap-3 rounded-3xl bg-blue-600 px-3 py-2 shadow-sm lg:px-4 dark:bg-blue-950 ${isDashboard ? "lg:ml-[290px]" : ""}`}
         >
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-50 dark:border-gray-800 dark:text-white dark:hover:bg-gray-800"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-white hover:bg-blue-500 dark:border-gray-800 dark:text-white dark:hover:bg-gray-800"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
           >
@@ -99,30 +99,13 @@ const AppHeader: React.FC = () => {
             )}
           </button>
 
-          <Link href="/" className="hidden sm:block lg:hidden">
-            <Image
-              width={120}
-              height={28}
-              className="dark:hidden"
-              src="/images/logo/logo.svg"
-              alt="Logo"
-            />
-            <Image
-              width={120}
-              height={28}
-              className="hidden dark:block"
-              src="/images/logo/logo-dark.svg"
-              alt="Logo"
-            />
-          </Link>
-
           <div className="min-w-[200px] lg:min-w-[300px]">
             <VesselSearch />
           </div>
         </div>
 
         {/* 🟡 오른쪽 영역: 알림 + 테마 + 사용자 (흰색/다크 배경 카드) */}
-        <div className="flex items-center gap-2 rounded-2xl bg-white p-2 shadow-sm lg:gap-3 lg:px-4 dark:bg-blue-950">
+        <div className="flex items-center gap-2 rounded-2xl bg-blue-600 p-2 lg:gap-3 lg:px-4 dark:bg-blue-950">
           <ThemeToggleButton />
 
           {/* <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div> */}

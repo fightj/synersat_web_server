@@ -25,7 +25,7 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center text-gray-700 dark:text-gray-400"
+        className="dropdown-toggle flex items-center text-gray-200 dark:text-gray-400"
       >
         {/* <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
           <Image
@@ -36,7 +36,7 @@ export default function UserDropdown() {
           />
         </span> */}
 
-        <span className="text-theme-sm mr-1 block font-medium dark:text-white">
+        <span className="text-theme-sm mr-1 block font-medium text-white dark:text-white">
           {displayName}
         </span>
 

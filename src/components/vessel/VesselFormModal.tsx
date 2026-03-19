@@ -191,18 +191,35 @@ export default function VesselFormModal({
                   <RequiredLabel>Vessel ID</RequiredLabel>
                   <Input
                     type="text"
-                    className={inputBaseStyle}
-                    value={form.vesselId}
-                    onChange={(e) => {
-                      form.setVesselId(e.target.value);
-                      form.setVesselIdDuplicated(null);
-                    }}
-                    onBlur={form.handleVesselIdBlur}
+                    className={
+                      mode === "edit"
+                        ? `${inputBaseStyle} cursor-not-allowed bg-gray-100 opacity-60 dark:bg-white/5`
+                        : inputBaseStyle
+                    }
+                    value={
+                      mode === "add"
+                        ? form.vesselId
+                        : String(vesselData?.id || "")
+                    }
+                    disabled={mode === "edit"}
+                    onChange={
+                      mode === "add"
+                        ? (e) => {
+                            form.setVesselId(e.target.value);
+                            form.setVesselIdDuplicated(null);
+                          }
+                        : undefined
+                    }
+                    onBlur={
+                      mode === "add" ? form.handleVesselIdBlur : undefined
+                    }
                   />
-                  <DuplicateStatus
-                    loading={form.vesselIdChecking}
-                    duplicated={form.vesselIdDuplicated}
-                  />
+                  {mode === "add" && (
+                    <DuplicateStatus
+                      loading={form.vesselIdChecking}
+                      duplicated={form.vesselIdDuplicated}
+                    />
+                  )}
                 </div>
               </div>
 

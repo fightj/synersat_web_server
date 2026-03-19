@@ -168,22 +168,6 @@ export default function VesselSearch({ className = "" }: Props) {
     <div ref={rootRef} className={`relative w-full ${className}`}>
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="relative flex items-center">
-          {/* 🔍 검색 아이콘 */}
-          <span className="pointer-events-none absolute left-4 z-100">
-            <svg
-              className="fill-gray-500 dark:fill-gray-400"
-              width="18"
-              height="18"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-              />
-            </svg>
-          </span>
-
           <input
             ref={inputRef}
             type="text"
@@ -196,7 +180,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => setOpen(true)}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Search vessel..."}
-            className={`h-11 w-full border border-gray-200 bg-white py-2.5 pr-40 pl-11 text-sm font-medium text-gray-800 transition-all placeholder:text-gray-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white ${
+            className={`text-md h-11 w-full border border-gray-200 bg-white py-2.5 pr-40 pl-5 font-medium text-black transition-all placeholder:text-gray-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white ${
               open
                 ? "rounded-t-xl border-b-transparent ring-4 ring-blue-500/5 focus:border-blue-500"
                 : "rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"

@@ -16,6 +16,8 @@ import {
   UserCircleIcon,
   VesselIcon,
   FirewallIcon,
+  MainLogoDark,
+  MainLogoLight,
 } from "../icons/index";
 
 type NavItem = {
@@ -239,22 +241,16 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-30 left-1 z-30 flex flex-col rounded-4xl border border-white/10 bg-blue-700 p-4 shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-0 z-30 flex flex-col rounded-3xl border border-white/10 bg-blue-600 p-2 shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* <div
-        className={`mb-8 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
+      <div
+        className={`mb-2 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
       >
         <Link href="/">
           {showFullSidebar ? (
-            <Image
-              className="brightness-0 invert" // 로고가 어두운 색일 경우 대비책
-              src="/images/logo/logo.svg"
-              alt="Logo"
-              width={140}
-              height={40}
-            />
+            <MainLogoDark />
           ) : (
             <Image
               src="/images/logo/logo-icon.svg"
@@ -264,13 +260,13 @@ const AppSidebar: React.FC = () => {
             />
           )}
         </Link>
-      </div> */}
+      </div>
 
       <div className="no-scrollbar overflow-y-auto pr-1">
         <nav className="flex flex-col gap-6">
           <div>
             <h2
-              className={`mb-3 flex text-[10px] font-bold tracking-widest text-blue-300/50 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
+              className={`mb-3 flex text-[10px] font-bold tracking-widest text-white uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
             >
               {showFullSidebar ? (
                 "Main Menu"

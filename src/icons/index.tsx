@@ -9,7 +9,6 @@ import BoltIcon from "./bolt.svg";
 import ArrowUpIcon from "./arrow-up.svg";
 import ArrowDownIcon from "./arrow-down.svg";
 import FolderIcon from "./folder.svg";
-import VideoIcon from "./videos.svg";
 import AudioIcon from "./audio.svg";
 import GridIcon from "./grid.svg";
 import FileIcon from "./file.svg";
@@ -58,6 +57,8 @@ import UpdateIcon from "./update.svg";
 import CheckIcon from "./check.svg";
 import TimeSettingIcon from "./time-setting.svg";
 import SktelinkIcon from "./sktelink.svg";
+import MainLogoLight from "./main_logo_light.svg";
+import MainLogoDark from "./main_logo_dark.svg";
 
 export {
   DownloadIcon,
@@ -66,7 +67,6 @@ export {
   FileIcon,
   GridIcon,
   AudioIcon,
-  VideoIcon,
   BoltIcon,
   PlusIcon,
   BoxIcon,
@@ -120,4 +120,6 @@ export {
   CheckIcon,
   TimeSettingIcon,
   SktelinkIcon,
+  MainLogoLight,
+  MainLogoDark,
 };
