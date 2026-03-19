@@ -7,6 +7,7 @@ import Backdrop from "@/layout/Backdrop";
 import React from "react";
 import VesselBootstrap from "@/components/bootstrap/VesselBootstrap";
 import { usePathname } from "next/navigation";
+import { useSSE } from "@/components/notification/hooks/useSSE";
 
 export default function AdminLayout({
   children,
@@ -16,6 +17,8 @@ export default function AdminLayout({
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
   const isDashboard = pathname === "/";
+
+  useSSE();
 
   const mainContentMargin = isMobileOpen
     ? "ml-0"

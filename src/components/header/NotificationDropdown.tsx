@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import NotificationPanel from "../ui/notificaton/NotificationPanel";
+import NotificationPanel from "../notification/NotificationPanel";
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);

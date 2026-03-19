@@ -8,7 +8,7 @@ import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import VesselSearch from "@/components/vessel/VesselSearch";
 import { usePathname } from "next/navigation";
-import CommandToast from "@/components/ui/notificaton/CommandToast";
+import CommandToast from "@/components/notification/CommandToast";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
