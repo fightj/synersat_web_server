@@ -281,14 +281,14 @@ const AppSidebar: React.FC = () => {
             {renderMenuItems(navItems, "main")}
           </div>
 
-          <div>
+          {/* <div>
             <h2
               className={`mb-3 flex text-[10px] font-bold tracking-widest text-blue-300/50 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
             >
               {showFullSidebar ? "Others" : <HorizontaLDots className="w-4" />}
             </h2>
             {renderMenuItems(othersItems, "others")}
-          </div>
+          </div> */}
         </nav>
       </div>
     </aside>

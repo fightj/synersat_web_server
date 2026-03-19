@@ -16,22 +16,22 @@ import {
   DeviceNatChangeType,
   DeviceNatRule,
 } from "@/types/firewall";
+import { createPortal } from "react-dom";
 
 const TABLE_HEADERS = [
-  "ID",
-  "Status",
-  "Interface",
-  "Protocol",
-  "Source IP",
-  "Source Port",
-  "Dest IP",
-  "Dest Port",
-  "NAT IP",
-  "NAT Port",
-  "Description",
-  "Actions",
+  { label: "ID", className: "w-10" },
+  { label: "Status", className: "w-15" },
+  { label: "Interface", className: "w-20" },
+  { label: "Protocol", className: "w-16" },
+  { label: "Source IP", className: "w-16" },
+  { label: "Source Port", className: "w-16" },
+  { label: "Dest IP", className: "w-16" },
+  { label: "Dest Port", className: "w-20" },
+  { label: "NAT IP", className: "w-24" },
+  { label: "NAT Port", className: "w-20" },
+  { label: "Description", className: "w-42" },
+  { label: "Actions", className: "w-24" },
 ];
-import { createPortal } from "react-dom";
 
 const CHANGE_TYPE_BADGE: Record<
   NonNullable<DeviceNatChangeType>,
@@ -88,7 +88,6 @@ function UpdateTooltip({
           </div>
         ))}
       </div>
-      {/* 말풍선 꼬리 */}
       {direction === "down" ? (
         <div className="absolute -top-2 left-4 border-4 border-transparent border-b-white dark:border-b-gray-800" />
       ) : (
@@ -181,7 +180,6 @@ function StatusCell({
   );
 }
 
-// ✅ 전체 집계 데이터를 prop으로 받음
 function StatsBadge({
   statusCounts,
 }: {
@@ -224,7 +222,7 @@ function StatsBadge({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-5 py-3 dark:border-white/[0.05]">
+    <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/[0.05]">
       {badges.map(({ key, label, count, className }) => (
         <span
           key={key}
@@ -244,13 +242,13 @@ interface PortForwardTableProps {
   rules: DeviceNatRow[];
   isLoading: boolean;
   isUpdating: boolean;
-  isLocked: boolean; // ✅ 전체 rules 기준으로 외부에서 주입
+  isLocked: boolean;
   statusCounts: {
     available: number;
     create: number;
     update: number;
     delete: number;
-  }; // ✅ 외부에서 주입
+  };
   getInterfaceLabel: (name: string) => string | undefined;
   onEditClick: (rule: DeviceNatRow) => void;
   onToggleStatus: (originalIdx: number, currentEnabled: boolean) => void;
@@ -277,7 +275,7 @@ export default function PortForwardTable({
       )}
 
       {isLocked && (
-        <div className="flex items-center gap-2 border-b border-red-100 bg-red-50 px-5 py-2.5 dark:border-red-500/10 dark:bg-red-500/5">
+        <div className="flex items-center gap-2 border-b border-red-100 bg-red-50 px-4 py-2.5 dark:border-red-500/10 dark:bg-red-500/5">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
@@ -296,18 +294,19 @@ export default function PortForwardTable({
 
       {!isLoading && <StatsBadge statusCounts={statusCounts} />}
 
-      <Table className="w-full">
+      {/* ✅ table-fixed + w-full로 화면 너비에 맞게 고정 */}
+      <Table className="w-full table-fixed">
         <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-white/[0.02]">
           <TableRow>
-            {TABLE_HEADERS.map((head) => (
+            {TABLE_HEADERS.map(({ label, className }) => (
               <TableCell
-                key={head}
+                key={label}
                 isHeader
-                className={`px-5 py-4 text-[11px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400 ${
-                  head === "Description" ? "text-start" : "text-center"
+                className={`${className} px-2 py-3 text-[10px] font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400 ${
+                  label === "Description" ? "text-start" : "text-center"
                 }`}
               >
-                {head}
+                {label}
               </TableCell>
             ))}
           </TableRow>
@@ -316,13 +315,13 @@ export default function PortForwardTable({
         <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={11} className="py-32 text-center">
+              <TableCell colSpan={12} className="py-32 text-center">
                 <Loading message="Fetching data..." />
               </TableCell>
             </TableRow>
           ) : rules.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="py-24 text-center">
+              <TableCell colSpan={12} className="py-24 text-center">
                 <p className="text-sm font-medium opacity-30 dark:text-gray-400">
                   No rules found.
                 </p>
@@ -337,7 +336,7 @@ export default function PortForwardTable({
                 <TableRow
                   key={rule.originalIdx}
                   onDoubleClick={() => {
-                    if (isPending || isLocked) return; // ✅ 둘 다 막음
+                    if (isPending || isLocked) return;
                     onEditClick(rule);
                   }}
                   className={`group transition-all duration-200 ${
@@ -350,22 +349,29 @@ export default function PortForwardTable({
                           : "cursor-pointer bg-gray-50/50 opacity-60 dark:bg-white/[0.02]"
                   }`}
                 >
-                  <TableCell className="px-5 py-4 text-center">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[11px] font-black text-blue-500 dark:bg-white/10 dark:text-blue-400">
+                  {/* ID */}
+                  <TableCell className="w-10 px-2 py-3 text-center">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-[10px] font-black text-blue-500 dark:bg-white/10 dark:text-blue-400">
                       {rule.originalIdx}
                     </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center">
+
+                  {/* Status */}
+                  <TableCell className="w-32 px-2 py-3 text-center">
                     <StatusCell changeType={rule.changeType} next={rule.next} />
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center">
-                    <span className="text-sm font-bold text-gray-800 dark:text-white/90">
+
+                  {/* Interface */}
+                  <TableCell className="w-20 px-2 py-3 text-center">
+                    <span className="block truncate text-xs font-bold text-gray-800 dark:text-white/90">
                       {getInterfaceLabel(rule.interfaceName)}
                     </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center">
+
+                  {/* Protocol */}
+                  <TableCell className="w-16 px-2 py-3 text-center">
                     <span
-                      className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${
                         isActive
                           ? "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300"
                           : "bg-gray-200/20 text-gray-400"
@@ -374,41 +380,61 @@ export default function PortForwardTable({
                       {rule.protocol}
                     </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {rule.sourceIp || "*"}
+
+                  {/* Source IP */}
+                  <TableCell className="w-24 px-2 py-3 text-center">
+                    <span className="block truncate text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {rule.sourceIp || "*"}
+                    </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
+
+                  {/* Source Port */}
+                  <TableCell className="w-20 px-2 py-3 text-center text-xs text-gray-600 dark:text-gray-400">
                     {!rule.sourcePort || rule.sourcePort === "1-65535"
                       ? "*"
                       : rule.sourcePort}
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {rule.destinationIp}
+
+                  {/* Dest IP */}
+                  <TableCell className="w-24 px-2 py-3 text-center">
+                    <span className="block truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      {rule.destinationIp}
+                    </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center text-sm font-semibold text-gray-700 dark:text-gray-300">
+
+                  {/* Dest Port */}
+                  <TableCell className="w-20 px-2 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {rule.destinationPort || "*"}
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center">
+
+                  {/* NAT IP */}
+                  <TableCell className="w-24 px-2 py-3 text-center">
                     <span
-                      className={`text-sm font-bold ${isActive ? "text-orange-500" : "text-gray-400"}`}
+                      className={`block truncate text-xs font-bold ${isActive ? "text-orange-500" : "text-gray-400"}`}
                     >
                       {rule.targetIp || "*"}
                     </span>
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-center font-mono text-sm text-gray-700 dark:text-gray-300">
+
+                  {/* NAT Port */}
+                  <TableCell className="w-20 px-2 py-3 text-center font-mono text-xs text-gray-700 dark:text-gray-300">
                     {rule.targetPort || "*"}
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-start">
+
+                  {/* Description */}
+                  <TableCell className="w-36 px-2 py-3 text-start">
                     <p
-                      className="max-w-[200px] truncate text-xs text-gray-400 italic"
+                      className="truncate text-xs text-gray-400 italic"
                       title={rule.description}
                     >
                       {rule.description}
                     </p>
                   </TableCell>
-                  <TableCell className="px-5 py-4">
-                    <div className="flex items-center justify-center gap-1 sm:gap-4">
-                      <div className="origin-center scale-75 transition-transform sm:scale-90 md:scale-100">
+
+                  {/* Actions */}
+                  <TableCell className="w-24 px-2 py-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="scale-75">
                         <Switch
                           key={`${rule.originalIdx}-${isActive}`}
                           defaultChecked={isActive}
@@ -420,7 +446,6 @@ export default function PortForwardTable({
                           color="blue"
                         />
                       </div>
-                      {/* ✅ isLocked일 때도 delete 버튼 막음 */}
                       <button
                         disabled={isPending || isLocked}
                         className={`flex-shrink-0 rounded-md p-1 transition-colors ${
@@ -437,9 +462,8 @@ export default function PortForwardTable({
                         <Image
                           src="/images/icons/ic_delete_r.png"
                           alt="Delete"
-                          width={19}
-                          height={19}
-                          className="min-h-[16px] min-w-[16px]"
+                          width={16}
+                          height={16}
                         />
                       </button>
                     </div>

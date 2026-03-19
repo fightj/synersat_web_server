@@ -8,6 +8,7 @@ import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import VesselSearch from "@/components/vessel/VesselSearch";
 import { usePathname } from "next/navigation";
+import CommandToast from "@/components/ui/notificaton/CommandToast";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -15,6 +16,15 @@ const AppHeader: React.FC = () => {
 
   const pathname = usePathname();
   const isDashboard = pathname === "/";
+
+  const [toast, setToast] = useState<{
+    vesselName: string;
+    commandType: string;
+    status: "SUCCESS" | "FAILED";
+  } | null>(null);
+
+  // 테스트용 - 나중에 SSE 이벤트로 교체
+  // setToast({ vesselName: "AGNES 101", commandType: "UPDATE_NAT", status: "SUCCESS" });
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -140,9 +150,31 @@ const AppHeader: React.FC = () => {
 
           {/* 데스크탑 전용 메뉴 (알림/사용자 등) */}
           <div
-            className={`${isApplicationMenuOpen ? "flex" : "hidden"} items-center gap-3 lg:flex`}
+            className={`${isApplicationMenuOpen ? "flex" : "hidden"} relative items-center gap-3 lg:flex`}
           >
+            {/* ✅ 테스트 버튼 - 확인 후 제거
+            <button
+              onClick={() =>
+                setToast({
+                  vesselName: "AGNES 101",
+                  commandType: "UPDATE_NAT",
+                  status: "SUCCESS",
+                })
+              }
+              className="rounded-lg bg-blue-500 px-3 py-1 text-xs font-bold text-white"
+            >
+              Test Toast
+            </button> */}
+
             <NotificationDropdown />
+            {toast && (
+              <CommandToast
+                vesselName={toast.vesselName}
+                commandType={toast.commandType}
+                status={toast.status}
+                onClose={() => setToast(null)}
+              />
+            )}
             <UserDropdown />
           </div>
         </div>
