@@ -241,7 +241,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-30 left-0 z-30 flex flex-col rounded-3xl border border-white/10 bg-blue-600 p-2 shadow-2xl transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

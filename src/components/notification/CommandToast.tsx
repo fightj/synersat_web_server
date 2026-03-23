@@ -1,46 +1,42 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useToastStore } from "@/store/toast.store";
+import type { ToastItem } from "@/store/toast.store";
 
-interface CommandToastProps {
-  vesselName: string;
-  commandType: string;
-  status: "SUCCESS" | "FAILED";
-  onClose: () => void;
-}
-
-export default function CommandToast({
-  vesselName,
-  commandType,
-  status,
+function ToastCard({
+  toast,
   onClose,
-}: CommandToastProps) {
+}: {
+  toast: ToastItem;
+  onClose: () => void;
+}) {
   const [visible, setVisible] = useState(false);
+  const isSuccess = toast.status === "SUCCESS"; // ✅ 최상단으로 이동
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => {
-    // 마운트 후 애니메이션 시작
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
 
-    // 4초 후 자동 닫기
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onClose, 300); // 애니메이션 후 제거
+      setTimeout(() => onCloseRef.current(), 300);
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [onClose]);
-
-  const isSuccess = status === "SUCCESS";
+  }, []);
 
   return (
     <div
-      className={`absolute top-[calc(100%+12px)] right-0 z-[100] w-[280px] transition-all duration-300 ${
-        visible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+      className={`w-[280px] transition-all duration-300 ${
+        visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
       }`}
     >
-      {/* 토스트 카드 */}
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-white/10 dark:bg-gray-800">
-        {/* 상단 컬러 바 */}
         <div
           className={`h-1 w-full ${
             isSuccess
@@ -51,7 +47,6 @@ export default function CommandToast({
 
         <div className="p-4">
           <div className="flex items-start gap-3">
-            {/* 아이콘 */}
             <div
               className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
                 isSuccess
@@ -93,7 +88,6 @@ export default function CommandToast({
               )}
             </div>
 
-            {/* 내용 */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-black tracking-wider text-gray-400 uppercase">
@@ -102,7 +96,7 @@ export default function CommandToast({
                 <button
                   onClick={() => {
                     setVisible(false);
-                    setTimeout(onClose, 300);
+                    setTimeout(() => onCloseRef.current(), 300);
                   }}
                   className="flex-shrink-0 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
                 >
@@ -117,29 +111,22 @@ export default function CommandToast({
                 </button>
               </div>
 
-              {/* 선박명 */}
               <p className="mt-1 truncate text-sm font-bold text-gray-800 dark:text-white">
-                {vesselName}
+                {toast.vesselName}
               </p>
 
-              {/* 커맨드 타입 */}
               <div className="mt-1.5 flex items-center gap-1.5">
                 <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
-                  {commandType.replace(/_/g, " ")}
+                  {toast.commandType.replace(/_/g, " ")}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 프로그레스 바 (4초 타이머 시각화) */}
           <div className="mt-3 h-0.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
             <div
-              className={`h-full rounded-full transition-none ${
-                isSuccess ? "bg-emerald-400" : "bg-red-400"
-              }`}
-              style={{
-                animation: "progress 4s linear forwards",
-              }}
+              className={`h-full rounded-full ${isSuccess ? "bg-emerald-400" : "bg-red-400"}`}
+              style={{ animation: "progress 4s linear forwards" }}
             />
           </div>
         </div>
@@ -155,6 +142,22 @@ export default function CommandToast({
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+export default function CommandToast() {
+  const { toasts, removeToast } = useToastStore();
+
+  return (
+    <div className="fixed right-6 bottom-6 z-[999] flex flex-col gap-3">
+      {toasts.map((toast) => (
+        <ToastCard
+          key={toast.id}
+          toast={toast}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
     </div>
   );
 }

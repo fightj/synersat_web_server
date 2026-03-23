@@ -8,6 +8,7 @@ import React from "react";
 import VesselBootstrap from "@/components/bootstrap/VesselBootstrap";
 import { usePathname } from "next/navigation";
 import { useSSE } from "@/components/notification/hooks/useSSE";
+import CommandToast from "@/components/notification/CommandToast";
 
 export default function AdminLayout({
   children,
@@ -41,7 +42,7 @@ export default function AdminLayout({
       >
         {/* Header */}
         <AppHeader />
-
+        <CommandToast />
         {/* Page Content */}
         <div
           className={`mx-auto max-w-(--breakpoint-2xl) md:p-6 ${isDashboard ? "!p-0" : ""}`}

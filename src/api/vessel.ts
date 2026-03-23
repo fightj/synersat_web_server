@@ -16,7 +16,7 @@ const fetchOptions: RequestInit = {
 function withTestUser(options: RequestInit = {}): RequestInit {
   const existingHeaders = new Headers(options.headers);
   existingHeaders.set("Authorization", TEST_USER);
-  // key name: Authorization로 변경 예정
+  
   return {
     ...options,
     headers: existingHeaders,
