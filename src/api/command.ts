@@ -60,10 +60,11 @@ export async function getCommandDetail(commandId: number): Promise<CommandDetail
   try {
     const url = `${ENV.BASE_URL}/vessels/commands/${commandId}`;
 
-    const res = await fetch(url, {
+    
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
-    });
+    }));
 
     if (!res.ok) {
       const errorText = await res.text();

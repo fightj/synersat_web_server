@@ -59,7 +59,6 @@ export function usePortForward(ruleType: RuleType) {
   // SSE 이벤트 감지 -> 자동갱신
   useEffect(() => {
   if (!lastEvent) return;
-  if (lastEvent.status !== "SUCCESS") return;
   if (!NAT_COMMAND_TYPES.includes(lastEvent.commandType)) return;
   if (Number(lastEvent.imo) !== Number(selectedVessel?.imo)) return;
 

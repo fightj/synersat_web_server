@@ -104,7 +104,7 @@ export default function PortForwardEditModal({
         targetIp: formData.target ?? "",
         targetPort: formData["local-port"] ?? "",
         sourceIp: srcAddrMode === "any" ? "" : (formData.src ?? ""),
-        sourcePort: srcPortMode === "any" ? "" : (formData.srcport ?? ""),
+        sourcePort: srcPortMode === "any" ? "1-65535" : formData.srcport,
         interfaceName: formData.interface ?? "",
         protocol: formData.protocol ?? "tcp",
         top: false,
