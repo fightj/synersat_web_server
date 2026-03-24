@@ -165,7 +165,7 @@ const AppSidebar: React.FC = () => {
         const isCurrentActive = nav.path ? isActive(nav.path) : false;
 
         // 공통 스타일 정의
-        const itemBaseClass = `group flex items-center w-full rounded-xl px-3 py-2.5 transition-all duration-200 ease-in-out font-medium text-sm`;
+        const itemBaseClass = `group flex items-center w-full rounded-xl py-2.5 transition-all duration-200 ease-in-out font-medium text-sm`;
         const activeClass = `bg-white/20 text-white shadow-sm`;
         const inactiveClass = `text-blue-100 hover:bg-white/10 hover:text-white`;
 
@@ -190,7 +190,7 @@ const AppSidebar: React.FC = () => {
                   </span>
                   {showFullSidebar && (
                     <>
-                      <span className="ml-3 truncate">{nav.name}</span>
+                      <span className="ml-1 truncate">{nav.name}</span>
                       <ChevronDownIcon
                         className={`ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-white" : "text-blue-300"}`}
                       />
@@ -241,7 +241,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[280px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[260px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
