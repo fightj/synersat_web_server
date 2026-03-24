@@ -59,6 +59,7 @@ import TimeSettingIcon from "./time-setting.svg";
 import SktelinkIcon from "./sktelink.svg";
 import MainLogoLight from "./main_logo_light.svg";
 import MainLogoDark from "./main_logo_dark.svg";
+import CommandSignIcon from "./command-sign-icon.svg";
 
 export {
   DownloadIcon,
@@ -122,4 +123,5 @@ export {
   SktelinkIcon,
   MainLogoLight,
   MainLogoDark,
+  CommandSignIcon,
 };
