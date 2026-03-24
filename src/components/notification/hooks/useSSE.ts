@@ -4,8 +4,9 @@ import { useEffect, useRef, useCallback } from "react";
 import { connectSSE, SSECommandEvent } from "@/api/sse";
 import { useToastStore } from "@/store/toast.store";
 import { useCommandEventStore } from "@/store/command-event.store";
+import { useNotificationStore } from "@/store/notification.store";
 
-const RECONNECT_DELAY = 5000;
+const RECONNECT_DELAY = 3000;
 
 export function useSSE() {
   const addToast = useToastStore((s) => s.addToast);
@@ -42,6 +43,7 @@ export function useSSE() {
             status: data.commandStatus,
             timestamp: Date.now(),
           });
+          useNotificationStore.getState().setHasNew(true); 
         }
       },
       (error) => {

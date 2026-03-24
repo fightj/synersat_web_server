@@ -56,3 +56,25 @@ export async function getNotifications(limit: number): Promise<NotificationItem[
     throw error;
   }
 }
+
+export async function readNotifications(notificationIds: number[]): Promise<void> {
+  try {
+    const url = `${ENV.BASE_URL}/notifications`;
+    const res = await fetch(url, withTestUser({
+      ...fetchOptions,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ notificationIds }),
+    }));
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to read notifications: ${res.status} ${errorText}`);
+    }
+  } catch (error) {
+    console.error("readNotifications Error:", error);
+    throw error;
+  }
+}

@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import NotificationPanel from "../notification/NotificationPanel";
 import { CommandSignIcon } from "@/icons";
-import { getNotifications, NotificationItem } from "@/api/notification";
+import {
+  getNotifications,
+  readNotifications,
+  NotificationItem,
+} from "@/api/notification";
+import { useNotificationStore } from "@/store/notification.store";
 
 function timeAgo(utcDateStr: string): string {
   const utcDate = new Date(utcDateStr + "Z");
@@ -20,7 +25,6 @@ function timeAgo(utcDateStr: string): string {
   return `${diffDay}d ago`;
 }
 
-// ✅ kind에 따라 라벨 반환 - 확장 가능한 구조
 function getKindLabel(kind: string): string {
   if (kind.includes("COMMAND")) return "Command";
   if (kind.includes("OFFLINE")) return "Offline";
@@ -28,27 +32,34 @@ function getKindLabel(kind: string): string {
   return kind;
 }
 
-function NotificationCard({ item }: { item: NotificationItem }) {
+function NotificationCard({
+  item,
+  onRead,
+}: {
+  item: NotificationItem;
+  onRead: (id: number) => void;
+}) {
   const isSuccess = item.content.commandStatus === "SUCCESS";
   const isRead = item.read;
 
   return (
     <li>
       <div
-        className={`flex gap-3 rounded-lg border-b border-gray-100 px-3 py-3 transition-colors dark:border-gray-800 ${
+        onClick={() => {
+          if (!isRead) onRead(item.id); // ✅ 클릭 시 읽음 처리 (UI만)
+        }}
+        className={`flex cursor-pointer gap-3 rounded-lg border-b border-gray-100 px-3 py-3 transition-colors dark:border-gray-800 ${
           isRead
-            ? "bg-gray-100/60 opacity-60 dark:bg-white/[0.02]" // ✅ 읽음 - 회색 + 투명
+            ? "bg-gray-100/60 opacity-60 dark:bg-white/[0.02]"
             : "hover:bg-gray-50 dark:hover:bg-white/5"
         }`}
       >
         <div className="min-w-0 flex-1">
-          {/* 선박명 + SUCCESS/FAILED 뱃지 */}
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-bold text-gray-800 dark:text-white/90">
               {item.content.name}
             </p>
             <div className="flex flex-shrink-0 items-center gap-1.5">
-              {/* ✅ 읽지 않은 경우에만 파란 점 */}
               <span
                 className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   isSuccess
@@ -64,12 +75,10 @@ function NotificationCard({ item }: { item: NotificationItem }) {
             </div>
           </div>
 
-          {/* 커맨드 타입 */}
           <span className="mt-1 inline-block rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
             {item.content.commandType.replace(/_/g, " ")}
           </span>
 
-          {/* kind 라벨 + 아이콘 + 시간 */}
           <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-gray-400">
             <span className="font-medium text-blue-500">
               {getKindLabel(item.kind)}
@@ -91,8 +100,13 @@ export default function NotificationDropdown() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  const hasNew = useNotificationStore((s) => s.hasNew);
+  const setHasNew = useNotificationStore((s) => s.setHasNew);
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const showDot = unreadCount > 0 || hasNew;
+
+  // ✅ 클릭으로 읽음 처리된 id 목록 (UI용 - 아직 API 안 쏜 상태)
+  const pendingReadIds = useRef<Set<number>>(new Set());
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
@@ -106,9 +120,32 @@ export default function NotificationDropdown() {
     }
   }, []);
 
+  // ✅ 드롭다운 열릴 때 데이터 조회
   useEffect(() => {
-    if (isOpen) fetchNotifications();
-  }, [isOpen, fetchNotifications]);
+    if (isOpen) {
+      setHasNew(false);
+      fetchNotifications();
+    }
+  }, [isOpen, fetchNotifications, setHasNew]);
+
+  // ✅ 드롭다운 닫힐 때 읽음 처리 API 호출
+  useEffect(() => {
+    if (!isOpen && pendingReadIds.current.size > 0) {
+      const ids = Array.from(pendingReadIds.current);
+      pendingReadIds.current = new Set(); // 초기화
+      readNotifications(ids).catch((error) => {
+        console.error("읽음 처리 실패:", error);
+      });
+    }
+  }, [isOpen]);
+
+  // ✅ 클릭 시 UI만 즉시 읽음 처리 + pendingReadIds에 추가
+  const handleRead = useCallback((id: number) => {
+    pendingReadIds.current.add(id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
+  }, []);
 
   function toggleDropdown() {
     setIsOpen((prev) => !prev);
@@ -124,7 +161,7 @@ export default function NotificationDropdown() {
         className="dropdown-toggle relative flex h-9.5 w-9.5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
         onClick={toggleDropdown}
       >
-        {unreadCount > 0 && (
+        {showDot && (
           <span className="absolute top-0.5 right-0 z-10 flex h-2 w-2 rounded-full bg-orange-400">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
           </span>
@@ -195,7 +232,7 @@ export default function NotificationDropdown() {
             </li>
           ) : (
             notifications.map((item) => (
-              <NotificationCard key={item.id} item={item} />
+              <NotificationCard key={item.id} item={item} onRead={handleRead} />
             ))
           )}
         </ul>
@@ -210,10 +247,6 @@ export default function NotificationDropdown() {
             className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
           >
             View All Notifications
-          </button>
-          {/* ✅ VIEW 버튼 - 아직 동작 없음 */}
-          <button className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20">
-            View
           </button>
         </div>
       </Dropdown>
