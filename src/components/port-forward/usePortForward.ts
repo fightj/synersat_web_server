@@ -1,16 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCommandEventStore, NAT_COMMAND_TYPES } from "@/store/command-event.store";
 import { useVesselStore } from "@/store/vessel.store";
 import { DeviceNatRow } from "@/types/firewall";
 import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
 import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
+import { usePathname } from "next/navigation";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
 export function usePortForward(ruleType: RuleType) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo;
   const vpnIp = selectedVessel?.vpnIp;
+  const pathname = usePathname();
+  const lastEvent = useCommandEventStore((s) => s.lastEvent);
+  const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent)
 
   const [rules, setRules] = useState<DeviceNatRow[]>([]);
   const [interfaces, setInterfaces] = useState<DeviceInterface[]>([]);
@@ -50,6 +55,25 @@ export function usePortForward(ruleType: RuleType) {
       setInterfaces([]);
     }
   }, [imo, fetchAllData]);
+
+  // SSE 이벤트 감지 -> 자동갱신
+  useEffect(() => {
+  if (!lastEvent) return;
+  if (lastEvent.status !== "SUCCESS") return;
+  if (!NAT_COMMAND_TYPES.includes(lastEvent.commandType)) return;
+  if (Number(lastEvent.imo) !== Number(selectedVessel?.imo)) return;
+
+  const isPortForwardPage =
+    pathname.startsWith("/port_forward_system") ||
+    pathname.startsWith("/port_forward_user");
+  if (!isPortForwardPage) return;
+
+  if (isEditModalOpen || isAddModalOpen) return;
+
+  console.log("[AutoRefresh] NAT 변경 감지 → 자동 갱신");
+  fetchAllData();
+  clearLastEvent();
+}, [lastEvent]);
 
   // 탭별 필터링된 rules
   const filteredRules = useMemo(() => {

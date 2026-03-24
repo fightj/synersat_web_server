@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { connectSSE, SSECommandEvent } from "@/api/sse";
 import { useToastStore } from "@/store/toast.store";
+import { useCommandEventStore } from "@/store/command-event.store";
 
 const RECONNECT_DELAY = 5000;
 
@@ -33,6 +34,13 @@ export function useSSE() {
             vesselName: data.name,
             commandType: data.commandType,
             status: data.commandStatus,
+          });
+          // 자동 갱신용 이벤트 저장
+          useCommandEventStore.getState().setLastEvent({
+            commandType:data.commandType,
+            imo: data.imo,
+            status: data.commandStatus,
+            timestamp: Date.now(),
           });
         }
       },
