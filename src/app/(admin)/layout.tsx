@@ -8,7 +8,7 @@ import React from "react";
 import VesselBootstrap from "@/components/bootstrap/VesselBootstrap";
 import { usePathname } from "next/navigation";
 import { useSSE } from "@/components/notification/hooks/useSSE";
-import CommandToast from "@/components/notification/CommandToast";
+import CommandToast from "@/components/notification/NotificationToast";
 
 export default function AdminLayout({
   children,

@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import NotificationPanel from "../notification/NotificationPanel";
-import { CommandSignIcon } from "@/icons";
+import { CommandSignIcon, DisconnectedIcon } from "@/icons";
 import {
   getNotifications,
   readNotifications,
   NotificationItem,
+  isCommandNotification,
+  isVesselDisconnected,
 } from "@/api/notification";
 import { useNotificationStore } from "@/store/notification.store";
 
@@ -25,8 +27,20 @@ function timeAgo(utcDateStr: string): string {
   return `${diffDay}d ago`;
 }
 
+// ✅ UTC 시간 → 월/일 시:분 포맷
+function formatLastConnect(utcDateStr: string | null): string {
+  if (!utcDateStr) return "Unknown";
+  const date = new Date(utcDateStr + "Z");
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${month}/${day} ${hours}:${minutes}`;
+}
+
 function getKindLabel(kind: string): string {
   if (kind.includes("COMMAND")) return "Command";
+  if (kind.includes("DISCONNECTED")) return "Disconnected";
   if (kind.includes("OFFLINE")) return "Offline";
   if (kind.includes("ALERT")) return "Alert";
   return kind;
@@ -39,14 +53,17 @@ function NotificationCard({
   item: NotificationItem;
   onRead: (id: number) => void;
 }) {
-  const isSuccess = item.content.commandStatus === "SUCCESS";
   const isRead = item.read;
+  const isCommand = isCommandNotification(item);
+  const isDisconnect = isVesselDisconnected(item);
+
+  const isSuccess = isCommand && item.content.commandStatus === "SUCCESS";
 
   return (
     <li>
       <div
         onClick={() => {
-          if (!isRead) onRead(item.id); // ✅ 클릭 시 읽음 처리 (UI만)
+          if (!isRead) onRead(item.id);
         }}
         className={`flex cursor-pointer gap-3 rounded-lg border-b border-gray-100 px-3 py-3 transition-colors dark:border-gray-800 ${
           isRead
@@ -55,36 +72,78 @@ function NotificationCard({
         }`}
       >
         <div className="min-w-0 flex-1">
+          {/* 선박명 + 뱃지 */}
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-sm font-bold text-gray-800 dark:text-white/90">
               {item.content.name}
             </p>
             <div className="flex flex-shrink-0 items-center gap-1.5">
-              <span
-                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  isSuccess
-                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                    : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                }`}
-              >
-                {isSuccess ? "Success" : "Failed"}
-              </span>
+              {/* ✅ COMMAND_NOTIFICATION 뱃지 */}
+              {isCommand && (
+                <span
+                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    isSuccess
+                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                      : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                  }`}
+                >
+                  {isSuccess ? "Success" : "Failed"}
+                </span>
+              )}
+              {/* ✅ VESSEL_DISCONNECTED 뱃지 */}
+              {isDisconnect && (
+                <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
+                  Disconnected
+                </span>
+              )}
               {!isRead && (
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
               )}
             </div>
           </div>
 
-          <span className="mt-1 inline-block rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
-            {item.content.commandType.replace(/_/g, " ")}
-          </span>
+          {/* ✅ COMMAND: 커맨드 타입 */}
+          {isCommand && (
+            <span className="mt-1 inline-block rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
+              {item.content.commandType.replace(/_/g, " ")}
+            </span>
+          )}
 
+          {/* ✅ VESSEL_DISCONNECTED: 마지막 연결 시간 */}
+          {isDisconnect && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-orange-500/10 dark:text-orange-400">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M12 6v6l4 2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              Last: {formatLastConnect(item.content.lastConnectAt)}
+            </span>
+          )}
+
+          {/* kind 라벨 + 아이콘 + 시간 */}
           <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-gray-400">
-            <span className="font-medium text-blue-500">
+            <span
+              className={`font-medium ${
+                isDisconnect ? "text-orange-500" : "text-blue-500"
+              }`}
+            >
               {getKindLabel(item.kind)}
             </span>
-            <span className="text-blue-400">
-              <CommandSignIcon />
+            <span
+              className={isDisconnect ? "text-orange-400" : "text-blue-400"}
+            >
+              {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
             </span>
             <span className="h-1 w-1 rounded-full bg-gray-300" />
             <span>{timeAgo(item.createdAt)}</span>
@@ -105,7 +164,6 @@ export default function NotificationDropdown() {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const showDot = unreadCount > 0 || hasNew;
 
-  // ✅ 클릭으로 읽음 처리된 id 목록 (UI용 - 아직 API 안 쏜 상태)
   const pendingReadIds = useRef<Set<number>>(new Set());
 
   const fetchNotifications = useCallback(async () => {
@@ -120,7 +178,6 @@ export default function NotificationDropdown() {
     }
   }, []);
 
-  // ✅ 드롭다운 열릴 때 데이터 조회
   useEffect(() => {
     if (isOpen) {
       setHasNew(false);
@@ -128,18 +185,16 @@ export default function NotificationDropdown() {
     }
   }, [isOpen, fetchNotifications, setHasNew]);
 
-  // ✅ 드롭다운 닫힐 때 읽음 처리 API 호출
   useEffect(() => {
     if (!isOpen && pendingReadIds.current.size > 0) {
       const ids = Array.from(pendingReadIds.current);
-      pendingReadIds.current = new Set(); // 초기화
+      pendingReadIds.current = new Set();
       readNotifications(ids).catch((error) => {
         console.error("읽음 처리 실패:", error);
       });
     }
   }, [isOpen]);
 
-  // ✅ 클릭 시 UI만 즉시 읽음 처리 + pendingReadIds에 추가
   const handleRead = useCallback((id: number) => {
     pendingReadIds.current.add(id);
     setNotifications((prev) =>

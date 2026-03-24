@@ -12,7 +12,8 @@ function ToastCard({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
-  const isSuccess = toast.status === "SUCCESS"; // ✅ 최상단으로 이동
+  const isDisconnect = toast.type === "VESSEL_DISCONNECTED";
+  const isSuccess = toast.status === "SUCCESS";
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
@@ -37,24 +38,46 @@ function ToastCard({
       }`}
     >
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-white/10 dark:bg-gray-800">
+        {/* 상단 컬러 바 */}
         <div
           className={`h-1 w-full ${
-            isSuccess
-              ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-              : "bg-gradient-to-r from-red-400 to-red-500"
+            isDisconnect
+              ? "bg-gradient-to-r from-yellow-400 to-orange-400"
+              : isSuccess
+                ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                : "bg-gradient-to-r from-red-400 to-red-500"
           }`}
         />
 
         <div className="p-4">
           <div className="flex items-start gap-3">
+            {/* 아이콘 */}
             <div
               className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
-                isSuccess
-                  ? "bg-emerald-50 dark:bg-emerald-500/10"
-                  : "bg-red-50 dark:bg-red-500/10"
+                isDisconnect
+                  ? "bg-yellow-50 dark:bg-yellow-500/10"
+                  : isSuccess
+                    ? "bg-emerald-50 dark:bg-emerald-500/10"
+                    : "bg-red-50 dark:bg-red-500/10"
               }`}
             >
-              {isSuccess ? (
+              {isDisconnect ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="text-yellow-500"
+                >
+                  <path
+                    d="M8.56 2.9A7 7 0 0 1 19 9v4M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : isSuccess ? (
                 <svg
                   width="18"
                   height="18"
@@ -91,7 +114,9 @@ function ToastCard({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-black tracking-wider text-gray-400 uppercase">
-                  Command {isSuccess ? "Success" : "Failed"}
+                  {isDisconnect
+                    ? "Vessel Disconnected"
+                    : `Command ${isSuccess ? "Success" : "Failed"}`}
                 </p>
                 <button
                   onClick={() => {
@@ -111,21 +136,36 @@ function ToastCard({
                 </button>
               </div>
 
+              {/* 선박명 */}
               <p className="mt-1 truncate text-sm font-bold text-gray-800 dark:text-white">
                 {toast.vesselName}
               </p>
 
+              {/* 커맨드 타입 or Signal Lost */}
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
-                  {toast.commandType.replace(/_/g, " ")}
-                </span>
+                {isDisconnect ? (
+                  <span className="rounded-md bg-yellow-50 px-1.5 py-0.5 text-[10px] font-medium text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400">
+                    Signal Lost
+                  </span>
+                ) : (
+                  <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
+                    {toast.commandType?.replace(/_/g, " ")}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
+          {/* 프로그레스 바 */}
           <div className="mt-3 h-0.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
             <div
-              className={`h-full rounded-full ${isSuccess ? "bg-emerald-400" : "bg-red-400"}`}
+              className={`h-full rounded-full ${
+                isDisconnect
+                  ? "bg-yellow-400"
+                  : isSuccess
+                    ? "bg-emerald-400"
+                    : "bg-red-400"
+              }`}
               style={{ animation: "progress 4s linear forwards" }}
             />
           </div>
@@ -146,7 +186,7 @@ function ToastCard({
   );
 }
 
-export default function CommandToast() {
+export default function NotificationToast() {
   const { toasts, removeToast } = useToastStore();
 
   return (

@@ -17,7 +17,6 @@ import ArrowRightIcon from "./arrow-right.svg";
 import GroupIcon from "./group.svg";
 import BoxIconLine from "./box-line.svg";
 import ShootingStarIcon from "./shooting-star.svg";
-import DollarLineIcon from "./dollar-line.svg";
 import TrashBinIcon from "./trash.svg";
 import AngleUpIcon from "./angle-up.svg";
 import AngleDownIcon from "./angle-down.svg";
@@ -60,6 +59,7 @@ import SktelinkIcon from "./sktelink.svg";
 import MainLogoLight from "./main_logo_light.svg";
 import MainLogoDark from "./main_logo_dark.svg";
 import CommandSignIcon from "./command-sign-icon.svg";
+import DisconnectedIcon from "./disconnected.svg";
 
 export {
   DownloadIcon,
@@ -83,7 +83,6 @@ export {
   GroupIcon,
   BoxIconLine,
   ShootingStarIcon,
-  DollarLineIcon,
   TrashBinIcon,
   AngleUpIcon,
   AngleDownIcon,
@@ -124,4 +123,5 @@ export {
   MainLogoLight,
   MainLogoDark,
   CommandSignIcon,
+  DisconnectedIcon,
 };

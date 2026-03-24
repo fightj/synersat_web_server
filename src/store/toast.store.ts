@@ -2,9 +2,13 @@ import { create } from "zustand";
 
 export interface ToastItem {
   id: string;
+  type: "COMMAND" | "VESSEL_DISCONNECTED"; // ✅ 타입 추가
   vesselName: string;
-  commandType: string;
-  status: "SUCCESS" | "FAILED";
+  // COMMAND용
+  commandType?: string;
+  status?: "SUCCESS" | "FAILED";
+  // VESSEL_DISCONNECTED용
+  lastConnectAt?: string;
 }
 
 interface ToastStore {
@@ -17,7 +21,6 @@ export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   addToast: (toast) =>
     set((state) => ({
-      // ✅ 최대 3개만 유지
       toasts: [
         ...state.toasts.slice(-2),
         { ...toast, id: crypto.randomUUID() },

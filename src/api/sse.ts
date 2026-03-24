@@ -16,6 +16,7 @@ function withTestUser(options: RequestInit = {}): RequestInit {
   };
 }
 
+// ✅ COMMAND_NOTIFICATION 데이터
 export interface SSECommandData {
   imo: number;
   name: string;
@@ -28,11 +29,30 @@ export interface SSECommandEvent {
   createdAt: string;
 }
 
-export function connectSSE(
-  onEvent: (event: SSECommandEvent) => void,
-  onError?: (error: Error) => void,
-  onDisconnect?: () => void,
-): () => void {
+// ✅ VESSEL_DISCONNECTED 데이터
+export interface SSEVesselDisconnectedData {
+  imo: number;
+  name: string;
+  connected: boolean;
+  lastConnectAt: string;
+  checkedAt: string;
+}
+
+export interface SSEVesselDisconnectedEvent {
+  data: SSEVesselDisconnectedData;
+  createdAt: string;
+}
+
+// ✅ SSE 이벤트 콜백 타입 모음
+export interface SSECallbacks {
+  onCommandNotification?: (event: SSECommandEvent) => void;
+  onVesselDisconnected?: (event: SSEVesselDisconnectedEvent) => void;
+  onError?: (error: Error) => void;
+  onDisconnect?: () => void;
+}
+
+export function connectSSE(callbacks: SSECallbacks): () => void {
+  const { onCommandNotification, onVesselDisconnected, onError, onDisconnect } = callbacks;
   const url = `${ENV.BASE_URL}/sse`;
   const abortController = new AbortController();
 
@@ -75,40 +95,48 @@ export function connectSSE(
         buffer = lines.pop() ?? "";
 
         for (const line of lines) {
-          // ✅ event 라인
           if (line.startsWith("event:")) {
             currentEvent = line.slice(6).trim();
             continue;
           }
 
-          // ✅ id, retry 라인 무시
           if (line.startsWith("id:") || line.startsWith("retry:")) {
             continue;
           }
 
-          // ✅ data 라인 처리
           if (line.startsWith("data:")) {
             const raw = line.slice(5).trim();
 
-            // CONNECTED 이벤트
             if (currentEvent === "CONNECTED") {
               console.log("[SSE] 서버 연결 확인:", raw);
               continue;
             }
 
-            // HEART_BEAT 이벤트
             if (currentEvent === "HEART_BEAT") {
               console.log("[SSE] HEART_BEAT 수신");
               continue;
             }
 
-            // COMMAND_NOTIFICATION 이벤트
+            // ✅ COMMAND_NOTIFICATION
             if (currentEvent === "COMMAND_NOTIFICATION") {
               if (!raw) continue;
               try {
                 const parsed: SSECommandEvent = JSON.parse(raw);
                 console.log("[SSE] COMMAND_NOTIFICATION 수신:", parsed);
-                onEvent(parsed);
+                onCommandNotification?.(parsed);
+              } catch (e) {
+                console.warn("[SSE] JSON 파싱 실패:", raw);
+              }
+              continue;
+            }
+
+            // ✅ VESSEL_DISCONNECTED
+            if (currentEvent === "VESSEL_DISCONNECTED") {
+              if (!raw) continue;
+              try {
+                const parsed: SSEVesselDisconnectedEvent = JSON.parse(raw);
+                console.log("[SSE] VESSEL_DISCONNECTED 수신:", parsed);
+                onVesselDisconnected?.(parsed);
               } catch (e) {
                 console.warn("[SSE] JSON 파싱 실패:", raw);
               }
@@ -116,7 +144,6 @@ export function connectSSE(
             }
           }
 
-          // ✅ 빈 줄 = 이벤트 구분자 → currentEvent 초기화
           if (line === "" || line === "\r") {
             currentEvent = "";
           }
