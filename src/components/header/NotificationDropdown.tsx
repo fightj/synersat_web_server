@@ -12,6 +12,7 @@ import {
   isVesselDisconnected,
 } from "@/api/notification";
 import { useNotificationStore } from "@/store/notification.store";
+import { useToastStore } from "@/store/toast.store";
 
 function timeAgo(utcDateStr: string): string {
   const utcDate = new Date(utcDateStr + "Z");
@@ -40,9 +41,7 @@ function formatLastConnect(utcDateStr: string | null): string {
 
 function getKindLabel(kind: string): string {
   if (kind.includes("COMMAND")) return "Command";
-  if (kind.includes("DISCONNECTED")) return "Disconnected";
-  if (kind.includes("OFFLINE")) return "Offline";
-  if (kind.includes("ALERT")) return "Alert";
+  if (kind.includes("DISCONNECTED")) return "Connect";
   return kind;
 }
 
@@ -166,6 +165,11 @@ export default function NotificationDropdown() {
 
   const pendingReadIds = useRef<Set<number>>(new Set());
 
+  const toastCount = useToastStore((s) => s.toasts.length);
+  const prevToastCountRef = useRef(toastCount);
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -184,6 +188,14 @@ export default function NotificationDropdown() {
       fetchNotifications();
     }
   }, [isOpen, fetchNotifications, setHasNew]);
+
+  // 토스트가 새로 추가될 때 드롭다운이 열려있으면 자동 refetch
+  useEffect(() => {
+    if (toastCount > prevToastCountRef.current && isOpenRef.current) {
+      fetchNotifications();
+    }
+    prevToastCountRef.current = toastCount;
+  }, [toastCount, fetchNotifications]);
 
   useEffect(() => {
     if (!isOpen && pendingReadIds.current.size > 0) {

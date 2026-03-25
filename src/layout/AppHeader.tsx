@@ -47,7 +47,7 @@ const AppHeader: React.FC = () => {
       <div className="flex w-full items-center justify-between gap-4">
         {/* 🟢 왼쪽 영역: 토글 + 로고 + 검색창 (흰색/다크 배경 카드) */}
         <div
-          className={`flex items-center gap-3 rounded-xl bg-blue-600 px-2 py-1 shadow-sm lg:px-4 dark:bg-blue-950 ${isDashboard ? "lg:ml-[290px]" : ""}`}
+          className={`relative z-50 flex items-center gap-3 rounded-xl bg-blue-600 px-2 py-1 shadow-sm lg:px-4 dark:bg-blue-950 ${isDashboard ? "lg:ml-[290px]" : ""}`}
         >
           <button
             className="flex h-10 w-10 items-center justify-center rounded-xl text-white hover:bg-blue-500 dark:border-gray-800 dark:text-white dark:hover:bg-gray-800"
@@ -93,40 +93,10 @@ const AppHeader: React.FC = () => {
         </div>
 
         {/* 🟡 오른쪽 영역: 알림 + 테마 + 사용자 (흰색/다크 배경 카드) */}
-        <div className="flex items-center gap-2 rounded-xl bg-gray-600 py-1 shadow-sm lg:gap-3 lg:px-4 dark:bg-gray-800">
+        <div className="flex items-center gap-2 rounded-xl bg-gray-600 px-2 py-1 shadow-sm lg:gap-3 lg:px-4 dark:bg-gray-800">
           <ThemeToggleButton />
-
-          {/* <div className="h-6 w-[1px] bg-gray-200 dark:bg-gray-800"></div> */}
-
-          {/* 모바일 앱 메뉴 버튼 (필요 시) */}
-          {/* <button
-            onClick={toggleApplicationMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M5.99902 10.4951C6.82745 10.4951 7.49902 11.1667 7.49902 11.9951V12.0051C7.49902 12.8335 6.82745 13.5051 5.99902 13.5051C5.1706 13.5051 4.49902 12.8335 4.49902 12.0051V11.9951C4.49902 11.1667 5.1706 10.4951 5.99902 10.4951ZM17.999 10.4951C18.8275 10.4951 19.499 11.1667 19.499 11.9951V12.0051C19.499 12.8335 18.8275 13.5051 17.999 13.5051C17.1706 13.5051 16.499 12.8335 16.499 12.0051V11.9951C16.499 11.1667 17.1706 10.4951 17.999 10.4951ZM13.499 11.9951C13.499 11.1667 12.8275 10.4951 11.999 10.4951C11.1706 10.4951 10.499 11.1667 10.499 11.9951V12.0051C10.499 12.8335 11.1706 13.5051 11.999 13.5051C12.8275 13.5051 13.499 12.8335 13.499 12.0051V11.9951Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button> */}
-
-          {/* 데스크탑 전용 메뉴 (알림/사용자 등) */}
-          <div
-            className={`${isApplicationMenuOpen ? "flex" : "hidden"} relative items-center gap-3 lg:flex`}
-          >
-            <NotificationDropdown />
-
-            <UserDropdown />
-          </div>
+          <NotificationDropdown />
+          <UserDropdown />
         </div>
       </div>
     </header>

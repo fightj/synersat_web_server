@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useVesselStore } from "@/store/vessel.store";
+import { CloseLineIcon } from "@/icons";
 
 type Props = { className?: string };
 
@@ -21,6 +22,24 @@ const ChevronDownIcon = () => (
       d="M6 9L12 15L18 9"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M18 6L6 18M6 6l12 12"
+      stroke="currentColor"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -180,24 +199,35 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => setOpen(true)}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Search vessel..."}
-            className={`text-md h-9.5 w-full border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white ${
-              open
-                ? "rounded-t-xl border-b-transparent ring-4 ring-blue-500/5 focus:border-blue-500"
-                : "rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-            }`}
+            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white"
           />
 
-          <div className="pointer-events-none absolute right-3 flex items-center gap-2">
-            {selectedVessel?.vpnIp && !query && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 dark:border-blue-500/20 dark:bg-blue-500/10">
-                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                  {selectedVessel.vpnIp}
-                </span>
-              </div>
+          <div className="absolute right-3 flex items-center gap-2">
+            {query ? (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:hover:text-gray-300"
+                aria-label="Clear search"
+              >
+                <CloseLineIcon className="h-4 w-4" />
+              </button>
+            ) : (
+              selectedVessel?.vpnIp && (
+                <div className="pointer-events-none flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 dark:border-blue-500/20 dark:bg-blue-500/10">
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                    {selectedVessel.vpnIp}
+                  </span>
+                </div>
+              )
             )}
             <span
-              className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"}`}
+              className={`pointer-events-none text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : "rotate-0"}`}
             >
               <ChevronDownIcon />
             </span>
@@ -208,7 +238,7 @@ export default function VesselSearch({ className = "" }: Props) {
           <div
             ref={dropdownRef}
             onScroll={onDropdownScroll}
-            className="absolute top-[43px] right-0 left-0 z-100 max-h-[360px] overflow-auto rounded-b-xl border border-t-0 border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+            className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 max-h-[360px] overflow-auto rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
           >
             {allMatches.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-500">

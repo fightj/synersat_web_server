@@ -10,14 +10,10 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
   UserCircleIcon,
   VesselIcon,
   FirewallIcon,
   MainLogoDark,
-  MainLogoLight,
 } from "../icons/index";
 
 type NavItem = {
@@ -165,7 +161,7 @@ const AppSidebar: React.FC = () => {
         const isCurrentActive = nav.path ? isActive(nav.path) : false;
 
         // 공통 스타일 정의
-        const itemBaseClass = `group flex items-center w-full rounded-xl py-2.5 transition-all duration-200 ease-in-out font-medium text-sm`;
+        const itemBaseClass = `group flex items-center w-full rounded-xl px-1 py-2.5 transition-all duration-200 ease-in-out font-medium text-sm`;
         const activeClass = `bg-white/20 text-white shadow-sm`;
         const inactiveClass = `text-blue-100 hover:bg-white/10 hover:text-white`;
 
@@ -190,9 +186,9 @@ const AppSidebar: React.FC = () => {
                   </span>
                   {showFullSidebar && (
                     <>
-                      <span className="ml-1 truncate">{nav.name}</span>
+                      <span className="ml-2 truncate">{nav.name}</span>
                       <ChevronDownIcon
-                        className={`ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-white" : "text-blue-300"}`}
+                        className={`mr-2 ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-white" : "text-blue-300"}`}
                       />
                     </>
                   )}
@@ -241,41 +237,39 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-950 ${showFullSidebar ? "w-[260px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-800 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
-        className={`mb-2 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
-      >
-        <Link href="/">
-          {showFullSidebar ? (
-            <MainLogoDark />
-          ) : (
-            <Image
-              src="/images/logo/logo-icon.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-            />
-          )}
-        </Link>
+      {/* 상단 그라데이션 영역: 로고 ~ Main Menu 헤더 */}
+      <div className="-mx-2 -mt-2 rounded-xl bg-linear-to-b from-blue-800 to-blue-600 px-2 pt-2 pb-3 dark:from-blue-950 dark:to-blue-800">
+        <div
+          className={`mb-3 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
+        >
+          <Link href="/">
+            {showFullSidebar ? (
+              <MainLogoDark />
+            ) : (
+              <Image
+                src="/images/logo/logo-icon.svg"
+                alt="Logo"
+                width={32}
+                height={32}
+              />
+            )}
+          </Link>
+        </div>
+
+        <h2
+          className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
+        >
+          {showFullSidebar ? "Main Menu" : <HorizontaLDots className="w-4" />}
+        </h2>
       </div>
 
       <div className="no-scrollbar overflow-y-auto pr-1">
         <nav className="flex flex-col gap-6">
-          <div>
-            <h2
-              className={`mb-3 flex text-[10px] font-bold tracking-widest text-white uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
-            >
-              {showFullSidebar ? (
-                "Main Menu"
-              ) : (
-                <HorizontaLDots className="w-4" />
-              )}
-            </h2>
-            {renderMenuItems(navItems, "main")}
-          </div>
+          <div>{renderMenuItems(navItems, "main")}</div>
 
           {/* <div>
             <h2
