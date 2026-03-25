@@ -45,7 +45,7 @@ export default function AdminLayout({
         <CommandToast />
         {/* Page Content */}
         <div
-          className={`mx-auto max-w-(--breakpoint-2xl) md:p-6 ${isDashboard ? "!p-0" : ""}`}
+          className={`mx-auto max-w-(--breakpoint-2xl) md:p-8 ${isDashboard ? "!p-0" : ""}`}
         >
           {children}
         </div>

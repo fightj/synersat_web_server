@@ -15,7 +15,7 @@ import type {
 } from "@/types/command";
 import Loading from "../common/Loading";
 import { format } from "date-fns";
-import { getCommandDetail } from "@/api/command";
+import { getCommandDetail, failCommand } from "@/api/command";
 interface CommandTableProps {
   commands: CommandContent[];
   isLoading: boolean;
@@ -33,7 +33,7 @@ const getStatusTheme = (status: CommandStatus) => {
     case "FAILED":
       return {
         badge:
-          "bg-red-50 text-red-700 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
+          "bg-red-50 text-red-500 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
         dot: "bg-red-500",
       };
     case "RUNNING":
@@ -63,6 +63,8 @@ export default function CommandTable({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<CommandDetailContent | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
 
   const toKST = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -79,10 +81,22 @@ export default function CommandTable({
       setDetail(data);
     } catch (error) {
       console.error("Failed to load detail:", error);
-      alert("상세 정보를 불러오는 데 실패했습니다.");
       setSelectedId(null);
     } finally {
       setIsDetailLoading(false);
+    }
+  };
+
+  const handleCancel = async (e: React.MouseEvent, commandId: number) => {
+    e.stopPropagation();
+    setCancellingId(commandId);
+    try {
+      await failCommand(commandId);
+      setCancelledIds((prev) => new Set(prev).add(commandId));
+    } catch (error) {
+      console.error("Failed to cancel command:", error);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -154,7 +168,10 @@ export default function CommandTable({
 
           <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {commands.map((command) => {
-              const theme = getStatusTheme(command.commandStatus);
+              const effectiveStatus = cancelledIds.has(command.commandId)
+                ? "FAILED"
+                : command.commandStatus;
+              const theme = getStatusTheme(effectiveStatus);
               return (
                 <TableRow
                   key={command.commandId}
@@ -179,11 +196,24 @@ export default function CommandTable({
                     {command.commandType}
                   </TableCell>
                   <TableCell className="px-5 py-4 text-start">
-                    <span
-                      className={`inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${theme.badge}`}
-                    >
-                      {command.commandStatus}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${theme.badge}`}
+                      >
+                        {effectiveStatus}
+                      </span>
+                      {effectiveStatus === "READY" && (
+                        <button
+                          onClick={(e) => handleCancel(e, command.commandId)}
+                          disabled={cancellingId === command.commandId}
+                          className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+                        >
+                          {cancellingId === command.commandId
+                            ? "..."
+                            : "Cancel"}
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-theme-sm px-5 py-4 text-center font-medium text-gray-700 dark:text-gray-200">
                     {command.totalTryCount}

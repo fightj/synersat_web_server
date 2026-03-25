@@ -195,7 +195,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
                       {cmd.totalTryCount}
                     </td>
                     <td className="px-6 py-4 text-xs text-gray-400">
-                      {format(new Date(cmd.createdAt), "yyyy-MM-dd HH:mm")}
+                      {format(new Date(cmd.createdAt + "Z"), "yyyy-MM-dd HH:mm")}
                     </td>
                   </tr>
                 ))

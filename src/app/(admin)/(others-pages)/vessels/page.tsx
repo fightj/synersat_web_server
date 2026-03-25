@@ -11,7 +11,7 @@ export default function VesselsPage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Vessels" />
-      <div className="space-y-6">
+      <div className="space-y-2">
         <VesselComponentCard />
       </div>
     </div>

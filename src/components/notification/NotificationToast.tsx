@@ -42,7 +42,7 @@ function ToastCard({
         <div
           className={`h-1 w-full ${
             isDisconnect
-              ? "bg-gradient-to-r from-yellow-400 to-orange-400"
+              ? "bg-gradient-to-r from-orange-400 to-orange-500"
               : isSuccess
                 ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
                 : "bg-gradient-to-r from-red-400 to-red-500"
@@ -55,7 +55,7 @@ function ToastCard({
             <div
               className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
                 isDisconnect
-                  ? "bg-yellow-50 dark:bg-yellow-500/10"
+                  ? "bg-orange-50 dark:bg-orange-500/10"
                   : isSuccess
                     ? "bg-emerald-50 dark:bg-emerald-500/10"
                     : "bg-red-50 dark:bg-red-500/10"
@@ -67,7 +67,7 @@ function ToastCard({
                   height="18"
                   viewBox="0 0 24 24"
                   fill="none"
-                  className="text-yellow-500"
+                  className="text-orange-500"
                 >
                   <path
                     d="M8.56 2.9A7 7 0 0 1 19 9v4M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"
@@ -144,7 +144,7 @@ function ToastCard({
               {/* 커맨드 타입 or Signal Lost */}
               <div className="mt-1.5 flex items-center gap-1.5">
                 {isDisconnect ? (
-                  <span className="rounded-md bg-yellow-50 px-1.5 py-0.5 text-[10px] font-medium text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400">
+                  <span className="rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
                     Signal Lost
                   </span>
                 ) : (
@@ -161,7 +161,7 @@ function ToastCard({
             <div
               className={`h-full rounded-full ${
                 isDisconnect
-                  ? "bg-yellow-400"
+                  ? "bg-orange-400"
                   : isSuccess
                     ? "bg-emerald-400"
                     : "bg-red-400"

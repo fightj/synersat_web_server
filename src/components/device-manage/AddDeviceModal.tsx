@@ -6,6 +6,7 @@ import { createDeviceCredential } from "@/api/device-credential";
 import Label from "@/components/form/Label";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
+import Alert from "@/components/ui/alert/Alert";
 
 interface DeviceEntry {
   deviceCategory: string;
@@ -96,7 +97,7 @@ const labelClass =
 
 const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
-export default function AdditionalOptionModal({
+export default function AddDeviceModal({
   isOpen,
   onClose,
   onSaved,
@@ -105,6 +106,11 @@ export default function AdditionalOptionModal({
   const [entries, setEntries] = useState<DeviceEntry[]>([createEmptyEntry()]);
   const [errors, setErrors] = useState<Record<number, EntryErrors>>({});
   const [saving, setSaving] = useState(false);
+  const [alertState, setAlertState] = useState<{
+    variant: "success" | "error" | "warning";
+    title: string;
+    message: string;
+  } | null>(null);
 
   const handleChange = (
     index: number,
@@ -256,18 +262,31 @@ export default function AdditionalOptionModal({
       });
 
       if (failed.length > 0) {
-        alert(
-          `${succeeded.length}개 저장 성공, ${failed.length}개 저장 실패.\n콘솔을 확인하세요.`,
-        );
+        setAlertState({
+          variant: "warning",
+          title: "Partial Success",
+          message: `${succeeded.length} saved successfully, ${failed.length} failed. Check the console for details.`,
+        });
       } else {
-        alert(`${succeeded.length}개 디바이스가 저장되었습니다.`);
+        setAlertState({
+          variant: "success",
+          title: "Saved Successfully",
+          message: `${succeeded.length} device${succeeded.length > 1 ? "s" : ""} registered successfully.`,
+        });
         setEntries([createEmptyEntry()]);
         setErrors({});
-        onSaved?.();
+        setTimeout(() => {
+          setAlertState(null);
+          onSaved?.();
+        }, 1500);
       }
     } catch (err) {
       console.error("[저장 실패]", err);
-      alert("An error occurred while saving.");
+      setAlertState({
+        variant: "error",
+        title: "Save Failed",
+        message: "An error occurred while saving. Please try again.",
+      });
     } finally {
       setSaving(false);
     }
@@ -289,6 +308,17 @@ export default function AdditionalOptionModal({
             Fill in IP and category to register a device.
           </p>
         </div>
+
+        {/* Alert */}
+        {alertState && (
+          <div className="px-6 pt-4">
+            <Alert
+              variant={alertState.variant}
+              title={alertState.title}
+              message={alertState.message}
+            />
+          </div>
+        )}
 
         {/* 스크롤 영역 */}
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">

@@ -237,12 +237,12 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed top-30 left-0 z-30 flex flex-col rounded-2xl border border-white/10 bg-blue-600 p-2 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-blue-800 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
+      className={`fixed top-30 left-1 z-30 flex flex-col rounded-2xl bg-linear-to-r from-blue-700 to-blue-600 p-2 transition-all duration-300 ease-in-out dark:from-blue-950 dark:to-blue-900 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* 상단 그라데이션 영역: 로고 ~ Main Menu 헤더 */}
-      <div className="-mx-2 -mt-2 rounded-xl bg-linear-to-b from-blue-800 to-blue-600 px-2 pt-2 pb-3 dark:from-blue-950 dark:to-blue-800">
+      <div className="pb-3">
         <div
           className={`mb-3 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
         >
@@ -259,15 +259,14 @@ const AppSidebar: React.FC = () => {
             )}
           </Link>
         </div>
+      </div>
 
+      <div className="no-scrollbar overflow-y-auto pr-1">
         <h2
           className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
         >
           {showFullSidebar ? "Main Menu" : <HorizontaLDots className="w-4" />}
         </h2>
-      </div>
-
-      <div className="no-scrollbar overflow-y-auto pr-1">
         <nav className="flex flex-col gap-6">
           <div>{renderMenuItems(navItems, "main")}</div>
 
