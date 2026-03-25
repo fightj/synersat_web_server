@@ -10,6 +10,7 @@ import {
 } from "@/api/notification";
 import { useToastStore } from "@/store/toast.store";
 import { CommandSignIcon, DisconnectedIcon } from "@/icons";
+import Switch from "@/components/form/switch/Switch";
 
 type FilterTab = "All" | "Command" | "Connect";
 
@@ -80,14 +81,25 @@ function NotificationPanelCard({
               </span>
               {isCommand && (
                 <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
-                  {item.content.commandType.replace(/_/g, " ")}
+                  {item.content.commandType?.replace(/_/g, " ")}
                 </span>
               )}
               {isDisconnect && (
                 <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-orange-500/10 dark:text-orange-400">
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M12 6v6l4 2"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                   Last: {formatLastConnect(item.content.lastConnectAt)}
                 </span>
@@ -101,7 +113,9 @@ function NotificationPanelCard({
               >
                 {isDisconnect ? "Connect" : "Command"}
               </span>
-              <span className={isDisconnect ? "text-orange-400" : "text-blue-400"}>
+              <span
+                className={isDisconnect ? "text-orange-400" : "text-blue-400"}
+              >
                 {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
               </span>
               <span className="h-1 w-1 rounded-full bg-gray-300" />
@@ -140,29 +154,64 @@ interface NotificationPanelProps {
   onClose: () => void;
 }
 
-export default function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
+const LIMIT = 100;
+const SCROLL_THRESHOLD_PX = 80;
+
+export default function NotificationPanel({
+  isOpen,
+  onClose,
+}: NotificationPanelProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const pendingReadIds = useRef<Set<number>>(new Set());
 
   const toastCount = useToastStore((s) => s.toasts.length);
   const prevToastCountRef = useRef(toastCount);
   const isOpenRef = useRef(isOpen);
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
+    setHasMore(true);
     try {
-      const data = await getNotifications(100);
+      const data = await getNotifications(LIMIT);
       setNotifications(data);
+      if (data.length < LIMIT) setHasMore(false);
     } catch (error) {
       console.error("알림 조회 실패:", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  const fetchMore = useCallback(
+    async (lastId: number) => {
+      if (isFetchingMore) return;
+      setIsFetchingMore(true);
+      try {
+        const data = await getNotifications(LIMIT, lastId);
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const newItems = data.filter((n) => !existingIds.has(n.id));
+          return [...prev, ...newItems];
+        });
+        if (data.length < LIMIT) setHasMore(false);
+      } catch (error) {
+        console.error("추가 알림 조회 실패:", error);
+      } finally {
+        setIsFetchingMore(false);
+      }
+    },
+    [isFetchingMore],
+  );
 
   useEffect(() => {
     if (isOpen) fetchNotifications();
@@ -203,7 +252,20 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     });
   }, [notifications]);
 
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || !hasMore || isFetchingMore || isLoading) return;
+    if (
+      el.scrollTop + el.clientHeight >=
+      el.scrollHeight - SCROLL_THRESHOLD_PX
+    ) {
+      const lastId = notifications[notifications.length - 1]?.id;
+      if (lastId !== undefined) fetchMore(lastId);
+    }
+  }, [hasMore, isFetchingMore, isLoading, notifications, fetchMore]);
+
   const filteredNotifications = notifications.filter((n) => {
+    if (showUnreadOnly && n.read) return false;
     if (activeTab === "Command") return isCommandNotification(n);
     if (activeTab === "Connect") return isVesselDisconnected(n);
     return true;
@@ -224,7 +286,9 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const TABS: FilterTab[] = ["All", "Command", "Connect"];
@@ -273,37 +337,69 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
         </div>
 
         {/* 필터 탭 */}
-        <div className="flex gap-1 border-b border-gray-100 px-6 py-3 dark:border-white/10">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                activeTab === tab
-                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3 dark:border-white/10">
+          <div className="flex gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  activeTab === tab
+                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
+              UnRead
+            </span>
+            <Switch
+              defaultChecked={showUnreadOnly}
+              onChange={(checked) => setShowUnreadOnly(checked)}
+              color="blue"
+            />
+          </div>
         </div>
 
         {/* 알림 리스트 */}
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-4 py-3"
+        >
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm font-medium text-gray-400">No notifications</p>
+              <p className="text-sm font-medium text-gray-400">
+                No notifications
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredNotifications.map((item) => (
-                <NotificationPanelCard key={item.id} item={item} onRead={handleRead} />
+                <NotificationPanelCard
+                  key={item.id}
+                  item={item}
+                  onRead={handleRead}
+                />
               ))}
+              {isFetchingMore && (
+                <div className="flex justify-center py-4">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                </div>
+              )}
+              {!hasMore && notifications.length > 0 && (
+                <p className="py-4 text-center text-xs text-gray-400">
+                  No more notifications
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -64,9 +64,11 @@ export function isVesselDisconnected(
   return item.kind === "VESSEL_DISCONNECTED";
 }
 
-export async function getNotifications(limit: number): Promise<NotificationItem[]> {
+export async function getNotifications(limit: number, cursorId?: number): Promise<NotificationItem[]> {
   try {
-    const url = `${ENV.BASE_URL}/notifications?limit=${limit}`;
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (cursorId !== undefined) params.set("cursorId", String(cursorId));
+    const url = `${ENV.BASE_URL}/notifications?${params.toString()}`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
