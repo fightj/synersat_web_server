@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -128,6 +128,96 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [flyoutOpenMenus, setFlyoutOpenMenus] = useState<
+    Record<string, boolean>
+  >({});
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openFlyout = (key: string) => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    setHoveredItem(key);
+  };
+
+  const scheduleFlyoutClose = () => {
+    hoverTimerRef.current = setTimeout(() => setHoveredItem(null), 200);
+  };
+
+  const cancelFlyoutClose = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+  };
+
+  useEffect(
+    () => () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    },
+    [],
+  );
+
+  const toggleFlyoutMenu = (key: string) => {
+    setFlyoutOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const renderFlyoutItems = (
+    items: NavItem[],
+    parentKey: string,
+  ): React.ReactNode => (
+    <ul className="flex flex-col gap-0.5">
+      {items.map((item) => {
+        const key = `flyout-${parentKey}-${item.name}`;
+        const isOpen = !!flyoutOpenMenus[key];
+        const hasSub = item.subItems && item.subItems.length > 0;
+        const isCurrentActive = item.path ? isActive(item.path) : false;
+        return (
+          <li key={item.name}>
+            {hasSub ? (
+              <>
+                <button
+                  onClick={() => toggleFlyoutMenu(key)}
+                  className={`flex w-full items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
+                    isOpen
+                      ? "bg-white/10 text-white"
+                      : "text-blue-100 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate">{item.name}</span>
+                  <ChevronDownIcon
+                    className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                <div
+                  className={`grid transition-all duration-200 ease-in-out ${
+                    isOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "pointer-events-none grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="ml-3 overflow-hidden border-l border-white/10 pl-2">
+                    {renderFlyoutItems(item.subItems!, key)}
+                  </div>
+                </div>
+              </>
+            ) : (
+              item.path && (
+                <Link
+                  href={item.path}
+                  onClick={() => setHoveredItem(null)}
+                  className={`flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
+                    isCurrentActive
+                      ? "bg-white/20 text-white"
+                      : "text-blue-100 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate">{item.name}</span>
+                </Link>
+              )
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   useEffect(() => {
     const updateMenuState = () => {
       const newState: Record<string, boolean> = {};
@@ -175,7 +265,24 @@ const AppSidebar: React.FC = () => {
         const inactiveClass = `text-blue-100 hover:bg-white/10 hover:text-white`;
 
         return (
-          <li key={nav.name}>
+          <li
+            key={nav.name}
+            className={!showFullSidebar && level === 0 ? "relative" : ""}
+            onMouseEnter={
+              !showFullSidebar && level === 0
+                ? () =>
+                    hasSubItems
+                      ? openFlyout(currentKey)
+                      : setHoveredItem(currentKey)
+                : undefined
+            }
+            onMouseLeave={
+              !showFullSidebar && level === 0
+                ? () =>
+                    hasSubItems ? scheduleFlyoutClose() : setHoveredItem(null)
+                : undefined
+            }
+          >
             {hasSubItems ? (
               <>
                 <button
@@ -237,6 +344,31 @@ const AppSidebar: React.FC = () => {
                   )}
                 </Link>
               )
+            )}
+            {!showFullSidebar && level === 0 && hoveredItem === currentKey && (
+              <div
+                className="absolute top-0 left-full z-50 ml-3 min-w-[180px] rounded-xl bg-blue-700 p-2 shadow-2xl ring-1 ring-white/10 dark:bg-blue-900"
+                onMouseEnter={cancelFlyoutClose}
+                onMouseLeave={scheduleFlyoutClose}
+              >
+                <div className="mb-1.5 border-b border-white/10 px-2 py-1 pb-1.5 text-[10px] font-bold tracking-wider text-white/60 uppercase">
+                  {nav.name}
+                </div>
+                {hasSubItems
+                  ? renderFlyoutItems(nav.subItems!, currentKey)
+                  : nav.path && (
+                      <Link
+                        href={nav.path}
+                        className={`flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
+                          isCurrentActive
+                            ? "bg-white/20 text-white"
+                            : "text-blue-100 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {nav.name}
+                      </Link>
+                    )}
+              </div>
             )}
           </li>
         );
@@ -307,7 +439,9 @@ const AppSidebar: React.FC = () => {
         </div>
       </div>
 
-      <div className="no-scrollbar overflow-y-auto pr-1">
+      <div
+        className={`no-scrollbar pr-1 ${showFullSidebar ? "overflow-y-auto" : "overflow-visible"}`}
+      >
         {/* <h2
           className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
         >
