@@ -64,23 +64,29 @@ export function isVesselDisconnected(
   return item.kind === "VESSEL_DISCONNECTED";
 }
 
-export async function getNotifications(limit: number, cursorId?: number): Promise<NotificationItem[]> {
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+  unReadNotificationCount: number;
+}
+
+export async function getNotifications(
+  limit: number,
+  cursorId?: number,
+  unread?: boolean,
+): Promise<NotificationsResponse> {
   try {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursorId !== undefined) params.set("cursorId", String(cursorId));
+    if (unread !== undefined) params.set("unread", String(unread));
     const url = `${ENV.BASE_URL}/notifications?${params.toString()}`;
-    const res = await fetch(url, withTestUser({
-      ...fetchOptions,
-      method: "GET",
-    }));
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
 
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Failed to fetch notifications: ${res.status} ${errorText}`);
     }
 
-    const data: NotificationItem[] = await res.json();
-    return data;
+    return await res.json() as NotificationsResponse;
   } catch (error) {
     console.error("getNotifications Error:", error);
     throw error;

@@ -158,29 +158,33 @@ export default function NotificationDropdown() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverUnreadCount, setServerUnreadCount] = useState(0);
   const hasNew = useNotificationStore((s) => s.hasNew);
   const setHasNew = useNotificationStore((s) => s.setHasNew);
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const showDot = unreadCount > 0 || hasNew;
+  const showBadge = serverUnreadCount > 0 || hasNew;
 
   const pendingReadIds = useRef<Set<number>>(new Set());
 
   const toastCount = useToastStore((s) => s.toasts.length);
   const prevToastCountRef = useRef(toastCount);
-  const isOpenRef = useRef(isOpen);
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getNotifications(8);
-      setNotifications(data);
+      const res = await getNotifications(8);
+      setNotifications(res.notifications);
+      setServerUnreadCount(res.unReadNotificationCount);
     } catch (error) {
       console.error("알림 조회 실패:", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // 최초 마운트 시 1회 fetch (배지 카운트 초기화)
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     if (isOpen) {
@@ -189,9 +193,9 @@ export default function NotificationDropdown() {
     }
   }, [isOpen, fetchNotifications, setHasNew]);
 
-  // 토스트가 새로 추가될 때 드롭다운이 열려있으면 자동 refetch
+  // 토스트 발생 시 open 여부와 무관하게 re-fetch → 최신 unread 카운트 반영
   useEffect(() => {
-    if (toastCount > prevToastCountRef.current && isOpenRef.current) {
+    if (toastCount > prevToastCountRef.current) {
       fetchNotifications();
     }
     prevToastCountRef.current = toastCount;
@@ -228,9 +232,12 @@ export default function NotificationDropdown() {
         className="dropdown-toggle relative flex h-9.5 w-9.5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
         onClick={toggleDropdown}
       >
-        {showDot && (
-          <span className="absolute top-0.5 right-0 z-10 flex h-2 w-2 rounded-full bg-orange-400">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
+        {showBadge && (
+          <span className="absolute -top-1.5 -right-1.5 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-orange-400 px-1">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
+            <span className="relative text-[10px] font-bold leading-none text-white">
+              {serverUnreadCount > 99 ? "99+" : serverUnreadCount}
+            </span>
           </span>
         )}
         <svg
@@ -259,9 +266,9 @@ export default function NotificationDropdown() {
             <h5 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               Notifications
             </h5>
-            {unreadCount > 0 && (
+            {serverUnreadCount > 0 && (
               <span className="rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-black text-white">
-                {unreadCount}
+                {serverUnreadCount > 99 ? "99+" : serverUnreadCount}
               </span>
             )}
           </div>
@@ -321,6 +328,7 @@ export default function NotificationDropdown() {
       <NotificationPanel
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
+        onReadFlushed={fetchNotifications}
       />
     </div>
   );

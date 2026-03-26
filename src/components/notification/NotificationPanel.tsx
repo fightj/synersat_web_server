@@ -152,6 +152,7 @@ function NotificationPanelCard({
 interface NotificationPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onReadFlushed?: () => void;
 }
 
 const LIMIT = 100;
@@ -160,6 +161,7 @@ const SCROLL_THRESHOLD_PX = 80;
 export default function NotificationPanel({
   isOpen,
   onClose,
+  onReadFlushed,
 }: NotificationPanelProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -167,6 +169,7 @@ export default function NotificationPanel({
   const [hasMore, setHasMore] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [serverUnreadCount, setServerUnreadCount] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingReadIds = useRef<Set<number>>(new Set());
@@ -182,9 +185,10 @@ export default function NotificationPanel({
     setIsLoading(true);
     setHasMore(true);
     try {
-      const data = await getNotifications(LIMIT);
-      setNotifications(data);
-      if (data.length < LIMIT) setHasMore(false);
+      const res = await getNotifications(LIMIT);
+      setNotifications(res.notifications);
+      setServerUnreadCount(res.unReadNotificationCount);
+      if (res.notifications.length < LIMIT) setHasMore(false);
     } catch (error) {
       console.error("알림 조회 실패:", error);
     } finally {
@@ -192,18 +196,37 @@ export default function NotificationPanel({
     }
   }, []);
 
+  const handleUnreadToggle = useCallback(async (checked: boolean) => {
+    setShowUnreadOnly(checked);
+    if (checked) {
+      setIsLoading(true);
+      setHasMore(false);
+      try {
+        const limit = serverUnreadCount > 0 ? serverUnreadCount : LIMIT;
+        const res = await getNotifications(limit, undefined, true);
+        setNotifications(res.notifications);
+      } catch (error) {
+        console.error("안읽은 알림 조회 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      fetchNotifications();
+    }
+  }, [serverUnreadCount, fetchNotifications]);
+
   const fetchMore = useCallback(
     async (lastId: number) => {
       if (isFetchingMore) return;
       setIsFetchingMore(true);
       try {
-        const data = await getNotifications(LIMIT, lastId);
+        const res = await getNotifications(LIMIT, lastId);
         setNotifications((prev) => {
           const existingIds = new Set(prev.map((n) => n.id));
-          const newItems = data.filter((n) => !existingIds.has(n.id));
+          const newItems = res.notifications.filter((n) => !existingIds.has(n.id));
           return [...prev, ...newItems];
         });
-        if (data.length < LIMIT) setHasMore(false);
+        if (res.notifications.length < LIMIT) setHasMore(false);
       } catch (error) {
         console.error("추가 알림 조회 실패:", error);
       } finally {
@@ -214,27 +237,32 @@ export default function NotificationPanel({
   );
 
   useEffect(() => {
-    if (isOpen) fetchNotifications();
+    if (isOpen) {
+      setShowUnreadOnly(false);
+      fetchNotifications();
+    }
   }, [isOpen, fetchNotifications]);
 
-  // 토스트 추가 시 패널 열려있으면 자동 refetch
+  // 토스트 추가 시 패널 열려있고 unread 필터 OFF일 때만 자동 refetch
   useEffect(() => {
-    if (toastCount > prevToastCountRef.current && isOpenRef.current) {
+    if (toastCount > prevToastCountRef.current && isOpenRef.current && !showUnreadOnly) {
       fetchNotifications();
     }
     prevToastCountRef.current = toastCount;
-  }, [toastCount, fetchNotifications]);
+  }, [toastCount, fetchNotifications, showUnreadOnly]);
 
-  // 패널 닫힐 때 배치 읽음 처리 flush
+  // 패널 닫힐 때 배치 읽음 처리 flush → 완료 후 부모에 unreadCount 갱신 요청
   useEffect(() => {
     if (!isOpen && pendingReadIds.current.size > 0) {
       const ids = Array.from(pendingReadIds.current);
       pendingReadIds.current = new Set();
-      readNotifications(ids).catch((error) => {
-        console.error("읽음 처리 실패:", error);
-      });
+      readNotifications(ids)
+        .then(() => onReadFlushed?.())
+        .catch((error) => {
+          console.error("읽음 처리 실패:", error);
+        });
     }
-  }, [isOpen]);
+  }, [isOpen, onReadFlushed]);
 
   const handleRead = useCallback((id: number) => {
     pendingReadIds.current.add(id);
@@ -265,7 +293,6 @@ export default function NotificationPanel({
   }, [hasMore, isFetchingMore, isLoading, notifications, fetchMore]);
 
   const filteredNotifications = notifications.filter((n) => {
-    if (showUnreadOnly && n.read) return false;
     if (activeTab === "Command") return isCommandNotification(n);
     if (activeTab === "Connect") return isVesselDisconnected(n);
     return true;
@@ -305,7 +332,7 @@ export default function NotificationPanel({
 
       {/* 슬라이드 패널 */}
       <div
-        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[360px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[420px] dark:bg-gray-900 ${
+        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[432px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[504px] dark:bg-gray-900 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -358,8 +385,8 @@ export default function NotificationPanel({
               UnRead
             </span>
             <Switch
-              defaultChecked={showUnreadOnly}
-              onChange={(checked) => setShowUnreadOnly(checked)}
+              checked={showUnreadOnly}
+              onChange={handleUnreadToggle}
               color="blue"
             />
           </div>

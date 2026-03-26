@@ -6,6 +6,17 @@ const fetchOptions: RequestInit = {
   cache: "no-store",
 };
 
+const TEST_USER = ENV.USER_ROLE;
+
+function withTestUser(options: RequestInit = {}): RequestInit {
+  const existingHeaders = new Headers(options.headers);
+  existingHeaders.set("Authorization", TEST_USER);
+  return {
+    ...options,
+    headers: existingHeaders,
+  };
+}
+
 export interface AuthInfo {
   userAcct: string;
   authKind: "ADMIN" | string;
@@ -15,10 +26,7 @@ export async function getAuth(): Promise<AuthInfo | null> {
   try {
     const url = `${ENV.BASE_URL}/auth/my`;
 
-    const res = await fetch(url, {
-      ...fetchOptions,
-      method: "GET",
-    });
+    const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
 
     // 로그인 안 된 사용자
     if (res.status === 400 || res.status === 401 || res.status === 403) {
