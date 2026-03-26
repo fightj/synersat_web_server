@@ -64,13 +64,23 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
       const validPoints = coordinates.filter(
         (p) => p.latitude !== null && p.longitude !== null,
       );
-      const filteredCoords: RouteCoordinate[] = [];
-      validPoints.forEach((p, idx) => {
-        // 첫 번째, 마지막, 그리고 매 6번째 데이터만 마커로 표시
-        if (idx === 0 || idx % 6 === 0 || idx === validPoints.length - 1) {
-          filteredCoords.push(p);
-        }
-      });
+
+      // 줌 레벨에 따른 step 계산 (5분 단위 데이터 기준)
+      // zoom 2→12(1h), zoom 4→6(30m), zoom 6→3(15m), zoom 8→2(10m), zoom 10→1(5m)
+      const getStep = (zoom: number) => {
+        if (zoom >= 10) return 1;
+        if (zoom >= 8) return 2;
+        if (zoom >= 6) return 3;
+        if (zoom >= 4) return 6;
+        return 12;
+      };
+
+      const filterCoords = (zoom: number): RouteCoordinate[] => {
+        const step = getStep(zoom);
+        return validPoints.filter(
+          (_, idx) => idx === 0 || idx % step === 0 || idx === validPoints.length - 1,
+        );
+      };
 
       // 아이콘 생성 함수
       const createArrowIcon = (
@@ -81,67 +91,94 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
         const heading = p.vesselHeading ?? 0;
         const serviceColor = getServiceColor(p.status?.antennaServiceName);
         const color = (p.satSignalStrength ?? 0) > 0 ? serviceColor : "#ef4444";
-        const size = Math.min(Math.max(zoom * 2.5, 12), 32);
 
-        const pingHtml = isLast
-          ? `<div class="absolute inset-0 animate-ping rounded-full opacity-40" style="background-color: ${color}; width: 100%; height: 100%;"></div>`
-          : "";
+        if (!isLast) {
+          const dot = 8;
+          return L.divIcon({
+            className: "",
+            html: `<div style="
+                width:${dot}px; height:${dot}px;
+                border-radius:50%;
+                background:${color};
+                opacity:0.7;
+                border:1.5px solid white;
+                box-shadow:0 0 2px rgba(0,0,0,0.3);
+              "></div>`,
+            iconSize: [dot, dot],
+            iconAnchor: [dot / 2, dot / 2],
+          });
+        }
+
+        const h = Math.min(Math.max(zoom * 2.5, 12), 32) * 1.5;
+        const w = Math.round(h * (16 / 28) * 1.2);
 
         return L.divIcon({
-          className: "relative",
-          html: `<div style="width:${size}px; height:${size}px; display:flex; align-items:center; justify-content:center;">
-                    ${pingHtml}
+          className: "",
+          html: `<div style="position:relative; width:${w}px; height:${h}px; display:flex; align-items:center; justify-content:center;">
+                    <div style="
+                      position:absolute; top:50%; left:50%;
+                      transform:translate(-50%,-50%);
+                      width:${w * 2}px; height:${w * 2}px;
+                      background:${color};
+                      border-radius:50%;
+                      opacity:0.25;
+                      animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;
+                    "></div>
+                    <style>@keyframes ping { 75%,100% { transform:translate(-50%,-50%) scale(2); opacity:0; } }</style>
                     <div style="transform: rotate(${heading}deg); position:relative; z-index:10; filter: drop-shadow(0px 0px 1px rgba(0,0,0,0.5));">
-                      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" fill="${color}" stroke="white" stroke-width="1"/>
+                      <svg width="${w}" height="${h}" viewBox="0 -5 16 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 -4C9 -2 14 1.5 14 5.5V21C14 22.65 12.65 24 11 24H5C3.35 24 2 22.65 2 21V5.5C2 1.5 7 -2 8 -4Z" fill="${color}" fill-opacity="0.4" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
+                        <rect x="4" y="5.5" width="8" height="4" rx="1" fill="${color}"/>
+                        <rect x="4" y="11.5" width="8" height="4" rx="1" fill="${color}"/>
+                        <rect x="4" y="17.5" width="8" height="4" rx="1" fill="${color}"/>
                       </svg>
                     </div>
                   </div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
+          iconSize: [w, h],
+          iconAnchor: [w / 2, h / 2],
         });
       };
 
-      // 마커 추가
-      filteredCoords.forEach((p, idx) => {
-        const isLast = idx === 0;
-        const latlng: [number, number] = [p.latitude!, p.longitude!];
+      // 마커 추가 함수
+      const addMarkers = (zoom: number) => {
+        markersRef.current.forEach((m) => m.marker.remove());
+        markersRef.current = [];
 
-        const marker = L.marker(latlng, {
-          icon: createArrowIcon(p, map.getZoom(), isLast),
-          zIndexOffset: isLast ? 1000 : 0,
-        }).addTo(map);
+        filterCoords(zoom).forEach((p, idx) => {
+          const isLast = idx === 0;
+          const latlng: [number, number] = [p.latitude!, p.longitude!];
 
-        /**
-         * 💡 시간 변환 로직 적용
-         * DB에서 넘어온 UTC 시간 문자열을 기반으로 Date 객체를 만들고, 9시간을 더해 KST로 변환합니다.
-         */
-        const utcDate = new Date(p.timeStamp + "Z");
-        const formattedTime = new Intl.DateTimeFormat("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-          timeZoneName: "short", // ✅ "UTC+9", "UTC+0" 등 자동 표시
-        }).format(utcDate);
-        marker.bindPopup(
-          `<div class="text-[11px] font-sans">
-            <strong style="color: ${getServiceColor(p.status?.antennaServiceName)}">${p.status?.antennaServiceName}</strong><br/>
-            <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
-            <span class="text-gray-500">Signal:</span> ${p.satSignalStrength}%
-          </div>`,
-        );
+          const marker = L.marker(latlng, {
+            icon: createArrowIcon(p, zoom, isLast),
+            zIndexOffset: isLast ? 1000 : 0,
+          }).addTo(map);
 
-        markersRef.current.push({ marker, data: p, isLast });
-      });
+          const utcDate = new Date(p.timeStamp + "Z");
+          const formattedTime = new Intl.DateTimeFormat("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZoneName: "short",
+          }).format(utcDate);
+          marker.bindPopup(
+            `<div class="text-[11px] font-sans">
+              <strong style="color: ${getServiceColor(p.status?.antennaServiceName)}">${p.status?.antennaServiceName}</strong><br/>
+              <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
+              <span class="text-gray-500">Signal:</span> ${p.satSignalStrength}%
+            </div>`,
+          );
 
-      // 줌 핸들러
-      const handleZoom = () => {
-        const currentZoom = map.getZoom();
-        markersRef.current.forEach(({ marker, data, isLast }) => {
-          marker.setIcon(createArrowIcon(data, currentZoom, isLast));
+          markersRef.current.push({ marker, data: p, isLast });
         });
+      };
+
+      addMarkers(map.getZoom());
+
+      // 줌 핸들러 — step 재계산 후 마커 재생성
+      const handleZoom = () => {
+        addMarkers(map.getZoom());
       };
       map.on("zoomend", handleZoom);
 

@@ -1,4 +1,4 @@
-import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse} from "@/types/vessel";
+import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, DashboardVesselsResponse } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 import { ENV } from "@/config/env";
 
@@ -265,4 +265,21 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
     console.error("IMO 중복 확인 중 오류 발생:", error);
     throw error;
   }
+}
+
+// -----------------대시보드 api-----------------
+export async function getDashboardVessels(acct?: string): Promise<DashboardVesselsResponse> {
+  const params = new URLSearchParams();
+  if (acct) params.set("acct", acct);
+
+  const url = `${BASE_URL}/vessels/routes/all${params.size > 0 ? `?${params.toString()}` : ""}`;
+
+  const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to fetch dashboard vessels (${res.status}): ${errorText}`);
+  }
+
+  return await res.json();
 }

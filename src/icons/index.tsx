@@ -60,6 +60,7 @@ import MainLogoLight from "./main_logo_light.svg";
 import MainLogoDark from "./main_logo_dark.svg";
 import CommandSignIcon from "./command-sign-icon.svg";
 import DisconnectedIcon from "./disconnected.svg";
+import MapVesselIcon from "./map-vessel.svg";
 
 export {
   DownloadIcon,
@@ -124,4 +125,5 @@ export {
   MainLogoDark,
   CommandSignIcon,
   DisconnectedIcon,
+  MapVesselIcon,
 };

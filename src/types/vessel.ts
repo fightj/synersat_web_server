@@ -101,6 +101,29 @@ export interface VesselRouteResponse {
   dataUsages: any[]; 
 }
 
+export interface DashboardVesselPosition {
+  imo: number;
+  vesselName: string;
+  latitude: number | null;
+  longitude: number | null;
+  vesselSpeed: number | null;
+  vesselHeading: number | null;
+  satSignalStrength: number | null;
+  satId: number | null;
+  timestamp: string;
+  currentRouteInterface: string | null;
+  antennaName: string | null;
+  antennaColor: string | null;
+  satType: string | null;
+}
+
+export interface DashboardVesselsResponse {
+  positions: DashboardVesselPosition[];
+  totalCount: number;
+  connectedCount: number;
+  disconnectedCount: number;
+}
+
 export interface UpdateVesselPayload {
   imo: number;
   mmsi?: number;
