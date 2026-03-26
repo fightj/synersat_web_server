@@ -97,8 +97,17 @@ const othersItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar } =
+    useSidebar();
   const pathname = usePathname();
+
+  const handleToggle = () => {
+    if (window.innerWidth >= 1024) {
+      toggleSidebar();
+    } else {
+      toggleMobileSidebar();
+    }
+  };
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
@@ -144,7 +153,7 @@ const AppSidebar: React.FC = () => {
     updateMenuState();
   }, [pathname, isActive]);
 
-  const showFullSidebar = isExpanded || isHovered || isMobileOpen;
+  const showFullSidebar = isExpanded || isMobileOpen;
 
   const renderMenuItems = (
     items: NavItem[],
@@ -238,15 +247,13 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed top-30 left-1 z-30 flex flex-col rounded-2xl bg-linear-to-r from-blue-700 to-blue-600 p-2 transition-all duration-300 ease-in-out dark:from-blue-950 dark:to-blue-900 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 상단 그라데이션 영역: 로고 ~ Main Menu 헤더 */}
+      {/* 상단: 로고 + 토글 버튼 */}
       <div className="pb-3">
         <div
-          className={`mb-3 flex items-center ${!showFullSidebar ? "justify-center" : "px-2"}`}
+          className={`mb-3 flex items-center ${showFullSidebar ? "justify-between px-2" : "flex-col gap-2"}`}
         >
-          <Link href="/">
+          <Link href="/" className="min-w-0 shrink overflow-hidden">
             {showFullSidebar ? (
               <MainLogoDark />
             ) : (
@@ -258,15 +265,54 @@ const AppSidebar: React.FC = () => {
               />
             )}
           </Link>
+          <button
+            onClick={handleToggle}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Toggle Sidebar"
+          >
+            {showFullSidebar ? (
+              /* 패널 닫기: 세로선 + 왼쪽 화살표 */
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <path d="M15 8l-3 4 3 4" />
+              </svg>
+            ) : (
+              /* 패널 열기: 세로선 + 오른쪽 화살표 */
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <path d="M12 8l3 4-3 4" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
       <div className="no-scrollbar overflow-y-auto pr-1">
-        <h2
+        {/* <h2
           className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
         >
           {showFullSidebar ? "Main Menu" : <HorizontaLDots className="w-4" />}
-        </h2>
+        </h2> */}
         <nav className="flex flex-col gap-6">
           <div>{renderMenuItems(navItems, "main")}</div>
 

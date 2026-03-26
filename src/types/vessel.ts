@@ -115,6 +115,7 @@ export interface DashboardVesselPosition {
   antennaName: string | null;
   antennaColor: string | null;
   satType: string | null;
+  connected: boolean;
 }
 
 export interface DashboardVesselsResponse {

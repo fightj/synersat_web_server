@@ -812,3 +812,16 @@ html.dark {
  .animate-wave {
    animation: wave 1.5s ease-in-out infinite;
  }
+
+/* ── Vessel hover tooltip ─────────────────────────────────── */
+.vessel-hover-tooltip {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+.vessel-hover-tooltip::before {
+  display: none !important;
+}
