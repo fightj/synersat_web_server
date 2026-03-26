@@ -381,9 +381,9 @@ const AppSidebar: React.FC = () => {
       className={`fixed top-30 left-1 z-30 flex flex-col rounded-2xl bg-linear-to-r from-blue-700 to-blue-600 p-2 transition-all duration-300 ease-in-out dark:from-blue-950 dark:to-blue-900 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
     >
       {/* 상단: 로고 + 토글 버튼 */}
-      <div className="pb-3">
+      <div>
         <div
-          className={`mb-3 flex items-center ${showFullSidebar ? "justify-between px-2" : "flex-col gap-2"}`}
+          className={`mb-3 flex flex-col ${showFullSidebar ? "px-2" : "items-center gap-2"}`}
         >
           <Link href="/" className="min-w-0 shrink overflow-hidden">
             {showFullSidebar ? (
@@ -399,7 +399,7 @@ const AppSidebar: React.FC = () => {
           </Link>
           <button
             onClick={handleToggle}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white ${showFullSidebar ? "self-end" : ""}`}
             aria-label="Toggle Sidebar"
           >
             {showFullSidebar ? (
@@ -442,11 +442,11 @@ const AppSidebar: React.FC = () => {
       <div
         className={`no-scrollbar pr-1 ${showFullSidebar ? "overflow-y-auto" : "overflow-visible"}`}
       >
-        {/* <h2
+        <h2
           className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
         >
-          {showFullSidebar ? "Main Menu" : <HorizontaLDots className="w-4" />}
-        </h2> */}
+          {showFullSidebar ? "Main Menu" : ""}
+        </h2>
         <nav className="flex flex-col gap-6">
           <div>{renderMenuItems(navItems, "main")}</div>
 
