@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
 import { getServiceColor } from "../common/AnntennaMapping";
+import { getVesselDetail } from "@/api/vessel";
+import { useVesselStore } from "@/store/vessel.store";
 
 const MAP_STYLES = [
   {
@@ -116,6 +119,10 @@ interface MainWorldMapProps {
 }
 
 export default function WorldMap({ vessels }: MainWorldMapProps) {
+  const router = useRouter();
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
@@ -123,11 +130,22 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const markersRef = useRef<any[]>([]);
   const resizeHandlerRef = useRef<(() => void) | null>(null);
   const showNameRef = useRef(true);
+  const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
+  const isMountedRef = useRef(false);
+  const prevSelectedImoRef = useRef<number | null>(null);
+  const vesselsRef = useRef(vessels);
 
   const [activeStyle, setActiveStyle] = useState("default");
   const [mapReady, setMapReady] = useState(false);
   const [showName, setShowName] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [gpsAlert, setGpsAlert] = useState(false);
+  const [clickedVessel, setClickedVessel] = useState<{
+    imo: number;
+    name: string;
+    color: string;
+  } | null>(null);
+  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
 
   // ── 카테고리별 통계 ────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -149,6 +167,51 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       offline: list.filter((v) => v.connected === false).length,
     };
   }, [vessels]);
+
+  // ── vesselsRef 최신화 ──────────────────────────────────────────────
+  useEffect(() => {
+    vesselsRef.current = vessels;
+  }, [vessels]);
+
+  // ── VesselSearch 선택 → 지도 줌인 ─────────────────────────────────
+  useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      prevSelectedImoRef.current = selectedVessel?.imo ?? null;
+      return;
+    }
+    const newImo = selectedVessel?.imo ?? null;
+    if (newImo === prevSelectedImoRef.current) return;
+    prevSelectedImoRef.current = newImo;
+    if (!newImo || !mapReady || !mapInstanceRef.current) return;
+
+    const found = vesselsRef.current?.find(
+      (v) => v.imo === newImo && v.latitude !== null && v.longitude !== null,
+    );
+    if (found) {
+      const lat = found.latitude!;
+      const lng = found.longitude!;
+      const map = mapInstanceRef.current;
+
+      map.flyTo([lat, lng], 7, { animate: true, duration: 1.2 });
+
+      const onMoveEnd = () => {
+        clickedLatLngRef.current = { lat, lng };
+        const pt = map.latLngToContainerPoint([lat, lng]);
+        setPopupPos({ x: pt.x, y: pt.y });
+        setClickedVessel({
+          imo: found.imo,
+          name: found.vesselName,
+          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaName),
+        });
+        map.off("moveend", onMoveEnd);
+      };
+      map.once("moveend", onMoveEnd);
+    } else {
+      setGpsAlert(true);
+      setTimeout(() => setGpsAlert(false), 3500);
+    }
+  }, [selectedVessel, mapReady]);
 
   // ── 지도 초기화 (최초 1회) ──────────────────────────────────────────
   useEffect(() => {
@@ -204,6 +267,20 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         });
       });
 
+      map.on("move", () => {
+        const ll = clickedLatLngRef.current;
+        if (ll) {
+          const pt = map.latLngToContainerPoint([ll.lat, ll.lng]);
+          setPopupPos({ x: pt.x, y: pt.y });
+        }
+      });
+
+      map.on("click", () => {
+        clickedLatLngRef.current = null;
+        setClickedVessel(null);
+        setPopupPos(null);
+      });
+
       const handleResize = () => {
         const w = window.innerWidth;
         const newMinZoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
@@ -243,6 +320,9 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
+    clickedLatLngRef.current = null;
+    setClickedVessel(null);
+    setPopupPos(null);
 
     if (!vessels || vessels.length === 0) return;
 
@@ -260,6 +340,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         lng: v.longitude!,
         name: v.vesselName,
         heading: v.vesselHeading ?? 0,
+        imo: v.imo,
         color:
           v.connected === false ? "#ef4444" : getServiceColor(v.antennaName),
         connected: v.connected !== false,
@@ -288,11 +369,24 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         marker._vesselHeading = vessel.heading;
         marker._vesselName = vessel.name;
 
-        marker.on("click", () => {
-          map.flyTo([vessel.lat, vessel.lng + offset], 7, {
-            animate: true,
-            duration: 1.2,
-          });
+        marker.on("click", (e: any) => {
+          L.DomEvent.stop(e);
+          const latlng = { lat: vessel.lat, lng: vessel.lng + offset };
+          clickedLatLngRef.current = latlng;
+          const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
+          setPopupPos({ x: pt.x, y: pt.y });
+          setClickedVessel({ imo: vessel.imo, name: vessel.name, color: vessel.color });
+          map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.2 });
+          getVesselDetail(vessel.imo)
+            .then((detail) => {
+              setSelectedVessel({
+                id: detail.id,
+                imo: detail.imo,
+                name: detail.name,
+                vpnIp: detail.vpn_ip,
+              });
+            })
+            .catch(() => {});
         });
 
         const statusDot = vessel.connected
@@ -328,7 +422,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         markersRef.current.push(marker);
       });
     });
-  }, [vessels, mapReady, showName, activeFilter]);
+  }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
+
+  const handleResetView = () => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const w = window.innerWidth;
+    const zoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
+    map.flyTo([20, 170], zoom, { animate: true, duration: 1.2 });
+  };
 
   const handleStyleChange = async (styleId: string) => {
     const style = MAP_STYLES.find((s) => s.id === styleId);
@@ -344,6 +446,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setActiveStyle(styleId);
   };
 
+  const handleViewDetail = () => {
+    router.push("/vessels/detail");
+  };
+
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -352,6 +458,49 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         className="relative w-full"
         style={{ height: "90vh" }}
       />
+
+      {/* 선박 클릭 팝업 */}
+      {clickedVessel && popupPos && (
+        <div
+          className="pointer-events-none absolute z-999"
+          style={{ left: popupPos.x + 36, top: popupPos.y - 16 }}
+        >
+          <button
+            onClick={handleViewDetail}
+            className="pointer-events-auto flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg transition-all hover:bg-orange-400 active:scale-95"
+          >
+            View Detail
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* No GPS Data 알림 */}
+      <div
+        className={`pointer-events-none absolute bottom-[calc(10vh+16px)] left-1/2 z-1000 -translate-x-1/2 transition-all duration-300 ${
+          gpsAlert ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+        }`}
+      >
+        <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 px-4 py-2.5 shadow-xl backdrop-blur-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          </svg>
+          <span className="text-xs font-bold text-white">No GPS Data for this vessel</span>
+        </div>
+      </div>
+
+      {/* 지도 오른쪽 하단 리셋 버튼 */}
+      <button
+        onClick={handleResetView}
+        title="Reset view"
+        className="absolute bottom-[calc(10vh+12px)] right-3 z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
 
       {/* 하단 컨트롤 바 */}
       <div
