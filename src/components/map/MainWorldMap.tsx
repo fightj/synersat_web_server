@@ -487,7 +487,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           </svg>
-          <span className="text-xs font-bold text-white">No GPS Data for this vessel</span>
+          <span className="text-xs font-bold text-white">
+            No GPS Data for{" "}
+            <span className="text-orange-400">{selectedVessel?.name}</span>
+          </span>
         </div>
       </div>
 
