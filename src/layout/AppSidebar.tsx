@@ -403,36 +403,14 @@ const AppSidebar: React.FC = () => {
             aria-label="Toggle Sidebar"
           >
             {showFullSidebar ? (
-              /* 패널 닫기: 세로선 + 왼쪽 화살표 */
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <path d="M15 8l-3 4 3 4" />
+              /* 닫기: 왼쪽 화살표 */
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
               </svg>
             ) : (
-              /* 패널 열기: 세로선 + 오른쪽 화살표 */
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <path d="M12 8l3 4-3 4" />
+              /* 열기: 오른쪽 화살표 */
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
               </svg>
             )}
           </button>
