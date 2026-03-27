@@ -243,6 +243,7 @@ interface PortForwardTableProps {
   isLoading: boolean;
   isUpdating: boolean;
   isLocked: boolean;
+  hasVessel: boolean;
   statusCounts: {
     available: number;
     create: number;
@@ -260,6 +261,7 @@ export default function PortForwardTable({
   isLoading,
   isUpdating,
   isLocked,
+  hasVessel,
   statusCounts,
   getInterfaceLabel,
   onEditClick,
@@ -321,10 +323,34 @@ export default function PortForwardTable({
             </TableRow>
           ) : rules.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={12} className="py-24 text-center">
-                <p className="text-sm font-medium opacity-30 dark:text-gray-400">
-                  No rules found.
-                </p>
+              <TableCell colSpan={12} className="py-16 text-center">
+                {!hasVessel ? (
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-500/10">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-red-500">
+                        <path
+                          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-800 dark:text-white">
+                        Failed to load rules
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                        Please select a vessel
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium opacity-30 dark:text-gray-400">
+                    No rules found.
+                  </p>
+                )}
               </TableCell>
             </TableRow>
           ) : (

@@ -288,6 +288,13 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         marker._vesselHeading = vessel.heading;
         marker._vesselName = vessel.name;
 
+        marker.on("click", () => {
+          map.flyTo([vessel.lat, vessel.lng + offset], 7, {
+            animate: true,
+            duration: 1.2,
+          });
+        });
+
         const statusDot = vessel.connected
           ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;box-shadow:0 0 4px #22c55e;"></span>`
           : `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;"></span>`;
