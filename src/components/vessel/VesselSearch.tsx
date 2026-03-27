@@ -199,7 +199,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => setOpen(true)}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-white"
+            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white"
           />
 
           <div className="absolute right-3 flex items-center gap-2">

@@ -14,6 +14,8 @@ import {
   VesselIcon,
   FirewallIcon,
   MainLogoDark,
+  EarthIcon,
+  CommandSidebar,
 } from "../icons/index";
 
 type NavItem = {
@@ -26,7 +28,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { icon: <GridIcon />, name: "Dashboard", path: "/" },
+  { icon: <EarthIcon />, name: "Dashboard", path: "/" },
   { name: "Vessels", icon: <VesselIcon />, path: "/vessels" },
   { icon: <UserCircleIcon />, name: "Crew Account", path: "/crew_account" },
   {
@@ -63,7 +65,7 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  { icon: <ListIcon />, name: "Commands", path: "/commands" },
+  { icon: <CommandSidebar />, name: "Commands", path: "/commands" },
 
   // {
   //   name: "Pages",
@@ -404,12 +406,30 @@ const AppSidebar: React.FC = () => {
           >
             {showFullSidebar ? (
               /* 닫기: 왼쪽 화살표 */
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             ) : (
               /* 열기: 오른쪽 화살표 */
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 18l6-6-6-6" />
               </svg>
             )}

@@ -61,6 +61,8 @@ import MainLogoDark from "./main_logo_dark.svg";
 import CommandSignIcon from "./command-sign-icon.svg";
 import DisconnectedIcon from "./disconnected.svg";
 import MapVesselIcon from "./map-vessel.svg";
+import EarthIcon from "./planet-earth.svg";
+import CommandSidebar from "./command-sidebar.svg";
 
 export {
   DownloadIcon,
@@ -126,4 +128,6 @@ export {
   CommandSignIcon,
   DisconnectedIcon,
   MapVesselIcon,
+  EarthIcon,
+  CommandSidebar,
 };
