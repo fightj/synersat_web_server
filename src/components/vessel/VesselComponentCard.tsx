@@ -42,7 +42,7 @@ export default function VesselComponentCard() {
 
       <div
         className={`sticky top-5 z-20 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
-          isSticky ? "mx-24 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
+          isSticky ? "mx-36 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
         }`}
       >
         <div className="flex items-center justify-between px-6 py-4">

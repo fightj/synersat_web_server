@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from "react";
 import {
   CheckCircleIcon,
-  Squares2X2Icon,
-  ListBulletIcon,
   PlusIcon,
 } from "@heroicons/react/24/solid";
 import { getDeviceCredentials } from "@/api/device-credential";
@@ -201,7 +199,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
                 : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
             }`}
           >
-            <ListBulletIcon className="h-3.5 w-3.5" />
             Group
           </button>
           <button
@@ -212,7 +209,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
                 : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
             }`}
           >
-            <Squares2X2Icon className="h-3.5 w-3.5" />
             All
           </button>
         </div>

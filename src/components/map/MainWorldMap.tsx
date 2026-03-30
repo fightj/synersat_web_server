@@ -46,7 +46,7 @@ type FilterKey = "all" | "starlink" | "nexuswave" | "vsat" | "fbb" | "offline";
 const FILTER_CATEGORIES: { key: FilterKey; label: string; color: string }[] = [
   { key: "all", label: "Total", color: "#94a3b8" },
   { key: "starlink", label: "Starlink", color: "#a855f7" },
-  { key: "nexuswave", label: "Nexuswave", color: "#a855f7" },
+  { key: "nexuswave", label: "Nexuswave", color: "#818cf8" },
   { key: "vsat", label: "VSAT", color: "#10b981" },
   { key: "fbb", label: "FBB", color: "#0ea5e9" },
   { key: "offline", label: "Offline", color: "#ef4444" },
@@ -185,7 +185,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   );
 
   const offlineVessels = useMemo(
-    () => (vessels ?? []).filter((v) => v.connected === false),
+    () => (vessels ?? []).filter((v) => v.connected === false && (v.latitude === null || v.longitude === null)),
     [vessels],
   );
 
@@ -561,9 +561,12 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           <div className="absolute right-14 bottom-[calc(10vh+8px)] z-1000 flex w-68 max-h-96 flex-col overflow-hidden rounded-xl border border-white/10 bg-gray-900/70 shadow-2xl backdrop-blur-md">
             {/* 헤더 */}
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
-              <span className="text-xs font-bold text-white">
-                {activeListPanel === "online" ? "Online · No GPS" : "Offline Vessels"}
-                <span className="ml-1.5 text-[10px] font-normal text-gray-400">
+              <span className="flex items-baseline gap-1 font-bold text-white">
+                <span className="text-xs">
+                  {activeListPanel === "online" ? "Online" : "Offline"}
+                </span>
+                <span className="text-[10px] font-semibold text-gray-400">· No GPS</span>
+                <span className="text-[10px] font-normal text-gray-500">
                   ({filtered.length})
                 </span>
               </span>
@@ -588,7 +591,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
                   value={listSearch}
                   onChange={(e) => setListSearch(e.target.value)}
                   placeholder="Search vessel..."
-                  className="w-full bg-transparent text-xs text-white placeholder-gray-500 outline-none"
+                  className="w-full bg-transparent text-xs text-white placeholder-gray-400 outline-none"
                 />
                 {listSearch && (
                   <button onClick={() => setListSearch("")} className="shrink-0 text-gray-500 hover:text-white">

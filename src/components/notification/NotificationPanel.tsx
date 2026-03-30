@@ -49,18 +49,12 @@ function NotificationPanelCard({
   const isDisconnect = isVesselDisconnected(item);
   const isSuccess = isCommand && item.content.commandStatus === "SUCCESS";
 
-  const dotClass = isDisconnect
-    ? "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.5)]"
-    : isSuccess
-      ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-      : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]";
-
   return (
     <div
       onClick={() => {
         if (!isRead) onRead(item.id);
       }}
-      className={`cursor-pointer rounded-xl border p-4 transition-all ${
+      className={`relative cursor-pointer rounded-xl border p-4 transition-all ${
         isRead
           ? "border-gray-100 bg-gray-50/60 opacity-60 dark:border-white/5 dark:bg-white/1"
           : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm dark:border-white/5 dark:bg-white/2 dark:hover:border-white/10"
@@ -68,9 +62,19 @@ function NotificationPanelCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          {/* 상태 dot */}
-          <div className="mt-1 shrink-0">
-            <span className={`block h-2.5 w-2.5 rounded-full ${dotClass}`} />
+          {/* 상태 아이콘 */}
+          <div className="mt-0.5 shrink-0">
+            <span
+              className={
+                isDisconnect
+                  ? "text-orange-400"
+                  : isSuccess
+                    ? "text-emerald-500"
+                    : "text-red-500"
+              }
+            >
+              {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
+            </span>
           </div>
 
           <div className="flex min-w-0 flex-col gap-1">
@@ -113,11 +117,6 @@ function NotificationPanelCard({
               >
                 {isDisconnect ? "Connect" : "Command"}
               </span>
-              <span
-                className={isDisconnect ? "text-orange-400" : "text-blue-400"}
-              >
-                {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
-              </span>
               <span className="h-1 w-1 rounded-full bg-gray-300" />
               <span>{timeAgo(item.createdAt)}</span>
             </div>
@@ -142,9 +141,11 @@ function NotificationPanelCard({
               Disconnected
             </span>
           )}
-          {!isRead && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
         </div>
       </div>
+      {!isRead && (
+        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500" />
+      )}
     </div>
   );
 }
@@ -400,7 +401,7 @@ export default function NotificationPanel({
         >
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="flex h-full items-center justify-center">
