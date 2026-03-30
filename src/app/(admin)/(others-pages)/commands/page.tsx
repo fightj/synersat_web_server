@@ -25,7 +25,7 @@ export default function CommandsPage() {
     imo: undefined,
   });
 
-  // ✅ 상태별 갯수 계산 (API 응답 데이터 기준)
+  //  상태별 갯수 계산 (API 응답 데이터 기준)
   const stats = useMemo(() => {
     const initialStats: Record<CommandStatus, number> = {
       SUCCESS: 0,
@@ -82,7 +82,7 @@ export default function CommandsPage() {
     <>
       <PageBreadcrumb pageTitle="Commands" />
 
-      <div className="mt-6 space-y-6">
+      <div className="space-y-6">
         {/* 상단: 필터 및 상태 요약 영역 */}
         <CommandFilterContainer
           onFilterChange={handleFilterChange}
@@ -93,9 +93,9 @@ export default function CommandsPage() {
         {/* 중앙: 테이블 영역 (선박명 Dot 포함) */}
         <CommandTable commands={data?.contents || []} isLoading={isLoading} />
 
-        {/* 하단: 페이지네이션 영역 (SVG 아이콘 사용) */}
+        {/* 하단: 페이지네이션 영역  */}
         {data && data.totalContentCount > 0 && (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center">
             <Pagination
               currentPage={params.pageIndex}
               totalCount={data.totalContentCount}

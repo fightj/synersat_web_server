@@ -1,22 +1,7 @@
-import { ENV } from "../config/env";
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
+//--------------------------------------------------------------
 
-const TEST_USER = ENV.USER_ROLE;
-
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
-
-// ✅ COMMAND_NOTIFICATION content
+// Command 알림 content
 export interface CommandNotificationContent {
   imo: number;
   name: string;
@@ -24,7 +9,7 @@ export interface CommandNotificationContent {
   commandStatus: "SUCCESS" | "FAILED";
 }
 
-// ✅ VESSEL_DISCONNECTED content
+// Disconnected 알림 content
 export interface VesselDisconnectedContent {
   imo: number;
   name: string;
@@ -33,7 +18,7 @@ export interface VesselDisconnectedContent {
   checkedAt: string;
 }
 
-// ✅ kind에 따라 content 타입 분기
+// kind에 따라 content 타입 분기
 export type NotificationContent =
   | CommandNotificationContent
   | VesselDisconnectedContent;
@@ -51,7 +36,7 @@ export interface NotificationItem {
   read: boolean;
 }
 
-// ✅ 타입 가드
+// 타입 가드
 export function isCommandNotification(
   item: NotificationItem,
 ): item is NotificationItem & { content: CommandNotificationContent } {
@@ -78,7 +63,7 @@ export async function getNotifications(
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursorId !== undefined) params.set("cursorId", String(cursorId));
     if (unread !== undefined) params.set("unread", String(unread));
-    const url = `${ENV.BASE_URL}/notifications?${params.toString()}`;
+    const url = `${BASE_URL}/notifications?${params.toString()}`;
     const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
 
     if (!res.ok) {
@@ -95,7 +80,7 @@ export async function getNotifications(
 
 export async function readNotifications(notificationIds: number[]): Promise<void> {
   try {
-    const url = `${ENV.BASE_URL}/notifications`;
+    const url = `${BASE_URL}/notifications`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "PUT",

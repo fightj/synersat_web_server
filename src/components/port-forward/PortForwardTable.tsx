@@ -244,6 +244,8 @@ interface PortForwardTableProps {
   isUpdating: boolean;
   isLocked: boolean;
   hasVessel: boolean;
+  fetchError: string | null;
+  onRetry: () => void;
   statusCounts: {
     available: number;
     create: number;
@@ -262,6 +264,8 @@ export default function PortForwardTable({
   isUpdating,
   isLocked,
   hasVessel,
+  fetchError,
+  onRetry,
   statusCounts,
   getInterfaceLabel,
   onEditClick,
@@ -345,6 +349,50 @@ export default function PortForwardTable({
                         Please select a vessel
                       </p>
                     </div>
+                  </div>
+                ) : fetchError ? (
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-500/10">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-red-500">
+                        <path
+                          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-800 dark:text-white">
+                        Failed to load rules
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                        {fetchError}
+                      </p>
+                    </div>
+                    <button
+                      onClick={onRetry}
+                      className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M1 4v6h6M23 20v-6h-6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      Retry
+                    </button>
                   </div>
                 ) : (
                   <p className="text-sm font-medium opacity-30 dark:text-gray-400">

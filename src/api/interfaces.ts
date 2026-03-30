@@ -1,23 +1,4 @@
-import { ENV } from "../config/env";
-
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-// ✅ 테스트용 하드코딩 헤더 (테스트 시 직접 변경)
-const TEST_USER = ENV.USER_ROLE
-// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
-
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
 export interface DeviceInterface {
   interfaceName: string;
@@ -29,7 +10,7 @@ export async function getDeviceInterfaces(imo: number): Promise<DeviceInterface[
     const urlParams = new URLSearchParams();
     urlParams.append("imo", String(imo));
 
-    const url = `${ENV.BASE_URL}/interfaces?${urlParams.toString()}`;
+    const url = `${BASE_URL}/interfaces?${urlParams.toString()}`;
 
     const res = await fetch(url, withTestUser({
       ...fetchOptions,

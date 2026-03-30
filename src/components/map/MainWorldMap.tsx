@@ -147,6 +147,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [showName, setShowName] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [gpsAlert, setGpsAlert] = useState(false);
+  const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
+  const [listSearch, setListSearch] = useState("");
   const [clickedVessel, setClickedVessel] = useState<{
     imo: number;
     name: string;
@@ -176,6 +178,24 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       offline: list.filter((v) => v.connected === false).length,
     };
   }, [vessels]);
+
+  const noGpsVessels = useMemo(
+    () => (vessels ?? []).filter((v) => v.connected === true && (v.latitude === null || v.longitude === null)),
+    [vessels],
+  );
+
+  const offlineVessels = useMemo(
+    () => (vessels ?? []).filter((v) => v.connected === false),
+    [vessels],
+  );
+
+  const handleListViewDetail = async (imo: number) => {
+    try {
+      const detail = await getVesselDetail(imo);
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      router.push("/vessels/detail");
+    } catch {}
+  };
 
   // ── vesselsRef 최신화 ──────────────────────────────────────────────
   useEffect(() => {
@@ -253,6 +273,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
       tileLayerRef.current = L.tileLayer(MAP_STYLES[0].url, {
         noWrap: false,
+        keepBuffer: 4,
       }).addTo(map);
 
       map.on("zoomend", () => {
@@ -454,9 +475,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     const map = mapInstanceRef.current;
     map.removeLayer(tileLayerRef.current);
     tileLayerRef.current = L.tileLayer(style.url, {
-      noWrap: true,
+      noWrap: false,
+      keepBuffer: 4,
     }).addTo(map);
     tileLayerRef.current.bringToBack();
+    map.invalidateSize();
     setActiveStyle(styleId);
   };
 
@@ -525,6 +548,89 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           </span>
         </div>
       </div>
+
+      {/* Online(No GPS) / Offline 선박 목록 패널 */}
+      {activeListPanel && (() => {
+        const baseList = activeListPanel === "online" ? noGpsVessels : offlineVessels;
+        const filtered = listSearch.trim()
+          ? baseList.filter((v) =>
+              v.vesselName.toLowerCase().includes(listSearch.trim().toLowerCase()),
+            )
+          : baseList;
+        return (
+          <div className="absolute right-14 bottom-[calc(10vh+8px)] z-1000 flex w-68 max-h-96 flex-col overflow-hidden rounded-xl border border-white/10 bg-gray-900/70 shadow-2xl backdrop-blur-md">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
+              <span className="text-xs font-bold text-white">
+                {activeListPanel === "online" ? "Online · No GPS" : "Offline Vessels"}
+                <span className="ml-1.5 text-[10px] font-normal text-gray-400">
+                  ({filtered.length})
+                </span>
+              </span>
+              <button
+                onClick={() => { setActiveListPanel(null); setListSearch(""); }}
+                className="text-gray-400 transition-colors hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 검색바 */}
+            <div className="border-b border-white/10 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg bg-white/10 px-2.5 py-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-gray-400">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                  placeholder="Search vessel..."
+                  className="w-full bg-transparent text-xs text-white placeholder-gray-500 outline-none"
+                />
+                {listSearch && (
+                  <button onClick={() => setListSearch("")} className="shrink-0 text-gray-500 hover:text-white">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 목록 */}
+            <ul className="custom-scrollbar flex-1 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <li className="flex items-center justify-center py-8 text-xs text-gray-500">
+                  No vessels found
+                </li>
+              ) : (
+                filtered.map((v) => (
+                  <li
+                    key={v.imo}
+                    className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2 hover:bg-white/5"
+                  >
+                    <span className="min-w-0 truncate text-xs font-semibold text-gray-200">
+                      {v.vesselName}
+                    </span>
+                    <button
+                      onClick={() => handleListViewDetail(v.imo)}
+                      className="flex shrink-0 items-center gap-1 rounded-md bg-orange-500 px-2 py-1 text-[10px] font-bold text-white transition-all hover:bg-orange-400 active:scale-95"
+                    >
+                      View Detail
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* 지도 오른쪽 하단 리셋 버튼 */}
       <button
@@ -596,7 +702,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           })}
         </div>
 
-        {/* 오른쪽: 선박명 토글 + 지도 스타일 */}
+        {/* 왼쪽: 선박명 토글 + 지도 스타일 */}
         <div className="flex shrink-0 items-center gap-4">
           {/* 선박명 토글 */}
           <div className="flex items-center gap-2">
@@ -653,6 +759,55 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* 오른쪽: No GPS 그룹 */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <span className="text-[10px] font-bold tracking-wider text-yellow-500 uppercase">
+            No GPS
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setActiveListPanel((v) => (v === "online" ? null : "online"))}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                activeListPanel === "online"
+                  ? "border-green-500/60 bg-green-500/20 text-green-200"
+                  : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+              Online
+              <span
+                className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+                  activeListPanel === "online"
+                    ? "bg-white/20 text-white"
+                    : "bg-white/10 text-gray-300"
+                }`}
+              >
+                {noGpsVessels.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveListPanel((v) => (v === "offline" ? null : "offline"))}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                activeListPanel === "offline"
+                  ? "border-red-500/60 bg-red-500/20 text-red-300"
+                  : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+              }`}
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+              Offline
+              <span
+                className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+                  activeListPanel === "offline"
+                    ? "bg-white/20 text-white"
+                    : "bg-white/10 text-gray-300"
+                }`}
+              >
+                {offlineVessels.length}
+              </span>
+            </button>
           </div>
         </div>
       </div>

@@ -1,45 +1,24 @@
-import { ENV } from "../config/env";
-import type { 
-  CommandApiResponse, 
+import type {
+  CommandApiResponse,
   GetCommandsParams,
-  CommandDetailContent 
+  CommandDetailContent
 } from "@/types/command";
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
-// 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-const TEST_USER = ENV.USER_ROLE
-// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
-
-/**
- * 전송된 명령 목록 조회 (GET /vessels/commands)
- */
 export async function getCommands(params: GetCommandsParams): Promise<CommandApiResponse> {
   try {
     const urlParams = new URLSearchParams();
-    
+
     urlParams.append("pageIndex", String(params.pageIndex));
     urlParams.append("pageSize", String(params.pageSize));
-    
+
     if (params.commandType) urlParams.append("commandType", params.commandType);
     if (params.commandStatus) urlParams.append("commandStatus", params.commandStatus);
     if (params.imo) urlParams.append("imo", String(params.imo));
 
-    const url = `${ENV.BASE_URL}/vessels/commands?${urlParams.toString()}`;
+    const url = `${BASE_URL}/vessels/commands?${urlParams.toString()}`;
 
-   const res = await fetch(url, withTestUser({
+    const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
     }));
@@ -58,7 +37,7 @@ export async function getCommands(params: GetCommandsParams): Promise<CommandApi
 
 export async function failCommand(commandId: number): Promise<void> {
   try {
-    const url = `${ENV.BASE_URL}/vessels/commands/${commandId}`;
+    const url = `${BASE_URL}/vessels/commands/${commandId}`;
 
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
@@ -77,9 +56,9 @@ export async function failCommand(commandId: number): Promise<void> {
 
 export async function getCommandDetail(commandId: number): Promise<CommandDetailContent> {
   try {
-    const url = `${ENV.BASE_URL}/vessels/commands/${commandId}`;
+    const url = `${BASE_URL}/vessels/commands/${commandId}`;
 
-    
+
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",

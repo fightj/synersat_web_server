@@ -117,7 +117,7 @@ export default function LineChartOne({
       chart: {
         type: "area",
         height: 280,
-        fontFamily: "Outfit, sans-serif",
+        fontFamily: "Inter, sans-serif",
         toolbar: {
           show: true,
           tools: {

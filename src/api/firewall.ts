@@ -1,26 +1,9 @@
-import { ENV } from "../config/env";
 import { DeviceNatResponse, DeviceNatRow } from "@/types/firewall";
-
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-const TEST_USER = ENV.USER_ROLE
-// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
-
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
+//---------------------------------------------------------------------------
 export async function getDeviceNats(imo: number): Promise<DeviceNatRow[]> {
   try {
-    const url = `${ENV.BASE_URL}/v1/device-nats?imo=${imo}`;
+    const url = `${BASE_URL}/v1/device-nats?imo=${imo}`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "GET",
@@ -55,7 +38,7 @@ export async function getDeviceNats(imo: number): Promise<DeviceNatRow[]> {
 
 export async function addDeviceNat(payload: any): Promise<void> {
   try {
-    const url = `${ENV.BASE_URL}/device-nats`;
+    const url = `${BASE_URL}/device-nats`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "POST",
@@ -90,13 +73,8 @@ export async function updateDeviceNat(payload: {
   top: boolean;
 }): Promise<number> {
   try {
-    // ✅ 디버깅용 콘솔
-    console.log("========================================");
-    console.log("[updateDeviceNat] currentRuleCount:", payload.currentRuleCount);
-    console.log("[updateDeviceNat] index:", payload.index);
-    console.log("[updateDeviceNat] payload 전체:", JSON.stringify(payload, null, 2));
-    console.log("========================================");
-    const url = `${ENV.BASE_URL}/device-nats`;
+
+    const url = `${BASE_URL}/device-nats`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "PUT",
@@ -120,7 +98,7 @@ export async function deleteDeviceNat(
   currentRuleCount: number,
 ): Promise<number> {
   try {
-    const url = `${ENV.BASE_URL}/device-nats`;
+    const url = `${BASE_URL}/device-nats`;
     const res = await fetch(url, withTestUser({
       ...fetchOptions,
       method: "DELETE",

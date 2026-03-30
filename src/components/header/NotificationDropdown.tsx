@@ -73,9 +73,22 @@ function NotificationCard({
         <div className="min-w-0 flex-1">
           {/* 선박명 + 뱃지 */}
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-bold text-gray-800 dark:text-white/90">
-              {item.content.name}
-            </p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span
+                className={
+                  isDisconnect
+                    ? "shrink-0 text-orange-400"
+                    : isSuccess
+                      ? "shrink-0 text-emerald-500"
+                      : "shrink-0 text-red-500"
+                }
+              >
+                {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
+              </span>
+              <p className="truncate text-sm font-bold text-gray-800 dark:text-white/90">
+                {item.content.name}
+              </p>
+            </div>
             <div className="flex flex-shrink-0 items-center gap-1.5">
               {/* ✅ COMMAND_NOTIFICATION 뱃지 */}
               {isCommand && (
@@ -138,11 +151,6 @@ function NotificationCard({
               }`}
             >
               {getKindLabel(item.kind)}
-            </span>
-            <span
-              className={isDisconnect ? "text-orange-400" : "text-blue-400"}
-            >
-              {isDisconnect ? <DisconnectedIcon /> : <CommandSignIcon />}
             </span>
             <span className="h-1 w-1 rounded-full bg-gray-300" />
             <span>{timeAgo(item.createdAt)}</span>

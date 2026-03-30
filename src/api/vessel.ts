@@ -1,27 +1,6 @@
 import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, DashboardVesselsResponse } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
-import { ENV } from "@/config/env";
-
-const BASE_URL = ENV.BASE_URL
-// ✅ 테스트용 하드코딩 헤더 (테스트 시 직접 변경)
-const TEST_USER = ENV.USER_ROLE
-// "synersat-admin" | "synersat-user" | "sktelink-admin" | "sktelink-user" | anges 등등..
-
-// 공통 fetch 옵션 - grv_session 쿠키 자동 첨부
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
 export async function getVessels(): Promise<Vessel[]> {
   try {

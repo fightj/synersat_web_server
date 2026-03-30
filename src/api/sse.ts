@@ -1,22 +1,7 @@
-import { ENV } from "../config/env";
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
-const TEST_USER = ENV.USER_ROLE;
-
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
-
-// ✅ COMMAND_NOTIFICATION 데이터
+//------------------------------------------------------------------
+// COMMAND_NOTIFICATION 데이터
 export interface SSECommandData {
   imo: number;
   name: string;
@@ -29,7 +14,7 @@ export interface SSECommandEvent {
   createdAt: string;
 }
 
-// ✅ VESSEL_DISCONNECTED 데이터
+// VESSEL_DISCONNECTED 데이터
 export interface SSEVesselDisconnectedData {
   imo: number;
   name: string;
@@ -53,7 +38,7 @@ export interface SSECallbacks {
 
 export function connectSSE(callbacks: SSECallbacks): () => void {
   const { onCommandNotification, onVesselDisconnected, onError, onDisconnect } = callbacks;
-  const url = `${ENV.BASE_URL}/sse`;
+  const url = `${BASE_URL}/sse`;
   const abortController = new AbortController();
 
   const fetchSSE = async () => {

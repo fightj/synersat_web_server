@@ -27,6 +27,7 @@ export default function PortForwardPageTemplate({
     statusCounts,
     isLoading,
     isUpdating,
+    fetchError,
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,
@@ -104,6 +105,8 @@ export default function PortForwardPageTemplate({
             isUpdating={isUpdating}
             isLocked={isLocked}
             hasVessel={!!selectedVessel}
+            fetchError={fetchError}
+            onRetry={fetchAllData}
             statusCounts={statusCounts}
             getInterfaceLabel={getInterfaceLabel}
             onEditClick={handleEditClick}

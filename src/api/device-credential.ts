@@ -1,24 +1,8 @@
-import { ENV } from "../config/env";
 import { DeviceCredential } from "@/types/device";
-
-const fetchOptions: RequestInit = {
-  credentials: "include",
-  cache: "no-store",
-};
-
-const TEST_USER = ENV.USER_ROLE;
-
-function withTestUser(options: RequestInit = {}): RequestInit {
-  const existingHeaders = new Headers(options.headers);
-  existingHeaders.set("Authorization", TEST_USER);
-  return {
-    ...options,
-    headers: existingHeaders,
-  };
-}
-
+import { BASE_URL, fetchOptions, withTestUser } from "./_client";
+//-----------------------------------------------------------------------------------
 export async function getDeviceCredentials(imo: number): Promise<DeviceCredential[]> {
-  const url = `${ENV.BASE_URL}/vessels/device-credentials?imo=${imo}`;
+  const url = `${BASE_URL}/vessels/device-credentials?imo=${imo}`;
 
   const response = await fetch(url, withTestUser(fetchOptions));
 
@@ -43,7 +27,7 @@ export interface CreateDeviceCredentialPayload {
 export async function createDeviceCredential(
   payload: CreateDeviceCredentialPayload,
 ): Promise<DeviceCredential> {
-  const url = `${ENV.BASE_URL}/vessels/device-credentials`;
+  const url = `${BASE_URL}/vessels/device-credentials`;
 
   const response = await fetch(
     url,

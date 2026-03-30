@@ -21,6 +21,7 @@ export function usePortForward(ruleType: RuleType) {
   const [interfaces, setInterfaces] = useState<DeviceInterface[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -34,6 +35,7 @@ export function usePortForward(ruleType: RuleType) {
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
     setIsLoading(true);
+    setFetchError(null);
     try {
       const [natsData, ifaceData] = await Promise.all([
         getDeviceNats(Number(imo)),
@@ -43,6 +45,7 @@ export function usePortForward(ruleType: RuleType) {
       setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
     } catch (error) {
       console.error("Fetch Error:", error);
+      setFetchError(error instanceof Error ? error.message : "Failed to load data");
     } finally {
       setIsLoading(false);
     }
@@ -173,6 +176,7 @@ export function usePortForward(ruleType: RuleType) {
     statusCounts,
     isLoading,
     isUpdating,
+    fetchError,
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,
