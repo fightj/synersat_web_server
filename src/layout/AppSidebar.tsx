@@ -16,6 +16,7 @@ import {
   MainLogoDark,
   EarthIcon,
   CommandSidebar,
+  ManagementIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -52,7 +53,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <BoxCubeIcon />,
+    icon: <ManagementIcon />,
     name: "Manage",
     subItems: [
       {

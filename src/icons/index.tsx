@@ -63,6 +63,7 @@ import DisconnectedIcon from "./disconnected.svg";
 import MapVesselIcon from "./map-vessel.svg";
 import EarthIcon from "./planet-earth.svg";
 import CommandSidebar from "./command-sidebar.svg";
+import ManagementIcon from "./management.svg";
 
 export {
   DownloadIcon,
@@ -130,4 +131,5 @@ export {
   MapVesselIcon,
   EarthIcon,
   CommandSidebar,
+  ManagementIcon,
 };

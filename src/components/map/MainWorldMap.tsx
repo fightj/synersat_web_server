@@ -52,6 +52,13 @@ const FILTER_CATEGORIES: { key: FilterKey; label: string; color: string }[] = [
   { key: "offline", label: "Offline", color: "#ef4444" },
 ];
 
+function getClosestLng(baseLng: number, refLng: number): number {
+  const candidates = [baseLng - 360, baseLng, baseLng + 360];
+  return candidates.reduce((best, c) =>
+    Math.abs(c - refLng) < Math.abs(best - refLng) ? c : best,
+  );
+}
+
 function matchFilter(
   antennaName: string | null,
   connected: boolean,
@@ -145,7 +152,9 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     name: string;
     color: string;
   } | null>(null);
-  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(
+    null,
+  );
 
   // ── 카테고리별 통계 ────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -190,8 +199,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     );
     if (found) {
       const lat = found.latitude!;
-      const lng = found.longitude!;
       const map = mapInstanceRef.current;
+      const lng = getClosestLng(found.longitude!, map.getCenter().lng);
 
       map.flyTo([lat, lng], 7, { animate: true, duration: 1.2 });
 
@@ -202,7 +211,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         setClickedVessel({
           imo: found.imo,
           name: found.vesselName,
-          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaName),
+          color:
+            found.connected === false
+              ? "#ef4444"
+              : getServiceColor(found.antennaName),
         });
         map.off("moveend", onMoveEnd);
       };
@@ -233,11 +245,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         maxZoom: 10,
         zoomControl: false,
         attributionControl: false,
-        worldCopyJump: false,
-        maxBounds: L.latLngBounds(
-          L.latLng(-75, -Infinity),
-          L.latLng(85, Infinity),
-        ),
+        maxBounds: L.latLngBounds(L.latLng(-85, -Infinity), L.latLng(85, Infinity)),
         maxBoundsViscosity: 1.0,
       });
       mapInstanceRef.current = map;
@@ -245,7 +253,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
       tileLayerRef.current = L.tileLayer(MAP_STYLES[0].url, {
         noWrap: false,
-        keepBuffer: 4,
       }).addTo(map);
 
       map.on("zoomend", () => {
@@ -351,76 +358,84 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       }));
 
     points.forEach((vessel) => {
-      [-360, 0, 360].forEach((offset) => {
-        const marker = L.marker([vessel.lat, vessel.lng + offset], {
-          icon: makeVesselIcon(
-            L,
-            w,
-            h,
-            vessel.color,
-            vessel.heading,
-            vessel.name,
-            showName,
-          ),
-          zIndexOffset: 1000,
-        }).addTo(map);
+      const marker = L.marker([vessel.lat, getClosestLng(vessel.lng, 170)], {
+        icon: makeVesselIcon(
+          L,
+          w,
+          h,
+          vessel.color,
+          vessel.heading,
+          vessel.name,
+          showName,
+        ),
+        zIndexOffset: 1000,
+      }).addTo(map);
 
-        marker._vesselColor = vessel.color;
-        marker._vesselHeading = vessel.heading;
-        marker._vesselName = vessel.name;
+      marker._vesselColor = vessel.color;
+      marker._vesselHeading = vessel.heading;
+      marker._vesselName = vessel.name;
+      marker._vesselBaseLng = vessel.lng;
+      marker._vesselImo = vessel.imo;
 
-        marker.on("click", (e: any) => {
-          L.DomEvent.stop(e);
-          const latlng = { lat: vessel.lat, lng: vessel.lng + offset };
-          clickedLatLngRef.current = latlng;
-          const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
-          setPopupPos({ x: pt.x, y: pt.y });
-          setClickedVessel({ imo: vessel.imo, name: vessel.name, color: vessel.color });
-          map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.2 });
-          getVesselDetail(vessel.imo)
-            .then((detail) => {
-              setSelectedVessel({
-                id: detail.id,
-                imo: detail.imo,
-                name: detail.name,
-                vpnIp: detail.vpn_ip,
-              });
-            })
-            .catch(() => {});
+      marker.on("click", (e: any) => {
+        L.DomEvent.stop(e);
+        const targetLng = getClosestLng(vessel.lng, map.getCenter().lng);
+        const latlng = { lat: vessel.lat, lng: targetLng };
+        clickedLatLngRef.current = latlng;
+        const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
+        setPopupPos({ x: pt.x, y: pt.y });
+        setClickedVessel({
+          imo: vessel.imo,
+          name: vessel.name,
+          color: vessel.color,
         });
-
-        const statusDot = vessel.connected
-          ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;box-shadow:0 0 4px #22c55e;"></span>`
-          : `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;"></span>`;
-        const statusText = vessel.connected
-          ? `<span style="color:#22c55e;font-weight:700;">Online</span>`
-          : `<span style="color:#ef4444;font-weight:700;">Offline</span>`;
-
-        marker.bindTooltip(
-          `
-          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-width:175px;padding:0;border-radius:10px;overflow:hidden;">
-            <div style="background:${vessel.color};padding:8px 12px 7px;">
-              <div style="font-size:12px;font-weight:500;color:#fff;letter-spacing:0.03em;text-transform:uppercase;">${vessel.name}</div>
-            </div>
-            <div style="padding:9px 12px;background:#1e293b;display:flex;flex-direction:column;gap:5px;">
-              <div style="display:flex;align-items:center;font-size:12px;">${statusDot}${statusText}</div>
-              ${vessel.antennaName ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:#e2e8f0;font-weight:600;">${vessel.antennaName}</span></div>` : ""}
-              ${vessel.satType ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">SAT Type</span><span style="color:#e2e8f0;font-weight:600;">${vessel.satType}</span></div>` : ""}
-              ${vessel.vesselSpeed != null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Speed</span><span style="color:#e2e8f0;font-weight:600;">${vessel.vesselSpeed} kn</span></div>` : ""}
-              <div style="font-size:11px;margin-top:2px;color:#cbd5e1;">${vessel.lat}°N, ${vessel.lng}°E</div>
-            </div>
-          </div>
-        `,
-          {
-            direction: "top",
-            offset: [0, -(h / 2 + 4)],
-            className: "vessel-hover-tooltip",
-            opacity: 1,
-          },
-        );
-
-        markersRef.current.push(marker);
+        map.flyTo([latlng.lat, latlng.lng], 7, {
+          animate: true,
+          duration: 1.2,
+        });
+        getVesselDetail(vessel.imo)
+          .then((detail) => {
+            setSelectedVessel({
+              id: detail.id,
+              imo: detail.imo,
+              name: detail.name,
+              vpnIp: detail.vpn_ip,
+            });
+          })
+          .catch(() => {});
       });
+
+      const statusDot = vessel.connected
+        ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;box-shadow:0 0 4px #22c55e;"></span>`
+        : `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;"></span>`;
+      const statusText = vessel.connected
+        ? `<span style="color:#22c55e;font-weight:700;">Online</span>`
+        : `<span style="color:#ef4444;font-weight:700;">Offline</span>`;
+
+      marker.bindTooltip(
+        `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-width:175px;padding:0;border-radius:10px;overflow:hidden;">
+          <div style="background:${vessel.color};padding:8px 12px 7px;">
+            <div style="font-size:12px;font-weight:500;color:#fff;letter-spacing:0.03em;text-transform:uppercase;">${vessel.name}</div>
+          </div>
+          <div style="padding:9px 12px;background:#1e293b;display:flex;flex-direction:column;gap:5px;">
+            <div style="display:flex;align-items:center;font-size:12px;">${statusDot}${statusText}</div>
+            ${vessel.antennaName ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:#e2e8f0;font-weight:600;">${vessel.antennaName}</span></div>` : ""}
+            ${vessel.satType ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">SAT Type</span><span style="color:#e2e8f0;font-weight:600;">${vessel.satType}</span></div>` : ""}
+            ${vessel.vesselSpeed != null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Speed</span><span style="color:#e2e8f0;font-weight:600;">${vessel.vesselSpeed} kn</span></div>` : ""}
+            <div style="font-size:11px;margin-top:2px;color:#cbd5e1;">${vessel.lat}°N, ${vessel.lng}°E</div>
+          </div>
+        </div>
+        `,
+        {
+          direction: "top",
+          offset: [0, -(h / 2 + 4)],
+          className: "vessel-hover-tooltip",
+          opacity: 1,
+        },
+      );
+
+      markersRef.current.push(marker);
     });
   }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
 
@@ -439,8 +454,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     const map = mapInstanceRef.current;
     map.removeLayer(tileLayerRef.current);
     tileLayerRef.current = L.tileLayer(style.url, {
-      noWrap: false,
-      keepBuffer: 4,
+      noWrap: true,
     }).addTo(map);
     tileLayerRef.current.bringToBack();
     setActiveStyle(styleId);
@@ -470,8 +484,17 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
             className="pointer-events-auto flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg transition-all hover:bg-orange-400 active:scale-95"
           >
             View Detail
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
         </div>
@@ -484,8 +507,17 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         }`}
       >
         <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 px-4 py-2.5 shadow-xl backdrop-blur-sm">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#f97316"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           </svg>
           <span className="text-xs font-bold text-white">
             No GPS Data for{" "}
@@ -498,10 +530,19 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       <button
         onClick={handleResetView}
         title="Reset view"
-        className="absolute bottom-[calc(10vh+12px)] right-3 z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+        className="absolute right-3 bottom-[calc(10vh+12px)] z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
         </svg>
       </button>
 
