@@ -20,7 +20,7 @@ const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 export default function VesselDetailPage() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
-
+  const vesselId = selectedVessel?.id ? String(selectedVessel.id) : null
   const [isLive, setIsLive] = useState(true);
   const [liveRangeFn, setLiveRangeFn] = useState<
     (() => { start: Date; end: Date }) | null
@@ -187,6 +187,7 @@ export default function VesselDetailPage() {
           <div className="h-[450px] w-full lg:h-auto lg:w-1/2">
             <WorldMap
               vesselImo={imo}
+              vesselId = {vesselId}
               coordinates={routeData?.coordinates ?? []}
             />
           </div>

@@ -4,14 +4,15 @@ import { useEffect, useRef, useMemo } from "react";
 import "leaflet/dist/leaflet.css";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
-import { format, addHours, parseISO } from "date-fns"; // 시간 변환을 위해 추가
+import RedirectButtons from "../common/RedirectButtons";
 
 interface WorldMapProps {
   vesselImo: string;
+  vesselId: string | null
   coordinates: RouteCoordinate[];
 }
 
-export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
+export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<
@@ -210,6 +211,7 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
   }, [coordinates, hasValidGps]);
 
   return (
+    <>
     <div className="relative h-[550px] w-full overflow-hidden rounded-xl border border-gray-200 bg-[#aad3df] shadow-inner dark:border-white/10 dark:bg-[#121212]">
       {/* 4. 지도 레이어 */}
       <div ref={mapRef} className="absolute inset-0 z-0" />
@@ -242,5 +244,10 @@ export default function WorldMap({ vesselImo, coordinates }: WorldMapProps) {
         </div>
       )}
     </div>
+    <div className="mt-3  rounded-xl border border-gray-200 bg-white p-2 dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <RedirectButtons vesselId={vesselId} />
+    </div>
+    </>
+    
   );
 }
