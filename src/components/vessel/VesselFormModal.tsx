@@ -105,7 +105,7 @@ export default function VesselFormModal({
         className={`flex max-h-[90vh] flex-col gap-6 ${form.saving ? "blur-sm" : ""}`}
       >
         <div className="border-b pb-4 dark:border-white/10">
-          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
             {vesselResult
               ? "Registration Successful"
               : mode === "add"
@@ -415,7 +415,7 @@ export default function VesselFormModal({
                   onClose();
                   window.location.reload();
                 }}
-                className="flex-1 rounded-lg bg-gray-500 py-3 text-sm font-extrabold text-white"
+                className="flex-1 rounded-lg bg-gray-500 py-3 text-sm font-bold text-white"
               >
                 Close
               </button>
@@ -430,7 +430,7 @@ export default function VesselFormModal({
                   onClose();
                   router.push("/vessels/detail");
                 }}
-                className="bg-brand-500 flex-1 rounded-lg py-3 text-sm font-extrabold text-white shadow-lg"
+                className="bg-brand-500 flex-1 rounded-lg py-3 text-sm font-bold text-white shadow-lg"
               >
                 Show Details
               </button>

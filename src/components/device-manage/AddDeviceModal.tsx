@@ -45,7 +45,7 @@ const CATEGORY_OPTIONS = [
   { value: "fleetlink", label: "Fleetlink" },
   { value: "modem", label: "Modem" },
   { value: "VLAN", label: "VLAN" },
-  { value: "other", label: "Other (직접 입력)" },
+  { value: "other", label: "Other (Enter)" },
 ];
 
 const MODEL_OPTIONS = [
@@ -301,7 +301,7 @@ export default function AddDeviceModal({
       <div className="flex h-[90vh] flex-col">
         {/* 헤더 */}
         <div className="border-b border-gray-100 px-6 py-4 dark:border-white/10">
-          <h3 className="text-xl font-bold dark:text-white">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
             Add Device Credentials
           </h3>
           <p className="text-sm text-gray-500">
@@ -331,7 +331,7 @@ export default function AddDeviceModal({
               >
                 {/* 카드 헤더 */}
                 <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-white/5">
-                  <span className="text-sm font-black text-gray-500 dark:text-gray-400">
+                  <span className="text-sm font-black text-gray-900 dark:text-gray-200">
                     Device #{index + 1}
                   </span>
                   {entries.length > 1 && (

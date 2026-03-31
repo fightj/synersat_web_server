@@ -813,6 +813,13 @@ html.dark {
  }
 
 /* ── Vessel hover tooltip ─────────────────────────────────── */
+@keyframes vessel-ping {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
 .vessel-hover-tooltip {
   padding: 0 !important;
   background: transparent !important;

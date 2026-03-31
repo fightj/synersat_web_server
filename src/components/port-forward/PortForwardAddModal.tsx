@@ -118,7 +118,7 @@ export default function PortForwardAddModal({
       >
         {/* 헤더 - 고정 */}
         <div className="border-b pb-4 dark:border-white/10">
-          <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
             Add New Port Forward Rule
           </h3>
         </div>

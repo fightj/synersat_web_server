@@ -201,7 +201,7 @@ export default function ManageCrewAccount() {
               disabled={crew.length === 0 || isLoading}
               className="bg-white font-semibold text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200"
             >
-              <CsvIcon className="mr-2" />
+              <CsvIcon />
               Export CSV
             </Button>
 

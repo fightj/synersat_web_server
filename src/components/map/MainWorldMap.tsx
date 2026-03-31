@@ -8,12 +8,13 @@ import { getServiceColor } from "../common/AnntennaMapping";
 import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
+// 모든 스타일은 Carto 계열 — 영어 레이블 보장
 const MAP_STYLES = [
   {
     id: "default",
     label: "Default",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    preview: "https://a.tile.openstreetmap.org/2/2/1.png",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    preview: "https://a.basemaps.cartocdn.com/rastertiles/voyager/2/2/1.png",
   },
   {
     id: "dark",
@@ -22,22 +23,10 @@ const MAP_STYLES = [
     preview: "https://a.basemaps.cartocdn.com/dark_all/2/2/1.png",
   },
   {
-    id: "voyager",
-    label: "Voyager",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    preview: "https://a.basemaps.cartocdn.com/rastertiles/voyager/2/2/1.png",
-  },
-  {
     id: "light",
     label: "Light",
     url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
     preview: "https://a.basemaps.cartocdn.com/light_all/2/2/1.png",
-  },
-  {
-    id: "topo",
-    label: "Topo",
-    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    preview: "https://a.tile.opentopomap.org/2/2/1.png",
   },
 ];
 
@@ -141,6 +130,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const isMountedRef = useRef(false);
   const prevSelectedImoRef = useRef<number | null>(null);
   const vesselsRef = useRef(vessels);
+  const pingMarkerRef = useRef<any>(null);
 
   const [activeStyle, setActiveStyle] = useState("default");
   const [mapReady, setMapReady] = useState(false);
@@ -188,6 +178,49 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     () => (vessels ?? []).filter((v) => v.connected === false && (v.latitude === null || v.longitude === null)),
     [vessels],
   );
+
+  // ── 클릭된 선박 ping 마커 ──────────────────────────────────────────
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+
+    // ping 마커 제거
+    if (pingMarkerRef.current) {
+      pingMarkerRef.current.remove();
+      pingMarkerRef.current = null;
+    }
+
+    if (!clickedVessel || !clickedLatLngRef.current || !L || !map) return;
+
+    const { lat, lng } = clickedLatLngRef.current;
+    const color = clickedVessel.color;
+
+    const pingIcon = L.divIcon({
+      className: "",
+      html: `
+        <div style="position:relative;width:40px;height:40px;transform:translate(-50%,-50%)">
+          <span style="
+            position:absolute;inset:0;border-radius:50%;
+            background:${color};opacity:0.35;
+            animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) infinite;
+          "></span>
+          <span style="
+            position:absolute;inset:0;border-radius:50%;
+            background:${color};opacity:0.2;
+            animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) 0.5s infinite;
+          "></span>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [0, 0],
+    });
+
+    pingMarkerRef.current = L.marker([lat, lng], {
+      icon: pingIcon,
+      zIndexOffset: 999,
+      interactive: false,
+    }).addTo(map);
+  }, [clickedVessel]);
 
   const handleListViewDetail = async (imo: number) => {
     try {
@@ -566,7 +599,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
                   {activeListPanel === "online" ? "Online" : "Offline"}
                 </span>
                 <span className="text-[10px] font-semibold text-gray-400">· No GPS</span>
-                <span className="text-[10px] font-normal text-gray-500">
+                <span className="text-[11px] font-normal text-orange-400">
                   ({filtered.length})
                 </span>
               </span>
@@ -692,7 +725,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
                 />
                 {label}
                 <span
-                  className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+                  className={`rounded px-1 py-0.5 text-[11px] leading-none font-bold ${
                     isActive
                       ? "bg-white/20 text-white"
                       : "bg-white/10 text-gray-300"

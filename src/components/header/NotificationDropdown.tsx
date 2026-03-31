@@ -241,10 +241,12 @@ export default function NotificationDropdown() {
         onClick={toggleDropdown}
       >
         {showBadge && (
-          <span className="absolute -top-1.5 -right-1.5 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-orange-400 px-1">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
-            <span className="relative text-[10px] font-bold leading-none text-white">
-              {serverUnreadCount > 99 ? "99+" : serverUnreadCount}
+          <span className="absolute -top-1.5 -right-1.5 z-10 block h-[18px] w-[18px]">
+            <span className="absolute inset-0 animate-ping rounded-full bg-orange-400 opacity-60" />
+            <span className="absolute top-0 right-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-orange-400 px-1">
+              <span className="text-[10px] font-bold leading-none text-white">
+                {serverUnreadCount > 99 ? "99+" : serverUnreadCount}
+              </span>
             </span>
           </span>
         )}

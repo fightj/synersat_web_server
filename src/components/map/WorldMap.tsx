@@ -41,9 +41,10 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
           attributionControl: false,
         });
         mapInstanceRef.current = map;
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
-          map,
-        );
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+          noWrap: false,
+          keepBuffer: 4,
+        }).addTo(map);
       }
 
       const map = mapInstanceRef.current;

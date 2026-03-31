@@ -28,7 +28,7 @@ interface VesselTableProps {
 function getSortValue(v: Vessel, key: SortKey) {
   switch (key) {
     case "company":
-      return v.description ?? "";
+      return v.acct ?? "";
     case "vesselId":
       return String(v.id ?? "");
     case "vesselName":
