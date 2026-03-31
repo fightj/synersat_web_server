@@ -250,7 +250,6 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
 export async function getDashboardVessels(acct?: string): Promise<DashboardVesselsResponse> {
   const params = new URLSearchParams();
   if (acct) params.set("acct", acct);
-  console.log(acct)
   const url = `${BASE_URL}/vessels/routes/all${params.size > 0 ? `?${params.toString()}` : ""}`;
 
   const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));

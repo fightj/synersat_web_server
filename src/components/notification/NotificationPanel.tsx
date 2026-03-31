@@ -275,11 +275,15 @@ export default function NotificationPanel({
   const handleMarkAllRead = useCallback(() => {
     const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length === 0) return;
+    // pendingReadIds에서 이미 추적 중인 id 제거 (중복 flush 방지)
+    unreadIds.forEach((id) => pendingReadIds.current.delete(id));
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    readNotifications(unreadIds).catch((error) => {
-      console.error("전체 읽음 처리 실패:", error);
-    });
-  }, [notifications]);
+    readNotifications(unreadIds)
+      .then(() => onReadFlushed?.())
+      .catch((error) => {
+        console.error("전체 읽음 처리 실패:", error);
+      });
+  }, [notifications, onReadFlushed]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
