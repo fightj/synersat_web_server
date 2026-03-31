@@ -1,6 +1,39 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { FILTER_CATEGORIES, FilterKey, MAP_STYLES } from "../mapUtils";
+
+// ── 숫자 카운팅 애니메이션 컴포넌트 ────────────────────────────────
+function AnimatedNumber({ value }: { value: number }) {
+  const [displayed, setDisplayed] = useState(value);
+  const prevRef = useRef(value);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (prevRef.current === value) return;
+    const start = prevRef.current;
+    const end = value;
+    const duration = 1000;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setDisplayed(Math.round(start + (end - start) * eased));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        prevRef.current = value;
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+
+  return <>{displayed}</>;
+}
 
 interface MapBottomBarProps {
   stats: Record<FilterKey, number>;
@@ -14,6 +47,7 @@ interface MapBottomBarProps {
   offlineCount: number;
   activeListPanel: "online" | "offline" | null;
   onListPanelToggle: (mode: "online" | "offline") => void;
+  isRefreshing?: boolean;
 }
 
 export default function MapBottomBar({
@@ -28,12 +62,30 @@ export default function MapBottomBar({
   offlineCount,
   activeListPanel,
   onListPanelToggle,
+  isRefreshing = false,
 }: MapBottomBarProps) {
   return (
     <div
       className="relative flex w-full items-center justify-between gap-4 bg-gray-800 px-5"
       style={{ height: "10vh" }}
     >
+      {/* ── 데이터 갱신 스캔 라인 ─────────────────────────────────── */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden">
+        {/* 기본 경계선 */}
+        <div className="h-full w-full bg-white/5" />
+        {/* 스캔 애니메이션 */}
+        {isRefreshing && (
+          <div
+            className="absolute inset-y-0 w-1/3"
+            style={{
+              background: "linear-gradient(90deg, transparent, #38bdf8cc, #818cf8cc, #38bdf8cc, transparent)",
+              animation: "map-refresh-scan 1.2s cubic-bezier(0.4,0,0.6,1) forwards",
+              boxShadow: "0 0 8px 2px #38bdf860",
+            }}
+          />
+        )}
+      </div>
+
       {/* 가운데: 카테고리 필터 (절대 중앙 배치) */}
       <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
         {FILTER_CATEGORIES.map(({ key, label, color }) => {
@@ -57,11 +109,11 @@ export default function MapBottomBar({
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
               {label}
               <span
-                className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+                className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
                   isActive ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
                 }`}
               >
-                {count}
+                <AnimatedNumber value={count} />
               </span>
             </button>
           );
@@ -144,11 +196,11 @@ export default function MapBottomBar({
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
             Online
             <span
-              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
                 activeListPanel === "online" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
               }`}
             >
-              {noGpsCount}
+              <AnimatedNumber value={noGpsCount} />
             </span>
           </button>
           <button
@@ -162,11 +214,11 @@ export default function MapBottomBar({
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
             Offline
             <span
-              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold ${
+              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
                 activeListPanel === "offline" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
               }`}
             >
-              {offlineCount}
+              <AnimatedNumber value={offlineCount} />
             </span>
           </button>
         </div>

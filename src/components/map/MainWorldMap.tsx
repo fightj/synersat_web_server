@@ -34,6 +34,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [showName, setShowName] = useState(true);
   const [gpsAlert, setGpsAlert] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const prevVesselsLengthRef = useRef<number | null>(null);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
   const [clickedVessel, setClickedVessel] = useState<{
     imo: number; name: string; color: string;
@@ -94,6 +96,20 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   // ── vesselsRef 최신화 ──────────────────────────────────────────────
   useEffect(() => { vesselsRef.current = vessels; }, [vessels]);
+
+  // ── 데이터 갱신 감지 → 스캔 라인 트리거 ────────────────────────────
+  useEffect(() => {
+    const len = vessels?.length ?? 0;
+    if (prevVesselsLengthRef.current === null) {
+      prevVesselsLengthRef.current = len;
+      return;
+    }
+    // 데이터가 실제로 도착(배열 참조 변경)했을 때 애니메이션 실행
+    setIsRefreshing(true);
+    prevVesselsLengthRef.current = len;
+    const t = setTimeout(() => setIsRefreshing(false), 1400);
+    return () => clearTimeout(t);
+  }, [vessels]);
 
   // ── ping 마커 ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -221,6 +237,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         noGpsCount={noGpsVessels.length}
         offlineCount={offlineVessels.length}
         activeListPanel={activeListPanel}
+        isRefreshing={isRefreshing}
         onListPanelToggle={handleListPanelToggle}
       />
     </div>

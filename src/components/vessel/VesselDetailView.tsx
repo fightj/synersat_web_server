@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import Loading from "../common/Loading";
 import type { VesselDetail, DataUsage, RouteCoordinate } from "@/types/vessel";
 import { getVesselDetail } from "@/api/vessel";
@@ -38,9 +38,27 @@ const formatDataSize = (bytes: number) => {
 
 type ViewMode = "OVERVIEW" | "COMMANDS";
 
+// 재사용 스캔 라인 조각 — 각 컨테이너 최상단에 absolute로 삽입
+function ScanLine({ isScanning, scanKey }: { isScanning: boolean; scanKey: number }) {
+  if (!isScanning) return null;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden">
+      <div
+        key={scanKey}
+        className="absolute inset-y-0 w-1/3"
+        style={{
+          background: "linear-gradient(90deg, transparent, #38bdf8cc, #818cf8cc, #38bdf8cc, transparent)",
+          animation: "map-refresh-scan 1.2s cubic-bezier(0.4,0,0.6,1) forwards",
+          boxShadow: "0 0 8px 2px #38bdf860",
+        }}
+      />
+    </div>
+  );
+}
+
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
-  dataUsages,
+  dataUsages: _dataUsages,
   coordinates,
   timeRange,
   onTimeRangeChange,
@@ -50,6 +68,27 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("OVERVIEW");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // ── 스캔 라인 상태 ─────────────────────────────────────────────────
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanKey, setScanKey] = useState(0);
+  const prevCoordinatesRef = useRef<RouteCoordinate[] | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 최초 1회 + SWR 데이터 변경 시 스캔 트리거
+  useEffect(() => {
+    const isFirst = prevCoordinatesRef.current === null;
+    const hasChanged = prevCoordinatesRef.current !== coordinates;
+    if (!isFirst && !hasChanged) return;
+    prevCoordinatesRef.current = coordinates;
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    setScanKey((k) => k + 1);
+    setIsScanning(true);
+    scanTimerRef.current = setTimeout(() => setIsScanning(false), 1400);
+    return () => {
+      if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    };
+  }, [coordinates]);
 
   useEffect(() => {
     const fetchVesselDetail = async () => {
@@ -89,33 +128,27 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             };
           }
           acc[name].dataUsageAmount += usage.dataUsage;
-          if (usage.interfaceName)
-            acc[name].interfaces.add(usage.interfaceName);
+          if (usage.interfaceName) acc[name].interfaces.add(usage.interfaceName);
         });
         return acc;
       },
-      {} as Record<
-        string,
-        { name: string; dataUsageAmount: number; interfaces: Set<string> }
-      >,
+      {} as Record<string, { name: string; dataUsageAmount: number; interfaces: Set<string> }>,
     );
 
     return Object.values(aggregated).map((item) => {
       const totalBytes = item.dataUsageAmount;
       const bps = (totalBytes * 8) / totalSeconds;
       const { raw, value, unit } = formatDataSize(totalBytes);
-
       const bpsRaw = bps >= 1000000 ? bps / 1000000 : bps / 1000;
       const bpsSuffix = bps >= 1000000 ? " Mbps" : " kbps";
-
       return {
         ...item,
         interfaces: Array.from(item.interfaces),
-        usageRaw: raw, // ✅ 애니메이션용 원본 숫자 (예: 1.2)
-        usageValue: value, // 표시용 문자열 (예: "1.2")
-        usageUnit: unit, // 단위 (예: "GB")
-        bpsRaw, // ✅ 애니메이션용 속도 숫자
-        bpsSuffix, // 속도 단위 (예: " Mbps")
+        usageRaw: raw,
+        usageValue: value,
+        usageUnit: unit,
+        bpsRaw,
+        bpsSuffix,
         color: getServiceColor(item.name),
       };
     });
@@ -130,6 +163,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   if (error)
     return <div className="py-20 text-center text-red-500">{error}</div>;
   if (!data) return <div className="py-20 text-center">데이터가 없습니다.</div>;
+
+  // 데이터가 있을 때만 스캔 라인 표시
+  const showScan = isScanning && usageStats.length > 0;
 
   return (
     <div className="space-y-6">
@@ -181,12 +217,16 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       {/* 2. 조건부 컨텐츠 영역 */}
       {viewMode === "OVERVIEW" ? (
         <>
+          {/* ── Total Data Usage: 각 카드 상단에 개별 스캔 라인 ─────── */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {usageStats.map((item) => (
               <div
                 key={item.name}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
               >
+                {/* 카드 개별 스캔 라인 (데이터 있을 때만) */}
+                <ScanLine isScanning={showScan} scanKey={scanKey} />
+
                 <div
                   className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]"
                   style={{ backgroundColor: item.color, borderRadius: "50%" }}
@@ -211,7 +251,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                     <p className="text-[12px] font-bold text-blue-500 uppercase">
                       Total Data Usage
                     </p>
-                    {/* ✅ AnimatedCounter 적용 */}
                     <div className="flex items-baseline gap-1">
                       <AnimatedCounter
                         value={item.usageRaw}
@@ -250,7 +289,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             ))}
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
+          {/* ── Data Usage History + 스캔 라인 ─────────────────────── */}
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
+            <ScanLine isScanning={showScan} scanKey={scanKey} />
             <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
               Data Usage History
             </h4>

@@ -812,6 +812,13 @@ html.dark {
    animation: wave 1.5s ease-in-out infinite;
  }
 
+/* ── Map refresh scan line ────────────────────────────────── */
+@keyframes map-refresh-scan {
+  0%   { transform: translateX(-100%); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateX(450%); opacity: 0; }
+}
+
 /* ── Vessel hover tooltip ─────────────────────────────────── */
 @keyframes vessel-ping {
   75%, 100% {

@@ -12,7 +12,7 @@ import Link from "next/link";
 import type { VesselRouteResponse } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
-const FIVE_MINUTES = 5 * 60 * 1000;
+const THREE_MINUTES = 3 * 60 * 1000;
 
 // ✅ Date → UTC 문자열 변환
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
@@ -82,10 +82,10 @@ export default function VesselDetailPage() {
     fetcher,
     {
       fallbackData: { coordinates: [], dataUsages: [] },
-      refreshInterval: isLive ? FIVE_MINUTES : 0,
+      refreshInterval: isLive ? THREE_MINUTES : 0,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: FIVE_MINUTES,
+      dedupingInterval: THREE_MINUTES,
     },
   );
 
