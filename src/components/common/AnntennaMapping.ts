@@ -13,8 +13,8 @@ export const getServiceBadgeStyles = (serviceName: string | null | undefined): s
     return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800/50";
   }
 
-  // Nexuswave, 4G: 차가운 인디고 (indigo)
-  if (name.includes("nexuswave") || name.includes("4g")) {
+  // Nexuswave, 4G, OneWeb: 차가운 인디고 (indigo)
+  if (name.includes("nexuswave") || name.includes("4g") || name.includes("oneweb")) {
     return "bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800/50";
   }
 
@@ -41,8 +41,8 @@ export const getServiceColor = (serviceName: string | null | undefined): string 
   // Starlink -> 따뜻한 보라 (purple-500)
   if (name.includes("starlink")) return "#a855f7";
 
-  // Nexuswave -> 차가운 인디고 보라 (indigo-400)
-  if (name.includes("nexuswave") || name.includes("4g")) return "#818cf8";
+  // Nexuswave, OneWeb -> 차가운 인디고 보라 (indigo-400)
+  if (name.includes("nexuswave") || name.includes("4g") || name.includes("oneweb")) return "#818cf8";
 
   // VSAT, FX -> 녹색
   if (name.includes("vsat") || name.includes("fx")) {

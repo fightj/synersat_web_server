@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { MAP_STYLES } from "../mapUtils";
 
 export function useLeafletMap(
   onMapClick: () => void,
   onMapMove: (pt: { x: number; y: number } | null) => void,
-  clickedLatLngRef: React.MutableRefObject<{ lat: number; lng: number } | null>,
+  clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>,
 ) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -30,7 +30,7 @@ export function useLeafletMap(
       const map = L.map(mapRef.current, {
         center: [20, 170],
         zoom: initialZoom,
-        minZoom: initialZoom,
+        minZoom: Math.max(1, initialZoom - 1.5),
         maxZoom: 10,
         zoomControl: false,
         attributionControl: false,
@@ -60,7 +60,8 @@ export function useLeafletMap(
 
       const handleResize = () => {
         const w = window.innerWidth;
-        const newMinZoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
+        const baseZoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
+        const newMinZoom = Math.max(1, baseZoom - 1.5);
         map.setMinZoom(newMinZoom);
         if (map.getZoom() < newMinZoom) map.setZoom(newMinZoom);
         map.invalidateSize();

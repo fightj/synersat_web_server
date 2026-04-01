@@ -22,12 +22,12 @@ export const MAP_STYLES = [
 export type FilterKey = "all" | "starlink" | "nexuswave" | "vsat" | "fbb" | "offline";
 
 export const FILTER_CATEGORIES: { key: FilterKey; label: string; color: string }[] = [
-  { key: "all",       label: "Total",     color: "#94a3b8" },
-  { key: "starlink",  label: "Starlink",  color: "#a855f7" },
+  { key: "all", label: "Total", color: "#94a3b8" },
+  { key: "starlink", label: "Starlink", color: "#a855f7" },
   { key: "nexuswave", label: "Nexuswave", color: "#818cf8" },
-  { key: "vsat",      label: "VSAT",      color: "#10b981" },
-  { key: "fbb",       label: "FBB",       color: "#0ea5e9" },
-  { key: "offline",   label: "Offline",   color: "#ef4444" },
+  { key: "vsat", label: "VSAT", color: "#10b981" },
+  { key: "fbb", label: "FBB", color: "#0ea5e9" },
+  { key: "offline", label: "Offline", color: "#ef4444" },
 ];
 
 export function getClosestLng(baseLng: number, refLng: number): number {
@@ -45,12 +45,123 @@ export function matchFilter(
   if (key === "all") return true;
   if (key === "offline") return !connected;
   const name = antennaName?.toLowerCase() ?? "";
-  if (key === "starlink")  return name.includes("starlink");
+  if (key === "starlink") return name.includes("starlink");
   if (key === "nexuswave") return name.includes("nexuswave");
-  if (key === "vsat")      return name.includes("vsat") || name.includes("fx");
-  if (key === "fbb")       return name.includes("fbb");
+  if (key === "vsat") return name.includes("vsat") || name.includes("fx");
+  if (key === "fbb") return name.includes("fbb");
   return false;
 }
+
+// ── GX Coverage ──────────────────────────────────────────────────────
+
+export type GxKey = "all" | "gx1" | "gx2" | "gx3" | "gx4" | "gx5";
+
+export interface GxCoverage {
+  key: string;
+  label: string;
+  color: string;
+  /** 위성 아이콘을 표시할 중심 좌표 */
+  center: [number, number];
+  /** [lat, lng][] 폴리곤 꼭짓점. 빈 배열이면 미구현 */
+  points: [number, number][];
+}
+
+/**
+ * 슈퍼타원(superellipse) 폴리곤 점 생성
+ * 4개의 cardinal point를 정확히 통과하면서 중간 곡선을 볼록하게 만든다.
+ *
+ * power=2  → 일반 타원 (뾰족)
+ * power=3  → 약간 둥글게
+ * power=4+ → 더 둥글게 (직사각형에 가까워짐)
+ *
+ * cardinal points:
+ *   θ=0   → (centerLat, centerLng + semiLngEast)  = 동
+ *   θ=π/2 → (centerLat + semiLat, centerLng)      = 북
+ *   θ=π   → (centerLat, centerLng - semiLngWest)  = 서
+ *   θ=3π/2→ (centerLat - semiLat, centerLng)      = 남
+ */
+function makeEllipsePoints(
+  centerLat: number,
+  centerLng: number,
+  semiLat: number,
+  semiLngEast: number,
+  semiLngWest: number,
+  n = 256,
+  power = 3.5,
+): [number, number][] {
+  const exp = 2 / power;
+  const pts: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const θ = (i / n) * 2 * Math.PI;
+    const sinθ = Math.sin(θ);
+    const cosθ = Math.cos(θ);
+    // sign(x) * |x|^exp — 슈퍼타원 parametric
+    const lat = centerLat + semiLat * Math.sign(sinθ) * Math.pow(Math.abs(sinθ), exp);
+    const lng = centerLng + (cosθ >= 0 ? semiLngEast : semiLngWest)
+      * Math.sign(cosθ) * Math.pow(Math.abs(cosθ), exp);
+    pts.push([lat, lng]);
+  }
+  return pts;
+}
+
+// GX1: Inmarsat GX1 (Indian Ocean / 63°E)
+// N(81N,63E) W(0N,-18E) S(81S,63E) E(0N,144E)
+// center=(0,63), semiLat=81, semiLng=81, power=3.5 → 둥근 슈퍼타원
+export const GX_COVERAGES: GxCoverage[] = [
+  {
+    key: "gx1",
+    label: "GX1",
+    color: "#22c55e",
+    center: [0, 63],
+    points: makeEllipsePoints(0, 63, 81, 81, 81, 256, 3.5),
+  },
+  {
+    key: "gx2",
+    label: "GX2",
+    color: "#38bdf8",
+    center: [0, -55],
+    points: makeEllipsePoints(0, -55, 81, 81, 81, 256, 3.5),
+  },
+  {
+    key: "gx3",
+    label: "GX3",
+    color: "#475569",
+    center: [0, 180],
+    points: makeEllipsePoints(0, 180, 81, 81.3, 81.3, 256, 3.5),
+  },
+  {
+    key: "gx4",
+    label: "GX4",
+    color: "#ef4444",
+    center: [0, 56],
+    points: makeEllipsePoints(0, 56, 81, 81, 81, 256, 3.5),
+  },
+  {
+    key: "gx5",
+    label: "GX5",
+    color: "#a855f7",
+    center: [0, 11],
+    points: [
+      [73.0,   3.0],
+      [72.6,  12.0],
+      [72.0,  24.8],
+      [68.7,  25.4],
+      [63.0,  25.0],
+      [62.0,  25.5],
+      [25.0,  63.7],
+      [24.5,  78.1],
+      [ 9.6,  78.4],
+      [10.6,  43.6],
+      [31.9,  30.4],
+      [35.0,  16.0],
+      [36.1,  -6.5],
+      [55.6, -13.0],
+      [57.7, -13.2],
+      [68.4,  -1.3],
+      [73.0,   3.0],
+    ],
+  },
+];
 
 export function makeVesselIcon(
   L: any,

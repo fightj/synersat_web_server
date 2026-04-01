@@ -8,7 +8,7 @@ import { getServiceColor } from "../common/AnntennaMapping";
 import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
-import { matchFilter, FilterKey } from "./mapUtils";
+import { matchFilter, FilterKey, GX_COVERAGES, GxKey } from "./mapUtils";
 import { useLeafletMap } from "./hooks/useLeafletMap";
 import { useVesselMarkers } from "./hooks/useVesselMarkers";
 import ViewDetailPopup from "./components/ViewDetailPopup";
@@ -34,6 +34,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [showName, setShowName] = useState(true);
   const [gpsAlert, setGpsAlert] = useState(false);
+  const [showCoverage, setShowCoverage] = useState(false);
+  const [activeGx, setActiveGx] = useState<GxKey>("all");
+  const [showGxMenu, setShowGxMenu] = useState(false);
+  const gxLayersRef = useRef<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const prevVesselsLengthRef = useRef<number | null>(null);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
@@ -188,6 +192,92 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setActiveListPanel((v) => (v === mode ? null : mode));
   };
 
+  // ── GX Coverage 폴리곤 렌더링 ──────────────────────────────────────
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+
+    // 기존 레이어 제거
+    gxLayersRef.current.forEach((layer) => layer.remove());
+    gxLayersRef.current = [];
+
+    if (!showCoverage || !L || !map) return;
+
+    const toRender = activeGx === "all"
+      ? GX_COVERAGES.filter((g) => g.points.length > 0)
+      : GX_COVERAGES.filter((g) => g.key === activeGx && g.points.length > 0);
+
+    // 위성 아이콘 SVG (안테나 빨간색)
+    const makeSatelliteIcon = (label: string) => L.divIcon({
+      className: "",
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 위성 본체 -->
+            <rect x="9" y="9" width="6" height="6" rx="1" fill="#e2e8f0" stroke="#94a3b8" stroke-width="0.8"/>
+            <!-- 왼쪽 패널 -->
+            <rect x="2" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
+            <!-- 오른쪽 패널 -->
+            <rect x="16" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
+            <!-- 안테나 (빨간색) -->
+            <line x1="12" y1="9" x2="12" y2="4" stroke="#ef4444" stroke-width="1.2"/>
+            <circle cx="12" cy="3.5" r="1.2" fill="#ef4444"/>
+            <!-- 패널 연결 막대 -->
+            <line x1="8" y1="12" x2="9" y2="12" stroke="#64748b" stroke-width="0.8"/>
+            <line x1="15" y1="12" x2="16" y2="12" stroke="#64748b" stroke-width="0.8"/>
+          </svg>
+          <span style="
+            margin-top:2px;
+            font-size:9px;
+            font-weight:800;
+            color:#fff;
+            text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);
+            letter-spacing:0.05em;
+            white-space:nowrap;
+          ">${label}</span>
+        </div>
+      `,
+      iconSize: [28, 42],
+      iconAnchor: [14, 21],
+    });
+
+    // 지도 반복 타일에 맞춰 -360, 0, +360 세 벌 렌더링
+    const LNG_OFFSETS = [-360, 0, 360];
+
+    toRender.forEach((gx) => {
+      LNG_OFFSETS.forEach((offset) => {
+        // 폴리곤
+        const shifted = gx.points.map(
+          ([lat, lng]) => [lat, lng + offset] as [number, number],
+        );
+        const polygon = L.polygon(shifted, {
+          color: gx.color,
+          weight: 1.5,
+          opacity: 0.8,
+          fillColor: gx.color,
+          fillOpacity: 0.08,
+          dashArray: "6 4",
+        }).addTo(map);
+        gxLayersRef.current.push(polygon);
+
+        // 위성 아이콘 마커
+        const [cLat, cLng] = gx.center;
+        const marker = L.marker([cLat, cLng + offset], {
+          icon: makeSatelliteIcon(gx.label),
+          interactive: false,
+          zIndexOffset: 500,
+        }).addTo(map);
+        gxLayersRef.current.push(marker);
+      });
+    });
+
+    return () => {
+      gxLayersRef.current.forEach((layer) => layer.remove());
+      gxLayersRef.current = [];
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCoverage, activeGx, mapReady]);
+
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -213,6 +303,79 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           onViewDetail={handleListViewDetail}
         />
       )}
+
+      {/* GX Coverage 버튼 + 서브메뉴 */}
+      <div className="absolute right-14 bottom-[calc(10vh+12px)] z-1000">
+        {/* GX 선택 서브메뉴 — coverage ON 상태에서만 표시 */}
+        {showCoverage && (
+          <div className="absolute bottom-full right-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
+            {/* All */}
+            <button
+              onClick={() => { setActiveGx("all"); setShowGxMenu(false); }}
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                activeGx === "all"
+                  ? "bg-white/15 text-white"
+                  : "text-gray-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-white/50" />
+              All
+            </button>
+            {GX_COVERAGES.map((gx) => (
+              <button
+                key={gx.key}
+                onClick={() => { setActiveGx(gx.key as GxKey); setShowGxMenu(false); }}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  activeGx === gx.key
+                    ? "bg-white/15 text-white"
+                    : gx.points.length === 0
+                    ? "cursor-not-allowed text-gray-600"
+                    : "text-gray-300 hover:bg-white/10 hover:text-white"
+                }`}
+                disabled={gx.points.length === 0}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ background: gx.color }} />
+                {gx.label}
+                {gx.points.length === 0 && (
+                  <span className="ml-1 text-[9px] text-gray-600">TBD</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Coverage 버튼: 왼쪽=토글 ON/OFF, 오른쪽 chevron=GX 선택 */}
+        <div className={`flex h-9 items-center overflow-hidden rounded-lg shadow-lg backdrop-blur-sm transition-all ${
+          showCoverage
+            ? " bg-orange-500"
+            : "border border-white/10 bg-gray-800/80"
+        }`}>
+          {/* 메인 토글 */}
+          <button
+            onClick={() => { setShowCoverage((v) => !v); }}
+            title="GX Coverage"
+            className={`flex h-full items-center gap-1.5 px-3 transition-colors active:scale-95 ${
+              showCoverage
+                ? "text-gray-200 hover:bg-orange-300/20"
+                : "text-gray-300 hover:bg-gray-700/60 hover:text-white"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
+            <span className="text-xs font-bold">GX-Coverage</span>
+            {showCoverage && (
+              <span className="rounded bg-orange-400 px-1 py-0.5 text-[10px] font-bold text-white uppercase">
+                {activeGx === "all" ? "All" : activeGx.toUpperCase()}
+              </span>
+            )}
+          </button>
+          {/* GX 선택 chevron — coverage ON 일 때만 */}
+          
+        </div>
+      </div>
 
       {/* 리셋 버튼 */}
       <button
