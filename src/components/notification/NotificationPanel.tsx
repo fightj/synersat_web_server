@@ -288,6 +288,21 @@ export default function NotificationPanel({
     );
   }, []);
 
+  const router = useRouter();
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
+  const handleViewDetail = useCallback(async (imo: number, notificationId: number) => {
+    handleRead(notificationId);
+    onClose();
+    try {
+      const detail = await getVesselDetail(imo);
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      router.push("/vessels/detail");
+    } catch (error) {
+      console.error("Failed to navigate to vessel detail:", error);
+    }
+  }, [handleRead, onClose, router, setSelectedVessel]);
+
   const handleMarkAllRead = useCallback(() => {
     const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length === 0) return;
@@ -436,6 +451,7 @@ export default function NotificationPanel({
                   key={item.id}
                   item={item}
                   onRead={handleRead}
+                  onViewDetail={handleViewDetail}
                 />
               ))}
               {isFetchingMore && (
