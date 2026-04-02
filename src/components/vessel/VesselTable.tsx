@@ -255,11 +255,17 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
 
                 {/* Status */}
                 <TableCell className="px-3 py-4 text-start">
-                  <span
-                    className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(vessel.status?.antennaServiceName)}`}
-                  >
-                    {vessel.status?.antennaServiceName || "N/A"}
-                  </span>
+                  {(() => {
+                    const available = vessel.status?.available;
+                    const name = available ? (vessel.status?.antennaServiceName ?? null) : null;
+                    return (
+                      <span
+                        className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(name)}`}
+                      >
+                        {name || "N/A"}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
 
                 {/* Vessel ID (Moved) */}

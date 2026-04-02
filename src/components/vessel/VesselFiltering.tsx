@@ -132,7 +132,7 @@ export default function VesselFiltering({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown} // ✅ 키다운 이벤트 연결
           placeholder="Filter by vessel name..."
-          className="focus:border-brand-500 h-10 w-full rounded-lg border border-gray-200 bg-transparent pr-10 pl-10 text-sm outline-none dark:border-gray-800 dark:text-white"
+          className="focus:border-brand-500 h-10 w-full rounded-xl border border-gray-200 bg-transparent pr-10 pl-10 text-sm outline-none dark:border-gray-800 dark:text-white"
         />
         {/* 아이콘 및 Clear 버튼 생략 (기존과 동일) */}
         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
