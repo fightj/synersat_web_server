@@ -90,15 +90,25 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     };
   }, [vessels]);
 
-  const noGpsVessels = useMemo(
-    () => (vessels ?? []).filter((v) => v.connected === true && (v.latitude === null || v.longitude === null)),
-    [vessels],
-  );
+  const noGpsVessels = useMemo(() => {
+    const seen = new Set<number>();
+    return (vessels ?? []).filter((v) => {
+      if (v.connected !== true || (v.latitude !== null && v.longitude !== null)) return false;
+      if (seen.has(v.imo)) return false;
+      seen.add(v.imo);
+      return true;
+    });
+  }, [vessels]);
 
-  const offlineVessels = useMemo(
-    () => (vessels ?? []).filter((v) => v.connected === false && (v.latitude === null || v.longitude === null)),
-    [vessels],
-  );
+  const offlineVessels = useMemo(() => {
+    const seen = new Set<number>();
+    return (vessels ?? []).filter((v) => {
+      if (v.connected !== false || (v.latitude !== null && v.longitude !== null)) return false;
+      if (seen.has(v.imo)) return false;
+      seen.add(v.imo);
+      return true;
+    });
+  }, [vessels]);
 
   // ── vesselsRef 최신화 ──────────────────────────────────────────────
   useEffect(() => { vesselsRef.current = vessels; }, [vessels]);

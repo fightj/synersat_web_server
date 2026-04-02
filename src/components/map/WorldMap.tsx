@@ -194,26 +194,44 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
       };
       map.on("zoomend", handleZoom);
 
-      // 경로(Polyline) 그리기
-      const fullPath = validPoints.map(
+      // 경로(Polyline) — 구간별 색상 분리
+      // 빨간 구간 조건: ① 두 점 사이 시간 간격 > 5분, ② 어느 한 점이라도 available === false
+      const GAP_MS = 5 * 60 * 1000;
+      const isPointRed = (p: RouteCoordinate) => (p.status?.available ?? true) === false;
+
+      const polylines: any[] = [];
+      if (validPoints.length > 1) {
+        for (let i = 0; i < validPoints.length - 1; i++) {
+          const a = validPoints[i];
+          const b = validPoints[i + 1];
+          const tA = new Date(a.timeStamp + "Z").getTime();
+          const tB = new Date(b.timeStamp + "Z").getTime();
+          const gapExceeds = Math.abs(tB - tA) > GAP_MS;
+          const segRed = gapExceeds || isPointRed(a) || isPointRed(b);
+          const seg = L.polyline(
+            [[a.latitude!, a.longitude!], [b.latitude!, b.longitude!]],
+            {
+              color: segRed ? "#ef4444" : "#3b82f6",
+              weight: 2,
+              dashArray: "5, 8",
+              opacity: segRed ? 0.5 : 0.3,
+            },
+          ).addTo(map);
+          polylines.push(seg);
+        }
+      }
+
+      const allLatLngs = validPoints.map(
         (p) => [p.latitude!, p.longitude!] as [number, number],
       );
-      let polyline: any;
-      if (fullPath.length > 0) {
-        polyline = L.polyline(fullPath, {
-          color: "#3b82f6",
-          weight: 2,
-          dashArray: "5, 8",
-          opacity: 0.3,
-        }).addTo(map);
-
-        const bounds = L.latLngBounds(fullPath);
+      if (allLatLngs.length > 0) {
+        const bounds = L.latLngBounds(allLatLngs);
         if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
       }
 
       cleanupFn = () => {
         map.off("zoomend", handleZoom);
-        if (polyline) polyline.remove();
+        polylines.forEach((pl) => pl.remove());
         markersRef.current.forEach((m) => m.marker.remove());
       };
     })();

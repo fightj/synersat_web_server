@@ -115,26 +115,15 @@ function NotificationPanelCard({
               )}
             </div>
 
-            {/* kind 라벨 + 시간 + View Detail */}
-            <div className="flex items-center justify-between gap-1.5 text-[11px] text-gray-400">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`font-medium ${isDisconnect ? "text-orange-500" : "text-blue-500"}`}
-                >
-                  {isDisconnect ? "Connect" : "Command"}
-                </span>
-                <span className="h-1 w-1 rounded-full bg-gray-300" />
-                <span>{timeAgo(item.createdAt)}</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetail(item.content.imo, item.id);
-                }}
-                className="text-[10px] font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+            {/* kind 라벨 + 시간 */}
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span
+                className={`font-medium ${isDisconnect ? "text-orange-500" : "text-blue-500"}`}
               >
-                View Detail →
-              </button>
+                {isDisconnect ? "Connect" : "Command"}
+              </span>
+              <span className="h-1 w-1 rounded-full bg-gray-300" />
+              <span>{timeAgo(item.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -159,6 +148,20 @@ function NotificationPanelCard({
           )}
         </div>
       </div>
+
+      {/* View Detail — 카드 오른쪽 하단 */}
+      <div className="mt-2 flex justify-end">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewDetail(item.content.imo, item.id);
+          }}
+          className="text-[10px] font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          View Detail →
+        </button>
+      </div>
+
       {!isRead && (
         <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500" />
       )}
@@ -174,6 +177,11 @@ interface NotificationPanelProps {
 
 const LIMIT = 100;
 const SCROLL_THRESHOLD_PX = 80;
+
+function dedup(items: NotificationItem[]): NotificationItem[] {
+  const seen = new Set<number>();
+  return items.filter((n) => seen.has(n.id) ? false : (seen.add(n.id), true));
+}
 
 export default function NotificationPanel({
   isOpen,
@@ -203,7 +211,7 @@ export default function NotificationPanel({
     setHasMore(true);
     try {
       const res = await getNotifications(LIMIT);
-      setNotifications(res.notifications);
+      setNotifications(dedup(res.notifications));
       setServerUnreadCount(res.unReadNotificationCount);
       if (res.notifications.length < LIMIT) setHasMore(false);
     } catch (error) {
@@ -221,7 +229,7 @@ export default function NotificationPanel({
       try {
         const limit = serverUnreadCount > 0 ? serverUnreadCount : LIMIT;
         const res = await getNotifications(limit, undefined, true);
-        setNotifications(res.notifications);
+        setNotifications(dedup(res.notifications));
       } catch (error) {
         console.error("안읽은 알림 조회 실패:", error);
       } finally {

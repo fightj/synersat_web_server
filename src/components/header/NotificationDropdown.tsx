@@ -198,7 +198,8 @@ export default function NotificationDropdown() {
     setIsLoading(true);
     try {
       const res = await getNotifications(8);
-      setNotifications(res.notifications);
+      const seen = new Set<number>();
+      setNotifications(res.notifications.filter((n) => seen.has(n.id) ? false : (seen.add(n.id), true)));
       setServerUnreadCount(res.unReadNotificationCount);
     } catch (error) {
       console.error("알림 조회 실패:", error);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type { DashboardVesselPosition } from "@/types/vessel";
 import { getServiceColor } from "../../common/AnntennaMapping";
 import { getVesselDetail } from "@/api/vessel";
@@ -6,12 +6,12 @@ import { getClosestLng, matchFilter, makeVesselIcon, FilterKey } from "../mapUti
 
 interface UseVesselMarkersOptions {
   vessels: DashboardVesselPosition[] | undefined;
-  mapInstanceRef: React.MutableRefObject<any>;
-  leafletRef: React.MutableRefObject<any>;
+  mapInstanceRef: RefObject<any>;
+  leafletRef: RefObject<any>;
   mapReady: boolean;
   showName: boolean;
   activeFilter: FilterKey;
-  clickedLatLngRef: React.MutableRefObject<{ lat: number; lng: number } | null>;
+  clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>;
   setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string }) => void;
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
   setPopupPos: (pos: { x: number; y: number } | null) => void;
@@ -70,8 +70,10 @@ export function useVesselMarkers({
     };
     map.on("zoomend", handleZoomEnd);
 
+    const seenImos = new Set<number>();
     const points = vessels
       .filter((v) => v.latitude !== null && v.longitude !== null)
+      .filter((v) => { if (seenImos.has(v.imo)) return false; seenImos.add(v.imo); return true; })
       .filter((v) => matchFilter(v.antennaName, v.connected !== false, activeFilter))
       .map((v) => ({
         lat: v.latitude!,
