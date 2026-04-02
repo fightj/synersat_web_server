@@ -36,7 +36,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [gpsAlert, setGpsAlert] = useState(false);
   const [showCoverage, setShowCoverage] = useState(false);
   const [activeGx, setActiveGx] = useState<GxKey>("all");
-  const [showGxMenu, setShowGxMenu] = useState(false);
   const gxLayersRef = useRef<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const prevVesselsLengthRef = useRef<number | null>(null);
@@ -78,13 +77,16 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   // ── 카테고리별 통계 ────────────────────────────────────────────────
   const stats = useMemo(() => {
     const list = vessels ?? [];
+    const hasGps = (v: (typeof list)[0]) => v.latitude !== null && v.longitude !== null;
+    const gps = list.filter(hasGps);
     return {
-      all:      list.length,
-      starlink:  list.filter((v) => matchFilter(v.antennaName, v.connected !== false, "starlink")).length,
-      nexuswave: list.filter((v) => matchFilter(v.antennaName, v.connected !== false, "nexuswave")).length,
-      vsat:      list.filter((v) => matchFilter(v.antennaName, v.connected !== false, "vsat")).length,
-      fbb:       list.filter((v) => matchFilter(v.antennaName, v.connected !== false, "fbb")).length,
-      offline:   list.filter((v) => v.connected === false).length,
+      all:       list.length,
+      starlink:  gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "starlink")).length,
+      nexuswave: gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "nexuswave")).length,
+      vsat:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "vsat")).length,
+      fbb:       gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "fbb")).length,
+      none:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "none")).length,
+      offline:   gps.filter((v) => v.connected === false).length,
     };
   }, [vessels]);
 
@@ -311,7 +313,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           <div className="absolute bottom-full right-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
             {/* All */}
             <button
-              onClick={() => { setActiveGx("all"); setShowGxMenu(false); }}
+              onClick={() => { setActiveGx("all"); }}
               className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 activeGx === "all"
                   ? "bg-white/15 text-white"
@@ -324,7 +326,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
             {GX_COVERAGES.map((gx) => (
               <button
                 key={gx.key}
-                onClick={() => { setActiveGx(gx.key as GxKey); setShowGxMenu(false); }}
+                onClick={() => { setActiveGx(gx.key as GxKey); }}
                 className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                   activeGx === gx.key
                     ? "bg-white/15 text-white"

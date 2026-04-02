@@ -83,6 +83,7 @@ export interface RouteCoordinate {
   timeStamp: string;
   dataUsages: DataUsageDetail[]; // ✅ 추가된 부분
   status: {
+    available: boolean;
     currentRoute: string | null;
     timeStamp: string | null;
     antennaServiceName: string | null;

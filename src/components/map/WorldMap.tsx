@@ -91,8 +91,12 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
         isLast: boolean,
       ) => {
         const heading = p.vesselHeading ?? 0;
-        const serviceColor = getServiceColor(p.status?.antennaServiceName);
-        const color = (p.satSignalStrength ?? 0) > 0 ? serviceColor : "#ef4444";
+        const available = p.status?.available ?? false;
+        const color = !available
+          ? "#ef4444"
+          : p.status?.antennaServiceName
+            ? getServiceColor(p.status.antennaServiceName)
+            : "#94a3b8";
 
         if (!isLast) {
           const dot = 8;
@@ -164,9 +168,15 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
             hour12: false,
             timeZoneName: "short",
           }).format(utcDate);
+          const popupAvailable = p.status?.available ?? false;
+          const popupColor = !popupAvailable
+            ? "#ef4444"
+            : p.status?.antennaServiceName
+              ? getServiceColor(p.status.antennaServiceName)
+              : "#94a3b8";
           marker.bindPopup(
             `<div class="text-[11px] font-sans">
-              <strong style="color: ${getServiceColor(p.status?.antennaServiceName)}">${p.status?.antennaServiceName}</strong><br/>
+              <strong style="color: ${popupColor}">${p.status?.antennaServiceName ?? "N/A"}</strong><br/>
               <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
               <span class="text-gray-500">Signal:</span> ${p.satSignalStrength}%
             </div>`,

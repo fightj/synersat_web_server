@@ -13,6 +13,9 @@ import {
 } from "@/api/notification";
 import { useNotificationStore } from "@/store/notification.store";
 import { useToastStore } from "@/store/toast.store";
+import { useVesselStore } from "@/store/vessel.store";
+import { getVesselDetail } from "@/api/vessel";
+import { useRouter } from "next/navigation";
 
 function timeAgo(utcDateStr: string): string {
   const utcDate = new Date(utcDateStr + "Z");
@@ -48,9 +51,11 @@ function getKindLabel(kind: string): string {
 function NotificationCard({
   item,
   onRead,
+  onViewDetail,
 }: {
   item: NotificationItem;
   onRead: (id: number) => void;
+  onViewDetail: (imo: number, notificationId: number) => void;
 }) {
   const isRead = item.read;
   const isCommand = isCommandNotification(item);
@@ -143,17 +148,28 @@ function NotificationCard({
             </span>
           )}
 
-          {/* kind 라벨 + 아이콘 + 시간 */}
-          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-gray-400">
-            <span
-              className={`font-medium ${
-                isDisconnect ? "text-orange-500" : "text-blue-500"
-              }`}
+          {/* kind 라벨 + 시간 + View Detail */}
+          <div className="mt-1.5 flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span
+                className={`font-medium ${
+                  isDisconnect ? "text-orange-500" : "text-blue-500"
+                }`}
+              >
+                {getKindLabel(item.kind)}
+              </span>
+              <span className="h-1 w-1 rounded-full bg-gray-300" />
+              <span>{timeAgo(item.createdAt)}</span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetail(item.content.imo, item.id);
+              }}
+              className="text-[10px] font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
             >
-              {getKindLabel(item.kind)}
-            </span>
-            <span className="h-1 w-1 rounded-full bg-gray-300" />
-            <span>{timeAgo(item.createdAt)}</span>
+              View Detail →
+            </button>
           </div>
         </div>
       </div>
@@ -162,6 +178,8 @@ function NotificationCard({
 }
 
 export default function NotificationDropdown() {
+  const router = useRouter();
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
   const [isOpen, setIsOpen] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -225,6 +243,18 @@ export default function NotificationDropdown() {
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   }, []);
+
+  const handleViewDetail = useCallback(async (imo: number, notificationId: number) => {
+    handleRead(notificationId);
+    closeDropdown();
+    try {
+      const detail = await getVesselDetail(imo);
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      router.push("/vessels/detail");
+    } catch (error) {
+      console.error("Failed to navigate to vessel detail:", error);
+    }
+  }, [handleRead, router, setSelectedVessel]);
 
   function toggleDropdown() {
     setIsOpen((prev) => !prev);
@@ -316,7 +346,7 @@ export default function NotificationDropdown() {
             </li>
           ) : (
             notifications.map((item) => (
-              <NotificationCard key={item.id} item={item} onRead={handleRead} />
+              <NotificationCard key={item.id} item={item} onRead={handleRead} onViewDetail={handleViewDetail} />
             ))
           )}
         </ul>

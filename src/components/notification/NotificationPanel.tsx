@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   getNotifications,
   readNotifications,
@@ -10,6 +11,8 @@ import {
 } from "@/api/notification";
 import { useToastStore } from "@/store/toast.store";
 import { CommandSignIcon, DisconnectedIcon } from "@/icons";
+import { getVesselDetail } from "@/api/vessel";
+import { useVesselStore } from "@/store/vessel.store";
 import Switch from "@/components/form/switch/Switch";
 
 type FilterTab = "All" | "Command" | "Connect";
@@ -40,9 +43,11 @@ function formatLastConnect(utcDateStr: string | null): string {
 function NotificationPanelCard({
   item,
   onRead,
+  onViewDetail,
 }: {
   item: NotificationItem;
   onRead: (id: number) => void;
+  onViewDetail: (imo: number, notificationId: number) => void;
 }) {
   const isRead = item.read;
   const isCommand = isCommandNotification(item);
@@ -110,15 +115,26 @@ function NotificationPanelCard({
               )}
             </div>
 
-            {/* kind 라벨 + 아이콘 + 시간 */}
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <span
-                className={`font-medium ${isDisconnect ? "text-orange-500" : "text-blue-500"}`}
+            {/* kind 라벨 + 시간 + View Detail */}
+            <div className="flex items-center justify-between gap-1.5 text-[11px] text-gray-400">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`font-medium ${isDisconnect ? "text-orange-500" : "text-blue-500"}`}
+                >
+                  {isDisconnect ? "Connect" : "Command"}
+                </span>
+                <span className="h-1 w-1 rounded-full bg-gray-300" />
+                <span>{timeAgo(item.createdAt)}</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetail(item.content.imo, item.id);
+                }}
+                className="text-[10px] font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
               >
-                {isDisconnect ? "Connect" : "Command"}
-              </span>
-              <span className="h-1 w-1 rounded-full bg-gray-300" />
-              <span>{timeAgo(item.createdAt)}</span>
+                View Detail →
+              </button>
             </div>
           </div>
         </div>

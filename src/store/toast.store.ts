@@ -4,6 +4,7 @@ export interface ToastItem {
   id: string;
   type: "COMMAND" | "VESSEL_DISCONNECTED"; // ✅ 타입 추가
   vesselName: string;
+  imo?: number;
   // COMMAND용
   commandType?: string;
   status?: "SUCCESS" | "FAILED";

@@ -26,6 +26,7 @@ export function useSSE() {
           useToastStore.getState().addToast({
             type: "COMMAND",
             vesselName: data.name,
+            imo: data.imo,
             commandType: data.commandType,
             status: data.commandStatus,
           });
@@ -47,6 +48,7 @@ export function useSSE() {
         useToastStore.getState().addToast({
           type: "VESSEL_DISCONNECTED",
           vesselName: data.name,
+          imo: data.imo,
           lastConnectAt: data.lastConnectAt,
         });
         useNotificationStore.getState().setHasNew(true);

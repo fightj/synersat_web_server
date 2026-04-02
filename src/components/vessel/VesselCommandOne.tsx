@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { getCommands } from "@/api/command";
+import { getCommands, failCommand } from "@/api/command";
 import type {
   CommandContent,
   CommandStatus,
@@ -26,6 +26,8 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
   const [commands, setCommands] = useState<CommandContent[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
 
   // ✅ 초기 파라미터 설정 (pageIndex: 1, pageSize: 5, imo: props로 받은 값)
   const [params, setParams] = useState<GetCommandsParams>({
@@ -77,6 +79,19 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
       { ...initialStats },
     );
   }, [commands]);
+
+  const handleCancel = async (e: React.MouseEvent, commandId: number) => {
+    e.stopPropagation();
+    setCancellingId(commandId);
+    try {
+      await failCommand(commandId);
+      setCancelledIds((prev) => new Set(prev).add(commandId));
+    } catch (error) {
+      console.error("Failed to cancel command:", error);
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   // ✅ 페이지 변경 시 params 업데이트
   const handlePageChange = (newPageIndex: number) => {
@@ -179,17 +194,30 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          cmd.commandStatus === "SUCCESS"
-                            ? "border-emerald-100 bg-emerald-50 text-emerald-600"
-                            : cmd.commandStatus === "FAILED"
-                              ? "border-red-100 bg-red-50 text-red-600"
-                              : "border-blue-100 bg-blue-50 text-blue-600"
-                        }`}
-                      >
-                        {cmd.commandStatus}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${
+                            cancelledIds.has(cmd.commandId) || cmd.commandStatus === "FAILED"
+                              ? "bg-red-50 text-red-500 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+                              : cmd.commandStatus === "SUCCESS"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                                : cmd.commandStatus === "RUNNING"
+                                  ? "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                                  : "bg-gray-50 text-gray-700 border-gray-100 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
+                          }`}
+                        >
+                          {cancelledIds.has(cmd.commandId) ? "FAILED" : cmd.commandStatus}
+                        </span>
+                        {!cancelledIds.has(cmd.commandId) && cmd.commandStatus === "READY" && (
+                          <button
+                            onClick={(e) => handleCancel(e, cmd.commandId)}
+                            disabled={cancellingId === cmd.commandId}
+                            className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+                          >
+                            {cancellingId === cmd.commandId ? "..." : "Cancel"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-500">
                       {cmd.totalTryCount}

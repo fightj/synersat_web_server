@@ -19,15 +19,16 @@ export const MAP_STYLES = [
   },
 ];
 
-export type FilterKey = "all" | "starlink" | "nexuswave" | "vsat" | "fbb" | "offline";
+export type FilterKey = "all" | "starlink" | "nexuswave" | "vsat" | "fbb" | "none" | "offline";
 
 export const FILTER_CATEGORIES: { key: FilterKey; label: string; color: string }[] = [
-  { key: "all", label: "Total", color: "#94a3b8" },
-  { key: "starlink", label: "Starlink", color: "#a855f7" },
+  { key: "all",       label: "Total",     color: "#94a3b8" },
+  { key: "starlink",  label: "Starlink",  color: "#a855f7" },
   { key: "nexuswave", label: "Nexuswave", color: "#818cf8" },
-  { key: "vsat", label: "VSAT", color: "#10b981" },
-  { key: "fbb", label: "FBB", color: "#0ea5e9" },
-  { key: "offline", label: "Offline", color: "#ef4444" },
+  { key: "vsat",      label: "VSAT",      color: "#10b981" },
+  { key: "fbb",       label: "FBB",       color: "#0ea5e9" },
+  { key: "none",      label: "Unknown",   color: "#6b7280" },
+  { key: "offline",   label: "Offline",   color: "#ef4444" },
 ];
 
 export function getClosestLng(baseLng: number, refLng: number): number {
@@ -45,10 +46,12 @@ export function matchFilter(
   if (key === "all") return true;
   if (key === "offline") return !connected;
   const name = antennaName?.toLowerCase() ?? "";
-  if (key === "starlink") return name.includes("starlink");
+  if (!connected) return false; // offline 선박은 antenna 카테고리에서 제외
+  if (key === "starlink")  return name.includes("starlink");
   if (key === "nexuswave") return name.includes("nexuswave");
-  if (key === "vsat") return name.includes("vsat") || name.includes("fx");
-  if (key === "fbb") return name.includes("fbb");
+  if (key === "vsat")      return name.includes("vsat") || name.includes("fx");
+  if (key === "fbb")       return name.includes("fbb");
+  if (key === "none")      return antennaName === null || antennaName.trim() === "";
   return false;
 }
 
