@@ -359,7 +359,8 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           {/* ── Data Usage History + 스캔 라인 ─────────────────────── */}
           <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
             <ScanLine isScanning={showScan} scanKey={scanKey} />
-            <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+            
+            <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
               Data Usage History
             </h4>
             <div className="h-[250px] w-full">
