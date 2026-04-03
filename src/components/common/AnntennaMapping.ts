@@ -13,9 +13,24 @@ export const getServiceBadgeStyles = (serviceName: string | null | undefined): s
     return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800/50";
   }
 
-  // Nexuswave, 4G, OneWeb: 차가운 인디고 (indigo)
-  if (name.includes("nexuswave") || name.includes("4g") || name.includes("oneweb")) {
+  // Nexuswave: 차가운 인디고 (indigo)
+  if (name.includes("nexuswave")) {
     return "bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800/50";
+  }
+
+  // OneWeb: 밝은 노란색 (yellow-300)
+  if (name.includes("oneweb")) {
+    return "bg-yellow-100 text-yellow-600 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/50";
+  }
+
+  // 4G / LTE: 진한 주황-노란색 (amber-600)
+  if (name.includes("4g") || name.includes("lte")) {
+    return "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-600 dark:border-amber-800/50";
+  }
+
+  // Iridium: 중간 노란색 (amber-500)
+  if (name.includes("iridium")) {
+    return "bg-amber-100 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50";
   }
 
   // 그룹 2: VSAT, FX (녹색)
@@ -41,8 +56,17 @@ export const getServiceColor = (serviceName: string | null | undefined): string 
   // Starlink -> 따뜻한 보라 (purple-500)
   if (name.includes("starlink")) return "#a855f7";
 
-  // Nexuswave, OneWeb -> 차가운 인디고 보라 (indigo-400)
-  if (name.includes("nexuswave") || name.includes("4g") || name.includes("oneweb")) return "#818cf8";
+  // Nexuswave -> 차가운 인디고 보라 (indigo-400)
+  if (name.includes("nexuswave")) return "#818cf8";
+
+  // OneWeb -> 밝은 노란색 (yellow-300 / amber-300)
+  if (name.includes("oneweb")) return "#fcd34d";
+
+  // 4G / LTE -> 진한 주황-노란색 (amber-600)
+  if (name.includes("4g") || name.includes("lte")) return "#d97706";
+
+  // Iridium -> 중간 노란색 (amber-500)
+  if (name.includes("iridium")) return "#f59e0b";
 
   // VSAT, FX -> 녹색
   if (name.includes("vsat") || name.includes("fx")) {
@@ -62,7 +86,10 @@ export const getServiceColor = (serviceName: string | null | undefined): string 
  */
 export const LEGEND_ITEMS = [
   { label: "Starlink", color: "#a855f7" },
-  { label: "Nexuswave / 4G", color: "#818cf8" },
+  { label: "Nexuswave", color: "#818cf8" },
+  { label: "OneWeb", color: "#fcd34d" },
+  { label: "4G / LTE", color: "#d97706" },
+  { label: "Iridium", color: "#f59e0b" },
   { label: "VSAT / FX", color: "#10b981" },
   { label: "FBB", color: "#0ea5e9" },
   { label: "Offline", color: "#ef4444" },

@@ -19,16 +19,19 @@ export const MAP_STYLES = [
   },
 ];
 
-export type FilterKey = "all" | "starlink" | "nexuswave" | "vsat" | "fbb" | "none" | "offline";
+export type FilterKey = "all" | "starlink" | "nexuswave" | "oneweb" | "vsat" | "fbb" | "4g" | "iridium" | "none" | "offline";
 
 export const FILTER_CATEGORIES: { key: FilterKey; label: string; color: string }[] = [
-  { key: "all",       label: "Total",     color: "#94a3b8" },
-  { key: "starlink",  label: "Starlink",  color: "#a855f7" },
+  { key: "all", label: "Total", color: "#94a3b8" },
+  { key: "starlink", label: "Starlink", color: "#a855f7" },
   { key: "nexuswave", label: "Nexuswave", color: "#818cf8" },
-  { key: "vsat",      label: "VSAT",      color: "#10b981" },
-  { key: "fbb",       label: "FBB",       color: "#0ea5e9" },
-  { key: "none",      label: "Unknown",   color: "#6b7280" },
-  { key: "offline",   label: "Offline",   color: "#ef4444" },
+  { key: "vsat", label: "VSAT", color: "#10b981" },
+  { key: "fbb", label: "FBB", color: "#0ea5e9" },
+  { key: "4g", label: "4G", color: "#d97706" },
+  { key: "oneweb", label: "OneWeb", color: "#fcd34d" },
+  { key: "iridium", label: "Iridium", color: "#f59e0b" },
+  { key: "none", label: "N/A", color: "#6b7280" },
+  { key: "offline", label: "Offline", color: "#ef4444" },
 ];
 
 export function getClosestLng(baseLng: number, refLng: number): number {
@@ -47,11 +50,14 @@ export function matchFilter(
   if (key === "offline") return !connected;
   const name = antennaName?.toLowerCase() ?? "";
   if (!connected) return false; // offline 선박은 antenna 카테고리에서 제외
-  if (key === "starlink")  return name.includes("starlink");
+  if (key === "starlink") return name.includes("starlink");
   if (key === "nexuswave") return name.includes("nexuswave");
-  if (key === "vsat")      return name.includes("vsat") || name.includes("fx");
-  if (key === "fbb")       return name.includes("fbb");
-  if (key === "none")      return antennaName === null || antennaName.trim() === "";
+  if (key === "oneweb") return name.includes("oneweb");
+  if (key === "vsat") return name.includes("vsat") || name.includes("fx");
+  if (key === "fbb") return name.includes("fbb");
+  if (key === "4g") return name.includes("4g") || name.includes("lte");
+  if (key === "iridium") return name.includes("iridium");
+  if (key === "none") return antennaName === null || antennaName.trim() === "";
   return false;
 }
 
@@ -145,23 +151,23 @@ export const GX_COVERAGES: GxCoverage[] = [
     color: "#a855f7",
     center: [0, 11],
     points: [
-      [73.0,   3.0],
-      [72.6,  12.0],
-      [72.0,  24.8],
-      [68.7,  25.4],
-      [63.0,  25.0],
-      [62.0,  25.5],
-      [25.0,  63.7],
-      [24.5,  78.1],
-      [ 9.6,  78.4],
-      [10.6,  43.6],
-      [31.9,  30.4],
-      [35.0,  16.0],
-      [36.1,  -6.5],
+      [73.0, 3.0],
+      [72.6, 12.0],
+      [72.0, 24.8],
+      [68.7, 25.4],
+      [63.0, 25.0],
+      [62.0, 25.5],
+      [25.0, 63.7],
+      [24.5, 78.1],
+      [9.6, 78.4],
+      [10.6, 43.6],
+      [31.9, 30.4],
+      [35.0, 16.0],
+      [36.1, -6.5],
       [55.6, -13.0],
       [57.7, -13.2],
-      [68.4,  -1.3],
-      [73.0,   3.0],
+      [68.4, -1.3],
+      [73.0, 3.0],
     ],
   },
 ];

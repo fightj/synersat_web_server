@@ -19,7 +19,7 @@ function AnimatedNumber({ value }: { value: number }) {
     const animate = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
       setDisplayed(Math.round(start + (end - start) * eased));
       if (progress < 1) {
         rafRef.current = requestAnimationFrame(animate);
@@ -39,8 +39,8 @@ interface MapBottomBarProps {
   stats: Record<FilterKey, number>;
   activeFilter: FilterKey;
   onFilterChange: (key: FilterKey) => void;
-  showName: boolean;
-  onToggleName: () => void;
+  // showName: boolean;
+  // onToggleName: () => void;
   activeStyle: string;
   onStyleChange: (id: string) => void;
   noGpsCount: number;
@@ -54,8 +54,8 @@ export default function MapBottomBar({
   stats,
   activeFilter,
   onFilterChange,
-  showName,
-  onToggleName,
+  // showName,
+  // onToggleName,
   activeStyle,
   onStyleChange,
   noGpsCount,
@@ -66,14 +66,12 @@ export default function MapBottomBar({
 }: MapBottomBarProps) {
   return (
     <div
-      className="relative flex w-full items-center justify-between gap-4 bg-gray-800 px-5"
+      className="relative flex w-full items-center bg-gray-800 px-3"
       style={{ height: "10vh" }}
     >
       {/* ── 데이터 갱신 스캔 라인 ─────────────────────────────────── */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden">
-        {/* 기본 경계선 */}
         <div className="h-full w-full bg-white/5" />
-        {/* 스캔 애니메이션 */}
         {isRefreshing && (
           <div
             className="absolute inset-y-0 w-1/3"
@@ -86,92 +84,71 @@ export default function MapBottomBar({
         )}
       </div>
 
-      {/* 가운데: 카테고리 필터 (절대 중앙 배치) */}
-      <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
-        {FILTER_CATEGORIES.map(({ key, label, color }) => {
-          const count = stats[key];
-          const isActive = activeFilter === key;
+      {/* ── 왼쪽: 지도 스타일 선택 ──────────────────────────────── */}
+      {/* Names 토글 주석처리
+      <div className="flex shrink-0 items-center gap-1.5 pr-3">
+        <button onClick={onToggleName} ...>...</button>
+        <span>Names</span>
+      </div> */}
+      <div className="flex shrink-0 items-center gap-2 pr-3">
+        {MAP_STYLES.map((style) => {
+          const isActive = activeStyle === style.id;
           return (
             <button
-              key={key}
-              onClick={() => onFilterChange(isActive && key !== "all" ? "all" : key)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                isActive
-                  ? "border-transparent text-white"
-                  : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
-              }`}
-              style={
-                isActive
-                  ? { background: color + "33", borderColor: color + "66", color: "#fff" }
-                  : {}
-              }
+              key={style.id}
+              onClick={() => onStyleChange(style.id)}
+              className="flex flex-col items-center gap-0.5"
             >
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
-              {label}
-              <span
-                className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
-                  isActive ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
+              <div
+                className={`overflow-hidden rounded-md transition-all duration-200 ${
+                  isActive
+                    ? "ring-2 ring-blue-400 ring-offset-1 ring-offset-gray-800"
+                    : "opacity-50 hover:opacity-90"
                 }`}
+                style={{ width: 32, height: 32 }}
               >
-                <AnimatedNumber value={count} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={style.preview} alt={style.label} width={32} height={32} className="h-full w-full object-cover" />
+              </div>
+              <span className={`text-[9px] font-bold ${isActive ? "text-blue-400" : "text-gray-500"}`}>
+                {style.label}
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* 왼쪽: 선박명 토글 + 지도 스타일 */}
-      <div className="flex shrink-0 items-center gap-4">
-        {/* 선박명 토글 */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onToggleName}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-              showName ? "bg-blue-500" : "bg-gray-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${
-                showName ? "translate-x-[18px]" : "translate-x-[3px]"
-              }`}
-            />
-          </button>
-          <span className="text-xs font-semibold text-gray-400">Names</span>
-        </div>
+      <div className="mx-2 h-5 w-px shrink-0 bg-white/10" />
 
-        <div className="h-6 w-px bg-white/10" />
-
-        {/* 지도 스타일 */}
-        <div className="flex items-center gap-2">
-          {MAP_STYLES.map((style) => {
-            const isActive = activeStyle === style.id;
+      {/* ── 가운데: 카테고리 필터 (가용 공간 차지, 스크롤 허용) ─── */}
+      <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto flex w-max items-center gap-1 py-1">
+          {FILTER_CATEGORIES.map(({ key, label, color }) => {
+            const count = stats[key];
+            const isActive = activeFilter === key;
             return (
               <button
-                key={style.id}
-                onClick={() => onStyleChange(style.id)}
-                className="flex flex-col items-center gap-1"
+                key={key}
+                onClick={() => onFilterChange(isActive && key !== "all" ? "all" : key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                  isActive
+                    ? "border-transparent text-white"
+                    : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+                }`}
+                style={
+                  isActive
+                    ? { background: color + "33", borderColor: color + "66", color: "#fff" }
+                    : {}
+                }
               >
-                <div
-                  className={`overflow-hidden rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? "scale-105 ring-2 ring-blue-400 ring-offset-1 ring-offset-blue-950"
-                      : "opacity-50 hover:scale-105 hover:opacity-90"
-                  }`}
-                  style={{ width: 40, height: 40 }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={style.preview}
-                    alt={style.label}
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+                {label}
                 <span
-                  className={`text-[9px] font-bold ${isActive ? "text-blue-400" : "text-gray-600"}`}
+                  className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
+                    isActive ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
+                  }`}
                 >
-                  {style.label}
+                  <AnimatedNumber value={count} />
                 </span>
               </button>
             );
@@ -179,49 +156,49 @@ export default function MapBottomBar({
         </div>
       </div>
 
-      {/* 오른쪽: No GPS 그룹 */}
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        <span className="text-[10px] font-bold tracking-wider text-yellow-500 uppercase">
+      <div className="mx-2 h-5 w-px shrink-0 bg-white/10" />
+
+      {/* ── 오른쪽: No GPS 그룹 ──────────────────────────────────── */}
+      <div className="flex shrink-0 items-center gap-1.5 pl-1">
+        <span className="hidden whitespace-nowrap text-[9px] font-bold tracking-wider text-yellow-500 uppercase xl:block">
           No GPS
         </span>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onListPanelToggle("online")}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
-              activeListPanel === "online"
-                ? "border-green-500/60 bg-green-500/20 text-green-200"
-                : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+        <button
+          onClick={() => onListPanelToggle("online")}
+          className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-all duration-150 ${
+            activeListPanel === "online"
+              ? "border-green-500/60 bg-green-500/20 text-green-200"
+              : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+          }`}
+        >
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+          <span className="hidden sm:inline">Online</span>
+          <span
+            className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
+              activeListPanel === "online" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
             }`}
           >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
-            Online
-            <span
-              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
-                activeListPanel === "online" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
-              }`}
-            >
-              <AnimatedNumber value={noGpsCount} />
-            </span>
-          </button>
-          <button
-            onClick={() => onListPanelToggle("offline")}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 ${
-              activeListPanel === "offline"
-                ? "border-red-500/60 bg-red-500/20 text-red-300"
-                : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+            <AnimatedNumber value={noGpsCount} />
+          </span>
+        </button>
+        <button
+          onClick={() => onListPanelToggle("offline")}
+          className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-all duration-150 ${
+            activeListPanel === "offline"
+              ? "border-red-500/60 bg-red-500/20 text-red-300"
+              : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+          }`}
+        >
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+          <span className="hidden sm:inline">Offline</span>
+          <span
+            className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
+              activeListPanel === "offline" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
             }`}
           >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
-            Offline
-            <span
-              className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
-                activeListPanel === "offline" ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
-              }`}
-            >
-              <AnimatedNumber value={offlineCount} />
-            </span>
-          </button>
-        </div>
+            <AnimatedNumber value={offlineCount} />
+          </span>
+        </button>
       </div>
     </div>
   );

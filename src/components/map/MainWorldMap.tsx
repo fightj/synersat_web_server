@@ -32,7 +32,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const pingMarkerRef = useRef<any>(null);
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
-  const [showName, setShowName] = useState(true);
+  const showName = true;
   const [gpsAlert, setGpsAlert] = useState(false);
   const [showCoverage, setShowCoverage] = useState(false);
   const [activeGx, setActiveGx] = useState<GxKey>("all");
@@ -83,8 +83,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       all:       list.length,
       starlink:  gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "starlink")).length,
       nexuswave: gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "nexuswave")).length,
+      oneweb:    gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "oneweb")).length,
       vsat:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "vsat")).length,
       fbb:       gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "fbb")).length,
+      "4g":      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "4g")).length,
+      iridium:   gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "iridium")).length,
       none:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "none")).length,
       offline:   gps.filter((v) => v.connected === false).length,
     };
@@ -405,8 +408,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         stats={stats}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
-        showName={showName}
-        onToggleName={() => setShowName((v) => !v)}
         activeStyle={activeStyle}
         onStyleChange={handleStyleChange}
         noGpsCount={noGpsVessels.length}
