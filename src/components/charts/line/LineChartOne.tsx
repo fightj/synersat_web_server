@@ -27,7 +27,12 @@ export default function LineChartOne({
 }: LineChartOneProps) {
   const [isDark, setIsDark] = useState(false);
   const [selectedAntenna, setSelectedAntenna] = useState<string | null>(null);
+  const [showOfflineOnly, setShowOfflineOnly] = useState(false);
+  // 레전드 hover는 버튼 CSS(opacity-30)로만 처리 — chart 재렌더 방지
   const [hoveredAntenna, setHoveredAntenna] = useState<string | null>(null);
+
+  const rangeMin = timeRange ? new Date(timeRange.startAt + "Z").getTime() : undefined;
+  const rangeMax = timeRange ? new Date(timeRange.endAt + "Z").getTime() : undefined;
 
   useEffect(() => {
     const check = () =>
@@ -41,24 +46,31 @@ export default function LineChartOne({
     return () => observer.disconnect();
   }, []);
 
-  const { allSeries, isLongTerm, dayDiff } = useMemo(() => {
-    if (!coordinates || coordinates.length === 0) {
-      return { allSeries: [], isLongTerm: false, dayDiff: 0 };
-    }
-
-    // ✅ Z 붙여서 UTC로 명시적 파싱
+  const { allSeries, gapSeries, isLongTerm, dayDiff } = useMemo(() => {
     const diff = timeRange
       ? differenceInDays(
           new Date(timeRange.endAt + "Z"),
           new Date(timeRange.startAt + "Z"),
         )
       : 1;
-
     const longTerm = diff >= 7;
+
+    const rMin = timeRange ? new Date(timeRange.startAt + "Z").getTime() : null;
+    const rMax = timeRange ? new Date(timeRange.endAt + "Z").getTime() : null;
+
+    if (!coordinates || coordinates.length === 0) {
+      // 데이터 없으면 전체 구간이 갭
+      const phantomGap =
+        rMin !== null && rMax !== null
+          ? [{ name: "Offline", data: [{ x: rMin, y: 0 }, { x: rMax, y: 0 }], color: "#ef4444" }]
+          : [];
+      return { allSeries: [], gapSeries: phantomGap, isLongTerm: longTerm, dayDiff: diff };
+    }
+
+    const GAP_THRESHOLD_MS = 10 * 60 * 1000;
     const antennaNames = new Set<string>();
     const timeMap: Record<string, Record<string, number>> = {};
 
-    // ✅ Z 붙여서 UTC로 정렬
     const sortedCoords = [...coordinates].sort(
       (a, b) =>
         new Date(a.timeStamp + "Z").getTime() -
@@ -66,10 +78,8 @@ export default function LineChartOne({
     );
 
     sortedCoords.forEach((coord) => {
-      // ✅ UTC 그대로 사용, 브라우저가 알아서 로컬 타임존으로 표시
       const timeMs = new Date(coord.timeStamp + "Z").getTime();
       if (!timeMap[timeMs]) timeMap[timeMs] = {};
-
       coord.dataUsages.forEach((usage) => {
         const name = usage.antennaName || "Unknown";
         antennaNames.add(name);
@@ -81,39 +91,111 @@ export default function LineChartOne({
     const timeKeys = Object.keys(timeMap).sort((a, b) => Number(a) - Number(b));
     const antennaList = Array.from(antennaNames);
 
-    const chartSeries = antennaList.map((name) => ({
-      name,
-      data: timeKeys.map((time) => ({
-        x: Number(time),
-        y: timeMap[time][name] || 0,
-      })),
-      color: getServiceColor(name),
-    }));
+    // ── 메인 시리즈 (갭 구간에 null 삽입) ──────────────────────────
+    const chartSeries = antennaList.map((name) => {
+      const points: { x: number; y: number | null }[] = [];
+      for (let i = 0; i < timeKeys.length; i++) {
+        const time = Number(timeKeys[i]);
+        const prevTime = i > 0 ? Number(timeKeys[i - 1]) : null;
+        if (prevTime !== null && time - prevTime > GAP_THRESHOLD_MS) {
+          points.push({ x: Math.round((prevTime + time) / 2), y: null });
+        }
+        points.push({
+          x: time,
+          y: timeMap[time][name] !== undefined ? timeMap[time][name] : 0,
+        });
+      }
+      return { name, data: points, color: getServiceColor(name) };
+    });
 
-    return { allSeries: chartSeries, isLongTerm: longTerm, dayDiff: diff };
+    // ── 갭 구간 수집 ─────────────────────────────────────────────
+    const gapIntervals: { start: number; end: number }[] = [];
+    const firstT = Number(timeKeys[0]);
+    const lastT = Number(timeKeys[timeKeys.length - 1]);
+
+    // timeRange 시작 ~ 첫 데이터
+    if (rMin !== null && firstT - rMin > GAP_THRESHOLD_MS) {
+      gapIntervals.push({ start: rMin, end: firstT });
+    }
+    // 데이터 사이 갭
+    for (let i = 1; i < timeKeys.length; i++) {
+      const prev = Number(timeKeys[i - 1]);
+      const curr = Number(timeKeys[i]);
+      if (curr - prev > GAP_THRESHOLD_MS) {
+        gapIntervals.push({ start: prev, end: curr });
+      }
+    }
+    // 마지막 데이터 ~ timeRange 끝
+    if (rMax !== null && rMax - lastT > GAP_THRESHOLD_MS) {
+      gapIntervals.push({ start: lastT, end: rMax });
+    }
+
+    // 갭 인터벌 → 하나의 시리즈 (null로 구간 분리)
+    const gapData: { x: number; y: number | null }[] = [];
+    gapIntervals.forEach(({ start, end }, i) => {
+      if (i > 0) {
+        // 이전 갭 구간과 분리
+        gapData.push({ x: Math.round((gapIntervals[i - 1].end + start) / 2), y: null });
+      }
+      gapData.push({ x: start, y: 0 });
+      gapData.push({ x: end, y: 0 });
+    });
+
+    const builtGapSeries =
+      gapData.length > 0
+        ? [{ name: "Offline", data: gapData, color: "#ef4444" }]
+        : [];
+
+    return { allSeries: chartSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
   }, [coordinates, timeRange]);
 
-  const series = useMemo(() => {
-    if (selectedAntenna) {
-      return allSeries.filter((s) => s.name === selectedAntenna);
-    }
-    if (hoveredAntenna) {
-      return allSeries.map((s) => ({
-        ...s,
-        stroke: {
-          opacity: s.name === hoveredAntenna ? 1 : 0.1,
-        },
-      }));
-    }
-    return allSeries;
-  }, [allSeries, selectedAntenna, hoveredAntenna]);
+  // phantom series: x축 범위 강제용 (데이터 없을 때)
+  const phantomSeries = useMemo(
+    () =>
+      rangeMin !== undefined && rangeMax !== undefined
+        ? [{ name: "", data: [{ x: rangeMin, y: null as any }, { x: rangeMax, y: null as any }] }]
+        : [],
+    [rangeMin, rangeMax],
+  );
+
+  // 실제 렌더할 main 시리즈 수 (options per-series 배열 길이 계산용)
+  const mainSeriesForDisplay = useMemo(() => {
+    if (showOfflineOnly) return phantomSeries; // offline only: main 숨김, phantom만 x축용
+    if (allSeries.length === 0) return phantomSeries;
+    return selectedAntenna ? allSeries.filter((s) => s.name === selectedAntenna) : allSeries;
+  }, [allSeries, phantomSeries, selectedAntenna, showOfflineOnly]);
+
+  // 선택 필터 + gap 시리즈 합산 — hover는 포함하지 않아 chart 재렌더 없음
+  const series = useMemo(
+    () => [...mainSeriesForDisplay, ...gapSeries],
+    [mainSeriesForDisplay, gapSeries],
+  );
 
   const handleLegendClick = useCallback((name: string) => {
+    setShowOfflineOnly(false);
     setSelectedAntenna((prev) => (prev === name ? null : name));
   }, []);
 
-  const options: ApexOptions = useMemo(
-    () => ({
+  const handleOfflineClick = useCallback(() => {
+    setSelectedAntenna(null);
+    setShowOfflineOnly((prev) => !prev);
+  }, []);
+
+  const options: ApexOptions = useMemo(() => {
+    const mainCount = mainSeriesForDisplay.length || 1;
+    const hasGap = gapSeries.length > 0;
+
+    // per-series 배열 구성
+    const strokeWidths = [...Array(mainCount).fill(2), ...(hasGap ? [1.5] : [])];
+    const fillTypes = [...Array(mainCount).fill("gradient"), ...(hasGap ? ["solid"] : [])];
+    const fillOpacities = [...Array(mainCount).fill(0.35), ...(hasGap ? [0] : [])];
+    type CurveType = "smooth" | "straight" | "stepline" | "linestep" | "monotoneCubic";
+    const strokeCurves: CurveType[] = [
+      ...Array<CurveType>(mainCount).fill("smooth"),
+      ...(hasGap ? (["straight"] as CurveType[]) : []),
+    ];
+
+    return {
       chart: {
         type: "area",
         height: 280,
@@ -138,36 +220,29 @@ export default function LineChartOne({
           stroke: { width: 1, dashArray: 3, color: "#247BA0", opacity: 0.4 },
         },
         events: {
-          selection: (chartContext, { xaxis }) => {
+          selection: (_chartContext, { xaxis }) => {
             if (xaxis && onTimeRangeChange) {
-              // ✅ xaxis.min/max는 UTC ms → 그대로 ISO 변환해서 부모로 전달
               const startUTC = new Date(xaxis.min).toISOString().slice(0, 19);
               const endUTC = new Date(xaxis.max).toISOString().slice(0, 19);
-
-              console.log("[Chart Selection] startAt (UTC):", startUTC);
-              console.log("[Chart Selection] endAt   (UTC):", endUTC);
-
               onTimeRangeChange(startUTC, endUTC);
             }
           },
         },
         foreColor: "#9CA3AF",
         background: "transparent",
+        animations: { enabled: false },
       },
       dataLabels: { enabled: false },
       stroke: {
-        curve: "smooth",
-        width: 2,
-        opacity: allSeries.map((s) => {
-          if (!hoveredAntenna) return 1;
-          return s.name === hoveredAntenna ? 1 : 0.1;
-        }),
+        curve: strokeCurves,
+        width: strokeWidths,
       },
       fill: {
-        type: "gradient",
+        type: fillTypes,
+        opacity: fillOpacities,
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: hoveredAntenna ? 0.2 : 0.35,
+          opacityFrom: 0.35,
           opacityTo: 0.05,
         },
       },
@@ -181,12 +256,14 @@ export default function LineChartOne({
       legend: { show: false },
       xaxis: {
         type: "datetime",
+        min: rangeMin,
+        max: rangeMax,
         labels: {
           style: { colors: "#6B7280", fontSize: "12px", fontWeight: 700 },
-          datetimeUTC: false, // ✅ 브라우저 로컬 타임존으로 자동 변환해서 표시
+          datetimeUTC: false,
           format: isLongTerm ? "M/d" : "HH:mm",
         },
-        tickAmount: isLongTerm ? Math.min(dayDiff, 8) : undefined,
+        tickAmount: isLongTerm ? Math.min(dayDiff, 8) : 6,
         axisBorder: { show: false },
         axisTicks: { show: false },
         crosshairs: {
@@ -208,63 +285,86 @@ export default function LineChartOne({
         theme: isDark ? "dark" : "light",
         shared: true,
         intersect: false,
-        x: {
-          show: true,
-          format: "MM/dd HH:mm", // ✅ 브라우저 로컬 타임존 기준으로 표시
-        },
+        x: { show: true, format: "MM/dd HH:mm" },
+        // gap 시리즈는 툴팁에서 숨김
+        custom: undefined,
       },
       grid: {
         borderColor: "rgba(156, 163, 175, 0.1)",
         strokeDashArray: 4,
       },
-    }),
-    [isDark, isLongTerm, dayDiff, allSeries, hoveredAntenna, onTimeRangeChange],
-  );
-
-  if (allSeries.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-gray-400">
-        No Data
-      </div>
-    );
-  }
+    };
+  }, [isDark, isLongTerm, dayDiff, allSeries, gapSeries, mainSeriesForDisplay, onTimeRangeChange, rangeMin, rangeMax]);
 
   return (
-    <div className="flex h-full w-full flex-col">
-      {/* 커스텀 레전드 */}
-      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-2 pb-1">
-        {allSeries.map((s) => {
-          const isSelected = selectedAntenna === s.name;
-          const isHovered = hoveredAntenna === s.name;
-          const isGhosted =
-            (selectedAntenna !== null && !isSelected) ||
-            (hoveredAntenna !== null && !isHovered);
+    <div className="relative flex h-full w-full flex-col">
+      {/* 데이터 없을 때 오버레이 */}
+      {allSeries.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="text-sm text-gray-400">No Data</span>
+        </div>
+      )}
 
-          return (
-            <button
-              key={s.name}
-              onClick={() => handleLegendClick(s.name)}
-              onMouseEnter={() => setHoveredAntenna(s.name)}
-              onMouseLeave={() => setHoveredAntenna(null)}
-              className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
-                isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
-              } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
-            >
-              <span
-                className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: s.color }}
-              />
-              <span
-                className={`transition-colors ${isSelected || isHovered ? "font-bold text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
+      {/* 커스텀 레전드 — hover는 CSS opacity만, chart 재렌더 없음 */}
+      {(allSeries.length > 0 || gapSeries.length > 0) && (
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-2 pb-1">
+          {allSeries.map((s) => {
+            const isSelected = selectedAntenna === s.name;
+            const isHovered = hoveredAntenna === s.name;
+            const isGhosted =
+              showOfflineOnly ||
+              (selectedAntenna !== null && !isSelected) ||
+              (hoveredAntenna !== null && !isHovered);
+
+            return (
+              <button
+                key={s.name}
+                onClick={() => handleLegendClick(s.name)}
+                onMouseEnter={() => setHoveredAntenna(s.name)}
+                onMouseLeave={() => setHoveredAntenna(null)}
+                className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
+                  isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
+                } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
               >
-                {s.name}
+                <span
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span
+                  className={`transition-colors ${isSelected || isHovered ? "font-bold text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
+                >
+                  {s.name}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Offline 필터 버튼 — gap 시리즈가 있을 때만 표시 */}
+          {gapSeries.length > 0 && (
+            <button
+              onClick={handleOfflineClick}
+              className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
+                showOfflineOnly
+                  ? "scale-100 opacity-100 ring-1 ring-red-400 ring-offset-1"
+                  : (selectedAntenna !== null || (hoveredAntenna !== null))
+                    ? "scale-95 opacity-30"
+                    : "scale-100 opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20"
+              }`}
+            >
+              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
+              <span
+                className={`transition-colors ${
+                  showOfflineOnly ? "font-bold text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                Offline
               </span>
             </button>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* 차트 영역 */}
+      {/* 차트 영역 — 항상 렌더링 */}
       <div className="min-h-0 flex-1 [&_.apexcharts-toolbar]:hidden">
         <ReactApexChart
           options={options}

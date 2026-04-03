@@ -176,7 +176,7 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
               : "#94a3b8";
           marker.bindPopup(
             `<div class="text-[11px] font-sans">
-              <strong style="color: ${popupColor}">${p.status?.antennaServiceName ?? "N/A"}</strong><br/>
+              <strong style="color: ${popupColor}">${popupAvailable ? (p.status?.antennaServiceName ?? "N/A") : "N/A"}</strong><br/>
               <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
               <span class="text-gray-500">Signal:</span> ${p.satSignalStrength ?? 0}
             </div>`,
