@@ -235,10 +235,11 @@ export default function VesselSearch({ className = "" }: Props) {
         </div>
 
         {open && (
+          <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
           <div
             ref={dropdownRef}
             onScroll={onDropdownScroll}
-            className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 max-h-[360px] overflow-auto rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+            className="max-h-[360px] overflow-y-auto p-1"
           >
             {allMatches.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-500">
@@ -284,6 +285,7 @@ export default function VesselSearch({ className = "" }: Props) {
                 })}
               </ul>
             )}
+          </div>
           </div>
         )}
       </form>
