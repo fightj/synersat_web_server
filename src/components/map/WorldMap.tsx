@@ -5,14 +5,16 @@ import "leaflet/dist/leaflet.css";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import RedirectButtons from "../common/RedirectButtons";
+import AntennaStatusBar from "../vessel/AntennaStatusBar";
 
 interface WorldMapProps {
   vesselImo: string;
-  vesselId: string | null
+  vesselId: string | null;
   coordinates: RouteCoordinate[];
+  timeRange?: { startAt: string; endAt: string };
 }
 
-export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapProps) {
+export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }: WorldMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<
@@ -62,26 +64,45 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
         return;
       }
 
-      // 3. 유효한 좌표 데이터 필터링 (표시용 최적화)
-      const validPoints = coordinates.filter(
-        (p) => p.latitude !== null && p.longitude !== null,
-      );
+      // 3. 유효한 좌표 데이터 필터링 + 시간 오름차순 정렬 (최신 = 마지막)
+      const validPoints = coordinates
+        .filter((p) => p.latitude !== null && p.longitude !== null)
+        .sort(
+          (a, b) =>
+            new Date(a.timeStamp + "Z").getTime() -
+            new Date(b.timeStamp + "Z").getTime(),
+        );
 
-      // 줌 레벨에 따른 step 계산 (5분 단위 데이터 기준)
-      // zoom 2→12(1h), zoom 4→6(30m), zoom 6→3(15m), zoom 8→2(10m), zoom 10→1(5m)
-      const getStep = (zoom: number) => {
-        if (zoom >= 10) return 1;
-        if (zoom >= 8) return 2;
-        if (zoom >= 6) return 3;
-        if (zoom >= 4) return 6;
-        return 12;
+      // 줌 레벨에 따른 최소 시간 간격 (ms)
+      // 줌인할수록 간격이 좁아져 기존 포인트는 유지되고 새 포인트가 추가됨
+      const getMinInterval = (zoom: number): number => {
+        if (zoom >= 10) return 5 * 60 * 1000;   // 5분
+        if (zoom >= 8)  return 10 * 60 * 1000;  // 10분
+        if (zoom >= 6)  return 15 * 60 * 1000;  // 15분
+        if (zoom >= 4)  return 30 * 60 * 1000;  // 30분
+        return 60 * 60 * 1000;                   // 60분
       };
 
       const filterCoords = (zoom: number): RouteCoordinate[] => {
-        const step = getStep(zoom);
-        return validPoints.filter(
-          (_, idx) => idx === 0 || idx % step === 0 || idx === validPoints.length - 1,
-        );
+        const minInterval = getMinInterval(zoom);
+        const result: RouteCoordinate[] = [];
+        let lastTime = -Infinity;
+
+        for (const p of validPoints) {
+          const t = new Date(p.timeStamp + "Z").getTime();
+          if (t - lastTime >= minInterval) {
+            result.push(p);
+            lastTime = t;
+          }
+        }
+
+        // 최신 포인트는 항상 포함
+        const last = validPoints[validPoints.length - 1];
+        if (result.length === 0 || result[result.length - 1] !== last) {
+          result.push(last);
+        }
+
+        return result;
       };
 
       // 아이콘 생성 함수
@@ -150,8 +171,9 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
         markersRef.current.forEach((m) => m.marker.remove());
         markersRef.current = [];
 
-        filterCoords(zoom).forEach((p, idx) => {
-          const isLast = idx === 0;
+        const filtered = filterCoords(zoom);
+        filtered.forEach((p, idx) => {
+          const isLast = idx === filtered.length - 1; // 최신 포인트 = 마지막
           const latlng: [number, number] = [p.latitude!, p.longitude!];
 
           const marker = L.marker(latlng, {
@@ -273,9 +295,10 @@ export default function WorldMap({ vesselImo, coordinates, vesselId }: WorldMapP
         </div>
       )}
     </div>
-    <div className="mt-3  rounded-xl border border-gray-200 bg-white p-2 dark:border-white/[0.05] dark:bg-white/[0.03]">
+    <div className="mt-3 rounded-xl border border-gray-200 bg-white p-2 dark:border-white/[0.05] dark:bg-white/[0.03]">
       <RedirectButtons vesselId={vesselId} />
     </div>
+    <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />
     </>
     
   );

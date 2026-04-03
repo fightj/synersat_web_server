@@ -88,6 +88,9 @@ export interface RouteCoordinate {
     timeStamp: string | null;
     antennaServiceName: string | null;
     antennaServiceColor: string | null;
+    satType: string | null;
+    antennaStatus: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
+    transmitEnabled: boolean | null;
   } | null;
 }
 export interface DataUsage {

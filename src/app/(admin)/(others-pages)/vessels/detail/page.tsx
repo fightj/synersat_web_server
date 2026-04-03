@@ -187,8 +187,9 @@ export default function VesselDetailPage() {
           <div className="h-[450px] w-full lg:h-auto lg:w-1/2">
             <WorldMap
               vesselImo={imo}
-              vesselId = {vesselId}
+              vesselId={vesselId}
               coordinates={routeData?.coordinates ?? []}
+              timeRange={timeRange}
             />
           </div>
         </div>

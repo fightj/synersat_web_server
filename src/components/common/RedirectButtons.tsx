@@ -10,8 +10,10 @@ interface VesselNameProps {
 type buttonTypes = "fw" | "pdu" | "fleetlink" | "ow" | "fbb" | "acu" | "modem" | "core" | "nas";
 
 export default function RedirectButtons({ vesselId }: VesselNameProps) {
+  const safeId = vesselId ? vesselId.replace(/[^a-zA-Z0-9-]/g, "") : "";
+
   const goRedirect = (action: buttonTypes) => {
-    window.open(`https://${vesselId}-${action}.synersatfleet.net`, "_blank");
+    window.open(`https://${safeId}-${action}.synersatfleet.net`, "_blank");
   };
 
   return (
