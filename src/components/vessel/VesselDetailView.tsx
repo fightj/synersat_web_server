@@ -12,8 +12,11 @@ import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
 import VesselCommandOne from "./VesselCommandOne";
 import VesselFormModal from "./VesselFormModal";
+import VesselDeleteAlert from "./VesselDeleteAlert";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { SktelinkIcon } from "@/icons";
+import { deleteVessel } from "@/api/vessel";
+import { useRouter } from "next/navigation";
 import { AnimatedCounter } from "../ui/animated-counter";
 
 interface VesselDetailViewProps {
@@ -69,6 +72,24 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>("OVERVIEW");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
+
+  const handleDeleteVessel = async () => {
+    if (!data) return;
+    try {
+      setIsDeleting(true);
+      if (await deleteVessel([data.imo])) {
+        setIsDeleteAlertOpen(false);
+        router.push("/vessels");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // ── 스캔 라인 상태 ─────────────────────────────────────────────────
   const [isScanning, setIsScanning] = useState(false);
@@ -252,13 +273,21 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 <span className="text-xs font-bold tracking-wider text-gray-400 uppercase dark:text-gray-500">
                   Vessel Info
                 </span>
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                >
-                  <PencilSquareIcon className="h-3.5 w-3.5" />
-                  Edit Info
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                  >
+                    <PencilSquareIcon className="h-3.5 w-3.5" />
+                    Edit Info
+                  </button>
+                  <button
+                    onClick={() => setIsDeleteAlertOpen(true)}
+                    className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-500 transition-all hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-x-12 gap-y-2 md:grid-cols-2">
                 <div className="space-y-2">
@@ -384,6 +413,13 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           vesselData={data}
         />
       )}
+      <VesselDeleteAlert
+        isOpen={isDeleteAlertOpen}
+        isDeleting={isDeleting}
+        targetVesselName={data.name || ""}
+        onClose={() => setIsDeleteAlertOpen(false)}
+        onConfirm={handleDeleteVessel}
+      />
     </div>
   );
 };

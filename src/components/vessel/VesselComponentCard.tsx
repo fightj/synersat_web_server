@@ -14,12 +14,16 @@ const STAT_CATEGORIES = [
   { key: "nexuswave", label: "Nexuswave", color: "#818cf8" },
   { key: "vsat",      label: "VSAT",      color: "#10b981" },
   { key: "fbb",       label: "FBB",       color: "#0ea5e9" },
-  { key: "offline",   label: "N/A",       color: "#94a3b8" },
+  { key: "oneweb",    label: "OneWeb",    color: "#fcd34d" },
+  { key: "fourgee",   label: "4G",    color: "#d97706" },
+  { key: "iridium",   label: "Iridium",   color: "#f59e0b" },
+  { key: "offline",   label: "Offline",   color: "#ef4444" },
 ] as const;
 
 export default function VesselComponentCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<typeof STAT_CATEGORIES[number]["key"] | null>(null);
   const vessels = useVesselStore((s) => s.vessels);
 
   const stats = useMemo(() => {
@@ -31,6 +35,9 @@ export default function VesselComponentCard() {
       nexuswave: vessels.filter((v) => name(v).includes("nexuswave")).length,
       vsat:      vessels.filter((v) => name(v).includes("vsat") || name(v).includes("fx")).length,
       fbb:       vessels.filter((v) => name(v).includes("fbb")).length,
+      oneweb:    vessels.filter((v) => name(v).includes("oneweb")).length,
+      fourgee:   vessels.filter((v) => name(v).includes("4g") || name(v).includes("lte")).length,
+      iridium:   vessels.filter((v) => name(v).includes("iridium")).length,
       offline:   vessels.filter((v) => !v.status?.antennaServiceName).length,
     };
   }, [vessels]);
@@ -68,39 +75,47 @@ export default function VesselComponentCard() {
           isSticky ? "mx-36 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
         }`}
       >
-        <div className="flex items-center justify-between px-6 py-4">
-          <div>
-            <VesselFiltering onFilter={(name) => setSearchTerm(name)} />
+        <div className="flex flex-col gap-3 px-6 py-4">
+          {/* 1행: 필터 + 추가 버튼 */}
+          <div className="flex items-center justify-between gap-4">
+            <VesselFiltering onFilter={(name) => { setSearchTerm(name); setCategoryFilter(null); }} />
+            <Button size="sm" onClick={openModal} className="bg-brand-500 shrink-0 text-white">
+              + Add Vessel
+            </Button>
           </div>
 
-          {/* Stats 뱃지 */}
-          <div className="flex items-center gap-2">
-            {STAT_CATEGORIES.map(({ key, label, color }) => (
-              <span
-                key={key}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300"
-              >
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
-                {label}
-                <span className="rounded bg-gray-200/70 px-1 text-[10px] font-bold text-gray-700 dark:bg-white/10 dark:text-gray-200">
-                  {stats[key]}
-                </span>
-              </span>
-            ))}
+          {/* 2행: Stats 뱃지 (줄바꿈 허용) */}
+          <div className="flex flex-wrap gap-1.5">
+            {STAT_CATEGORIES.map(({ key, label, color }) => {
+              const isSelected = categoryFilter === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCategoryFilter(isSelected ? null : key)}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    isSelected
+                      ? "border-transparent text-white"
+                      : "border-gray-100 bg-gray-50 text-gray-600 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+                  }`}
+                  style={isSelected ? { backgroundColor: color } : undefined}
+                >
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: isSelected ? "white" : color }} />
+                  {label}
+                  <span className={`rounded px-1 text-[10px] font-bold ${
+                    isSelected ? "bg-white/20 text-white" : "bg-gray-200/70 text-gray-700 dark:bg-white/10 dark:text-gray-200"
+                  }`}>
+                    {stats[key]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-
-          <Button
-            size="sm"
-            onClick={openModal}
-            className="bg-brand-500 text-white"
-          >
-            + Add Vessel
-          </Button>
         </div>
       </div>
 
       <div className="mt-4">
-        <VesselTable searchTerm={searchTerm} />
+        <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} />
       </div>
       {/* <VesselAddModal isOpen={isOpen} onClose={closeModal} /> */}
       <VesselFormModal isOpen={isOpen} onClose={closeModal} mode="add" />

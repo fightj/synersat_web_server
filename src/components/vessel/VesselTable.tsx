@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -12,17 +12,18 @@ import {
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
-import VesselDeleteAlert from "./VesselDeleteAlert";
-import { useRouter } from "next/navigation";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
-import { SktelinkIcon } from "@/icons";
-// import { deleteVessel } from "@/app/api/vessel/vessel";
-import { deleteVessel } from "@/api/vessel";
+import { GrafanaIcon, SktelinkIcon } from "@/icons";
+import RedirectButtons from "../common/RedirectButtons";
+import { useRouter } from "next/navigation";
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
 
+type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb" | "fourgee" | "iridium" | "offline";
+
 interface VesselTableProps {
   searchTerm?: string;
+  categoryFilter?: CategoryKey | null;
 }
 
 function getSortValue(v: Vessel, key: SortKey) {
@@ -77,22 +78,14 @@ const SortHeader = ({
   );
 };
 
-export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
+export default function VesselTable({ searchTerm = "", categoryFilter = null }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
   const error = useVesselStore((s) => s.error);
-  const fetchVessels = useVesselStore((s) => s.fetchVessels);
-
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
-
   const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [targetVessel, setTargetVessel] = useState<{
-    imo: number;
-    name: string;
-  } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const router = useRouter();
 
   const toggleSort = (key: SortKey) => {
@@ -105,9 +98,24 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
   };
 
   const displayVessels = useMemo(() => {
-    const filtered = vessels.filter((v) =>
-      (v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+    const name = (v: (typeof vessels)[0]) =>
+      v.status?.antennaServiceName?.toLowerCase() ?? "";
+
+    const filtered = vessels.filter((v) => {
+      if (!(v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (!categoryFilter || categoryFilter === "total") return true;
+      switch (categoryFilter) {
+        case "starlink":  return name(v).includes("starlink");
+        case "nexuswave": return name(v).includes("nexuswave");
+        case "vsat":      return name(v).includes("vsat") || name(v).includes("fx");
+        case "fbb":       return name(v).includes("fbb");
+        case "oneweb":    return name(v).includes("oneweb");
+        case "fourgee":   return name(v).includes("4g") || name(v).includes("lte");
+        case "iridium":   return name(v).includes("iridium");
+        case "offline":   return !v.status?.antennaServiceName;
+        default:          return true;
+      }
+    });
     if (searchTerm.trim() !== "") return filtered;
     const copy = [...filtered];
     copy.sort((a, b) => {
@@ -118,23 +126,8 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
         : bv.localeCompare(av, "en", { numeric: true });
     });
     return copy;
-  }, [vessels, sortKey, sortDir, searchTerm]);
+  }, [vessels, sortKey, sortDir, searchTerm, categoryFilter]);
 
-  const handleDeleteVessel = async () => {
-    if (!targetVessel) return;
-    try {
-      setIsDeleting(true);
-      if (await deleteVessel([targetVessel.imo])) {
-        await fetchVessels();
-        setIsDeleteAlertOpen(false);
-        setTargetVessel(null);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   if (loading)
     return (
@@ -220,110 +213,96 @@ export default function VesselTable({ searchTerm = "" }: VesselTableProps) {
               <TableCell
                 isHeader
                 className="text-theme-xs w-[6%] py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
-              >
-                Actions
-              </TableCell>
+              >{""}</TableCell>
             </TableRow>
           </TableHeader>
 
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {displayVessels.map((vessel) => (
-              <TableRow
-                key={vessel.id}
-                onDoubleClick={() => {
-                  setSelectedVessel({
-                    id: vessel.id,
-                    imo: vessel.imo,
-                    name: vessel.name || "",
-                    vpnIp: vessel.vpnIp || "",
-                  });
-                  router.push(`/vessels/detail`);
-                }}
-                className="group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
-              >
-                <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-                  <div className="flex items-center gap-2">
-                    {vessel.manager === "sktelink" && (
-                      <SktelinkIcon className="h-4 w-auto" />
-                    )}
-                    {vessel.acct || "-"}
-                  </div>
-                </TableCell>
-                <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
-                  {vessel.name || "-"}
-                </TableCell>
-
-                {/* Status */}
-                <TableCell className="px-3 py-4 text-start">
-                  {(() => {
-                    const available = vessel.status?.available;
-                    const name = available ? (vessel.status?.antennaServiceName ?? null) : null;
-                    return (
-                      <span
-                        className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(name)}`}
-                      >
-                        {name || "N/A"}
-                      </span>
-                    );
-                  })()}
-                </TableCell>
-
-                {/* Vessel ID (Moved) */}
-                <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                  {vessel.id}
-                </TableCell>
-
-                <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                  {vessel.imo || "-"}
-                </TableCell>
-                <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                  {vessel.callsign || "-"}
-                </TableCell>
-                <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                  {vessel.mmsi || "-"}
-                </TableCell>
-                <TableCell className="px-5 py-4 text-start">
-                  <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                    {vessel.vpnIp || "-"}
-                  </code>
-                </TableCell>
-
-                <TableCell className="py-4 text-center">
-                  <button
-                    className="opacity-0 transition-all group-hover:opacity-100 hover:scale-110"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTargetVessel({
-                        imo: vessel.imo,
-                        name: vessel.name || "this vessel",
-                      });
-                      setIsDeleteAlertOpen(true);
+          <TableBody>
+            {displayVessels.map((vessel) => {
+              const isExpanded = expandedId === String(vessel.id);
+              return (
+                <React.Fragment key={vessel.id}>
+                  <TableRow
+                    onClick={() => setExpandedId(isExpanded ? null : String(vessel.id))}
+                    className={`group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""}`}
+                    onDoubleClick={() => {
+                      setSelectedVessel({ id: vessel.id, imo: vessel.imo, name: vessel.name || "", vpnIp: vessel.vpnIp || "" });
+                      router.push("/vessels/detail");
                     }}
                   >
-                    <Image
-                      src="/images/icons/ic_delete_r.png"
-                      alt="Delete"
-                      width={18}
-                      height={18}
-                    />
-                  </button>
-                </TableCell>
-              </TableRow>
-            ))}
+                    <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
+                      <div className="flex items-center gap-2">
+                        {vessel.manager === "sktelink" && (
+                          <SktelinkIcon className="h-4 w-auto" />
+                        )}
+                        {vessel.acct || "-"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
+                      {vessel.name || "-"}
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="px-3 py-4 text-start">
+                      {(() => {
+                        const available = vessel.status?.available;
+                        const name = available ? (vessel.status?.antennaServiceName ?? null) : null;
+                        return (
+                          <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(name)}`}>
+                            {name || "N/A"}
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
+
+                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+                      {vessel.id}
+                    </TableCell>
+                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+                      {vessel.imo || "-"}
+                    </TableCell>
+                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+                      {vessel.callsign || "-"}
+                    </TableCell>
+                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+                      {vessel.mmsi || "-"}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-start">
+                      <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
+                        {vessel.vpnIp || "-"}
+                      </code>
+                    </TableCell>
+
+                    <TableCell className="py-4 text-center">
+                      <button
+                        className="flex items-center justify-center transition-all hover:scale-110"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GrafanaIcon className="h-5 w-5 text-orange-500" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+
+                  <tr>
+                    <td colSpan={9} className="p-0">
+                      <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                        <div className="overflow-hidden">
+                          <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
+                            <div className="w-fit">
+                              <RedirectButtons vesselId={String(vessel.id)} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      <VesselDeleteAlert
-        isOpen={isDeleteAlertOpen}
-        isDeleting={isDeleting}
-        targetVesselName={targetVessel?.name || ""}
-        onClose={() => {
-          setIsDeleteAlertOpen(false);
-          setTargetVessel(null);
-        }}
-        onConfirm={handleDeleteVessel}
-      />
     </div>
   );
 }
