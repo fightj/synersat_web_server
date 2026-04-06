@@ -1,36 +1,27 @@
 "use client";
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
-  ChevronDownIcon,
-  GridIcon,
-  HorizontaLDots,
-  ListIcon,
-  UserCircleIcon,
-  VesselIcon,
-  FirewallIcon,
-  MainLogoDark,
   EarthIcon,
-  CommandSidebar,
+  VesselIcon,
+  UserCircleIcon,
+  FirewallIcon,
   ManagementIcon,
+  CommandSidebar,
+  ChevronDownIcon,
 } from "../icons/index";
 
 type NavItem = {
   name: string;
   icon?: React.ReactNode;
   path?: string;
-  pro?: boolean;
-  new?: boolean;
   subItems?: NavItem[];
 };
 
 const navItems: NavItem[] = [
   { icon: <EarthIcon />, name: "Dashboard", path: "/" },
-  { name: "Vessels", icon: <VesselIcon />, path: "/vessels" },
+  { icon: <VesselIcon />, name: "Vessels", path: "/vessels" },
   { icon: <UserCircleIcon />, name: "Crew Account", path: "/crew_account" },
   {
     icon: <FirewallIcon />,
@@ -56,411 +47,192 @@ const navItems: NavItem[] = [
     icon: <ManagementIcon />,
     name: "Manage",
     subItems: [
-      {
-        name: "Resource",
-        path: "/resource",
-      },
-      {
-        name: "Device Manage",
-        path: "/device_manage",
-      },
+      { name: "Resource", path: "/resource" },
+      { name: "Device Manage", path: "/device_manage" },
     ],
   },
   { icon: <CommandSidebar />, name: "Commands", path: "/commands" },
-
-  // {
-  //   name: "Pages",
-  //   icon: <PageIcon />,
-  //   subItems: [
-  //     { name: "Blank Page", path: "/blank" },
-  //     { name: "404 Error", path: "/error-404" },
-  //   ],
-  // },
 ];
 
-const othersItems: NavItem[] = [
-  // {
-  //   icon: <PieChartIcon />,
-  //   name: "Charts",
-  //   subItems: [
-  //     { name: "Line Chart", path: "/line-chart" },
-  //     { name: "Bar Chart", path: "/bar-chart" },
-  //   ],
-  // },
-  // {
-  //   icon: <BoxCubeIcon />,
-  //   name: "UI Elements",
-  //   subItems: [
-  //     { name: "Alerts", path: "/alerts" },
-  //     { name: "Avatar", path: "/avatars" },
-  //     { name: "Badge", path: "/badge" },
-  //     { name: "Buttons", path: "/buttons" },
-  //   ],
-  // },
-];
-
-const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar } =
-    useSidebar();
+// 재귀 드롭다운 메뉴 아이템
+function DropdownItem({
+  item,
+  depth = 0,
+  onNavigate,
+}: {
+  item: NavItem;
+  depth?: number;
+  onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
-  const handleToggle = () => {
-    if (window.innerWidth >= 1024) {
-      toggleSidebar();
-    } else {
-      toggleMobileSidebar();
-    }
-  };
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  const isActive = useCallback((path: string) => path === pathname, [pathname]);
-
-  const toggleMenu = (key: string, level: number) => {
-    setOpenMenus((prev) => {
-      const newState: Record<string, boolean> = {};
-      const isCurrentlyOpen = !!prev[key];
-      Object.keys(prev).forEach((k) => {
-        if (k.split("-").length === key.split("-").length) {
-          newState[k] = false;
-        } else {
-          newState[k] = prev[k];
-        }
-      });
-      newState[key] = !isCurrentlyOpen;
-      return newState;
-    });
-  };
-
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [flyoutOpenMenus, setFlyoutOpenMenus] = useState<
-    Record<string, boolean>
-  >({});
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const openFlyout = (key: string) => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    setHoveredItem(key);
-  };
-
-  const scheduleFlyoutClose = () => {
-    hoverTimerRef.current = setTimeout(() => setHoveredItem(null), 200);
-  };
-
-  const cancelFlyoutClose = () => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-  };
-
-  useEffect(
-    () => () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    },
-    [],
-  );
-
-  const toggleFlyoutMenu = (key: string) => {
-    setFlyoutOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const renderFlyoutItems = (
-    items: NavItem[],
-    parentKey: string,
-  ): React.ReactNode => (
-    <ul className="flex flex-col gap-0.5">
-      {items.map((item) => {
-        const key = `flyout-${parentKey}-${item.name}`;
-        const isOpen = !!flyoutOpenMenus[key];
-        const hasSub = item.subItems && item.subItems.length > 0;
-        const isCurrentActive = item.path ? isActive(item.path) : false;
-        return (
-          <li key={item.name}>
-            {hasSub ? (
-              <>
-                <button
-                  onClick={() => toggleFlyoutMenu(key)}
-                  className={`flex w-full items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
-                    isOpen
-                      ? "bg-white/10 text-white"
-                      : "text-blue-100 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <span className="truncate">{item.name}</span>
-                  <ChevronDownIcon
-                    className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-                <div
-                  className={`grid transition-all duration-200 ease-in-out ${
-                    isOpen
-                      ? "grid-rows-[1fr] opacity-100"
-                      : "pointer-events-none grid-rows-[0fr] opacity-0"
-                  }`}
-                >
-                  <div className="ml-3 overflow-hidden border-l border-white/10 pl-2">
-                    {renderFlyoutItems(item.subItems!, key)}
-                  </div>
-                </div>
-              </>
-            ) : (
-              item.path && (
-                <Link
-                  href={item.path}
-                  onClick={() => setHoveredItem(null)}
-                  className={`flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
-                    isCurrentActive
-                      ? "bg-white/20 text-white"
-                      : "text-blue-100 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <span className="truncate">{item.name}</span>
-                </Link>
-              )
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-
-  useEffect(() => {
-    const updateMenuState = () => {
-      const newState: Record<string, boolean> = {};
-      const checkActive = (items: NavItem[], parentKey: string) => {
-        let hasActiveChild = false;
-        items.forEach((item) => {
-          const currentKey = `${parentKey}-${item.name}`;
-          if (item.subItems) {
-            const childActive = checkActive(item.subItems, currentKey);
-            if (childActive) {
-              newState[currentKey] = true;
-              hasActiveChild = true;
-            }
-          } else if (item.path && isActive(item.path)) {
-            hasActiveChild = true;
-          }
-        });
-        return hasActiveChild;
-      };
-      checkActive([...navItems, ...othersItems], "main");
-      setOpenMenus(newState);
-    };
-    updateMenuState();
-  }, [pathname, isActive]);
-
-  const showFullSidebar = isExpanded || isMobileOpen;
-
-  const renderMenuItems = (
-    items: NavItem[],
-    parentKey: string,
-    level: number = 0,
-  ) => (
-    <ul
-      className={`flex flex-col ${level === 0 ? "gap-2" : "mt-1 ml-4 gap-1 border-l border-white/10 pl-2"}`}
-    >
-      {items.map((nav) => {
-        const currentKey = `${parentKey}-${nav.name}`;
-        const isOpen = !!openMenus[currentKey];
-        const hasSubItems = nav.subItems && nav.subItems.length > 0;
-        const isCurrentActive = nav.path ? isActive(nav.path) : false;
-
-        // 공통 스타일 정의
-        const itemBaseClass = `group flex items-center w-full rounded-xl px-1 py-2.5 transition-all duration-200 ease-in-out font-medium text-sm`;
-        const activeClass = `bg-white/20 text-white shadow-sm`;
-        const inactiveClass = `text-blue-100 hover:bg-white/10 hover:text-white`;
-
-        return (
-          <li
-            key={nav.name}
-            className={!showFullSidebar && level === 0 ? "relative" : ""}
-            onMouseEnter={
-              !showFullSidebar && level === 0
-                ? () =>
-                    hasSubItems
-                      ? openFlyout(currentKey)
-                      : setHoveredItem(currentKey)
-                : undefined
-            }
-            onMouseLeave={
-              !showFullSidebar && level === 0
-                ? () =>
-                    hasSubItems ? scheduleFlyoutClose() : setHoveredItem(null)
-                : undefined
-            }
-          >
-            {hasSubItems ? (
-              <>
-                <button
-                  onClick={() => toggleMenu(currentKey, level)}
-                  className={`${itemBaseClass} ${isOpen ? "bg-white/10 text-white" : inactiveClass} ${
-                    !showFullSidebar && level === 0
-                      ? "justify-center"
-                      : "justify-start"
-                  }`}
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center ${isOpen ? "text-white" : "text-blue-200 group-hover:text-white"}`}
-                  >
-                    {nav.icon || (
-                      <div className="h-1.5 w-1.5 rounded-full bg-current" />
-                    )}
-                  </span>
-                  {showFullSidebar && (
-                    <>
-                      <span className="ml-2 truncate">{nav.name}</span>
-                      <ChevronDownIcon
-                        className={`mr-2 ml-auto h-4 w-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-white" : "text-blue-300"}`}
-                      />
-                    </>
-                  )}
-                </button>
-
-                <div
-                  className={`grid transition-all duration-300 ease-in-out ${
-                    showFullSidebar && isOpen
-                      ? "mt-1 grid-rows-[1fr] opacity-100"
-                      : "pointer-events-none grid-rows-[0fr] opacity-0"
-                  }`}
-                >
-                  <div className="overflow-hidden">
-                    {renderMenuItems(nav.subItems!, currentKey, level + 1)}
-                  </div>
-                </div>
-              </>
-            ) : (
-              nav.path && (
-                <Link
-                  href={nav.path}
-                  className={`${itemBaseClass} ${isCurrentActive ? activeClass : inactiveClass} ${
-                    !showFullSidebar && level === 0
-                      ? "justify-center"
-                      : "justify-start"
-                  }`}
-                >
-                  <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center ${isCurrentActive ? "text-white" : "text-blue-200 group-hover:text-white"}`}
-                  >
-                    {nav.icon || (
-                      <div className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
-                    )}
-                  </span>
-                  {showFullSidebar && (
-                    <span className="ml-3 truncate">{nav.name}</span>
-                  )}
-                </Link>
-              )
-            )}
-            {!showFullSidebar && level === 0 && hoveredItem === currentKey && (
-              <div
-                className="absolute top-0 left-full z-50 ml-3 min-w-[180px] rounded-xl bg-blue-700 p-2 shadow-2xl ring-1 ring-white/10 dark:bg-blue-900"
-                onMouseEnter={cancelFlyoutClose}
-                onMouseLeave={scheduleFlyoutClose}
-              >
-                <div className="mb-1.5 border-b border-white/10 px-2 py-1 pb-1.5 text-[10px] font-bold tracking-wider text-white/60 uppercase">
-                  {nav.name}
-                </div>
-                {hasSubItems
-                  ? renderFlyoutItems(nav.subItems!, currentKey)
-                  : nav.path && (
-                      <Link
-                        href={nav.path}
-                        className={`flex items-center rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
-                          isCurrentActive
-                            ? "bg-white/20 text-white"
-                            : "text-blue-100 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        {nav.name}
-                      </Link>
-                    )}
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
+  const hasSub = !!item.subItems?.length;
+  const isActive = item.path === pathname;
 
   return (
-    <aside
-      className={`fixed top-30 left-1 z-30 flex flex-col rounded-2xl bg-linear-to-r from-blue-700 to-blue-600 p-2 transition-all duration-300 ease-in-out dark:from-blue-950 dark:to-blue-900 ${showFullSidebar ? "w-[265px]" : "w-[88px]"} ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} h-fit max-h-[calc(100vh-120px)] lg:translate-x-0`}
-    >
-      {/* 상단: 로고 + 토글 버튼 */}
-      <div>
-        <div
-          className={`mb-3 flex flex-col ${showFullSidebar ? "px-2" : "items-center gap-2"}`}
-        >
-          <Link href="/" className="min-w-0 shrink overflow-hidden">
-            {showFullSidebar ? (
-              <MainLogoDark />
-            ) : (
-              <Image
-                src="/images/logo/logo-icon.svg"
-                alt="Logo"
-                width={32}
-                height={32}
-              />
-            )}
-          </Link>
+    <li>
+      {hasSub ? (
+        <>
           <button
-            onClick={handleToggle}
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white ${showFullSidebar ? "self-end" : ""}`}
-            aria-label="Toggle Sidebar"
+            onClick={() => setOpen((v) => !v)}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              open
+                ? "bg-white/15 text-white"
+                : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
           >
-            {showFullSidebar ? (
-              /* 닫기: 왼쪽 화살표 */
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            ) : (
-              /* 열기: 오른쪽 화살표 */
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            )}
+            <span className="truncate">{item.name}</span>
+            <ChevronDownIcon
+              className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            />
           </button>
-        </div>
-      </div>
-
-      <div
-        className={`no-scrollbar pr-1 ${showFullSidebar ? "overflow-y-auto" : "overflow-visible"}`}
-      >
-        <h2
-          className={`flex text-[10px] font-bold tracking-widest text-white/70 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
-        >
-          {showFullSidebar ? "Main Menu" : ""}
-        </h2>
-        <nav className="flex flex-col gap-6">
-          <div>{renderMenuItems(navItems, "main")}</div>
-
-          {/* <div>
-            <h2
-              className={`mb-3 flex text-[10px] font-bold tracking-widest text-blue-300/50 uppercase ${!showFullSidebar ? "justify-center" : "px-3"}`}
-            >
-              {showFullSidebar ? "Others" : <HorizontaLDots className="w-4" />}
-            </h2>
-            {renderMenuItems(othersItems, "others")}
-          </div> */}
-        </nav>
-      </div>
-    </aside>
+          <div
+            className={`grid transition-all duration-200 ${
+              open ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <ul className="ml-3 overflow-hidden border-l border-white/10 pl-2">
+              {item.subItems!.map((sub) => (
+                <DropdownItem key={sub.name} item={sub} depth={depth + 1} onNavigate={onNavigate} />
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : (
+        item.path && (
+          <Link
+            href={item.path}
+            onClick={onNavigate}
+            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-white/20 text-white"
+                : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <span className="truncate">{item.name}</span>
+          </Link>
+        )
+      )}
+    </li>
   );
-};
+}
 
-export default AppSidebar;
+// 개별 네비 아이콘 버튼
+function NavIconButton({ item }: { item: NavItem }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const hasSub = !!item.subItems?.length;
+  const isActive = item.path
+    ? item.path === pathname
+    : item.subItems?.some((s) =>
+        s.subItems
+          ? s.subItems.some((ss) => ss.path === pathname)
+          : s.path === pathname,
+      );
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const handleClick = () => {
+    if (hasSub) setOpen((v) => !v);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {/* 아이콘 버튼 */}
+      {hasSub ? (
+        <button
+          onClick={handleClick}
+          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${
+            isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
+        </button>
+      ) : (
+        <Link
+          href={item.path!}
+          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${
+            isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
+        </Link>
+      )}
+      {hasSub ? (
+        <button
+          onClick={handleClick}
+          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${
+            isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          {item.name}
+        </button>
+      ) : (
+        <Link
+          href={item.path!}
+          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${
+            isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          {item.name}
+        </Link>
+      )}
+
+      {/* 호버 툴팁 (드롭다운 열려있지 않을 때만) */}
+      {showTooltip && !open && (
+        <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2">
+          <div className="whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-medium text-white shadow-lg">
+            {item.name}
+          </div>
+          {/* 꼭짓점 */}
+          <div className="mx-auto h-0 w-0 border-x-4 border-b-4 border-x-transparent border-b-gray-900 [border-top:0]" style={{ marginTop: -8, transform: "rotate(180deg)", position: "absolute", top: 0, left: "50%", marginLeft: -4 }} />
+        </div>
+      )}
+
+      {/* 드롭다운 */}
+      {hasSub && open && (
+        <div className="absolute top-full left-0 z-200 mt-2 min-w-[220px] rounded-xl bg-blue-700/90 p-2 shadow-2xl ring-1 ring-white/10 dark:bg-blue-900">
+          <div className="mb-1.5 border-b border-white/10 px-2 pb-1.5 text-[10px] font-bold tracking-wider text-white/60 uppercase">
+            {item.name}
+          </div>
+          <ul className="flex flex-col gap-0.5">
+            {item.subItems!.map((sub) => (
+              <DropdownItem
+                key={sub.name}
+                item={sub}
+                onNavigate={() => setOpen(false)}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AppSidebar() {
+  return (
+    <nav className="flex items-center gap-1">
+      {navItems.map((item) => (
+        <NavIconButton key={item.name} item={item} />
+      ))}
+    </nav>
+  );
+}

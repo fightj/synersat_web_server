@@ -47,7 +47,7 @@ export default function VesselComponentCard() {
       },
       {
         threshold: [1],
-        rootMargin: "-20px 0px 0px 0px", // sticky top-5 지점과 일치시키기 위한 마진
+        rootMargin: "-72px 0px 0px 0px", // sticky top-[72px] 지점과 일치시키기 위한 마진
       },
     );
 
@@ -64,7 +64,7 @@ export default function VesselComponentCard() {
       <div ref={sentinelRef} className="h-px w-full bg-transparent" />
 
       <div
-        className={`sticky top-5 z-20 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
+        className={`sticky top-[72px] z-20 border border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
           isSticky ? "mx-36 rounded-2xl shadow-sm" : "mx-0 rounded-xl"
         }`}
       >
