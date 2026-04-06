@@ -205,9 +205,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               </h3>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.antennaServiceName)}`}
+              className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.available ? (data.status?.antennaServiceDisplayName ?? data.status?.antennaServiceName) : null)}`}
             >
-              {data.status?.antennaServiceName || "N/A"}
+              {data.status?.available ? (data.status?.antennaServiceDisplayName ?? data.status?.antennaServiceName ?? "N/A") : "N/A"}
             </span>
           </div>
 

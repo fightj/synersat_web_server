@@ -101,7 +101,9 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
 
   const displayVessels = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
-      v.status?.antennaServiceName?.toLowerCase() ?? "";
+      v.status?.available
+        ? (v.status?.antennaServiceDisplayName ?? v.status?.antennaServiceName)?.toLowerCase() ?? ""
+        : "";
 
     const filtered = vessels.filter((v) => {
       if (!(v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -114,7 +116,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         case "oneweb":    return name(v).includes("oneweb");
         case "fourgee":   return name(v).includes("4g") || name(v).includes("lte");
         case "iridium":   return name(v).includes("iridium");
-        case "offline":   return !v.status?.antennaServiceName;
+        case "offline":   return !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName);
         default:          return true;
       }
     });
@@ -248,7 +250,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
                     <TableCell className="px-3 py-4 text-start">
                       {(() => {
                         const available = vessel.status?.available;
-                        const name = available ? (vessel.status?.antennaServiceName ?? null) : null;
+                        const name = available ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null) : null;
                         return (
                           <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(name)}`}>
                             {name || "N/A"}

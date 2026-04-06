@@ -31,6 +31,7 @@ export async function getVessels(): Promise<Vessel[]> {
         currentRoute: v.status?.currentRoute,
         lastConnectedAt: v.status?.lastConnectedAt,
         antennaServiceName: v.status?.antennaServiceName,
+        antennaServiceDisplayName: v.status?.antennaServiceDisplayName,
         antennaServiceColor: v.status?.antennaServiceColor,
       },
     }));

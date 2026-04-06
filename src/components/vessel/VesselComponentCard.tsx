@@ -28,7 +28,9 @@ export default function VesselComponentCard() {
 
   const stats = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
-      v.status?.antennaServiceName?.toLowerCase() ?? "";
+      v.status?.available
+        ? (v.status?.antennaServiceDisplayName ?? v.status?.antennaServiceName)?.toLowerCase() ?? ""
+        : "";
     return {
       total:     vessels.length,
       starlink:  vessels.filter((v) => name(v).includes("starlink")).length,
@@ -38,7 +40,7 @@ export default function VesselComponentCard() {
       oneweb:    vessels.filter((v) => name(v).includes("oneweb")).length,
       fourgee:   vessels.filter((v) => name(v).includes("4g") || name(v).includes("lte")).length,
       iridium:   vessels.filter((v) => name(v).includes("iridium")).length,
-      offline:   vessels.filter((v) => !v.status?.antennaServiceName).length,
+      offline:   vessels.filter((v) => !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName)).length,
     };
   }, [vessels]);
 

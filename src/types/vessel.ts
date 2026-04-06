@@ -3,6 +3,7 @@ export interface VesselStatus {
   currentRoute: string | null;
   lastConnectedAt: string | null;
   antennaServiceName: string | null;
+  antennaServiceDisplayName: string | null;
   antennaServiceColor: string | null;
 }
 
@@ -62,6 +63,7 @@ export interface VesselDetail {
     currentRoute: string;
     lastConnectedAt: string;
     antennaServiceName: string;
+    antennaServiceDisplayName: string;
     antennaServiceColor: string;
   };
 }
@@ -87,6 +89,7 @@ export interface RouteCoordinate {
     currentRoute: string | null;
     timeStamp: string | null;
     antennaServiceName: string | null;
+    antennaServiceDisplayName: string | null;
     antennaServiceColor: string | null;
     satType: string | null;
     antennaStatus: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
