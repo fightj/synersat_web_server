@@ -320,10 +320,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       )}
 
       {/* GX Coverage 버튼 + 서브메뉴 */}
-      <div className="absolute right-14 bottom-[calc(10vh+12px)] z-1000">
+      <div className="absolute left-3 bottom-[calc(10vh+12px)] z-1000">
         {/* GX 선택 서브메뉴 — coverage ON 상태에서만 표시 */}
         {showCoverage && (
-          <div className="absolute bottom-full right-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
+          <div className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
             {/* All */}
             <button
               onClick={() => { setActiveGx("all"); }}
