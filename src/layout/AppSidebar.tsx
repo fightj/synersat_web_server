@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { icon: <UserCircleIcon />, name: "Crew Account", path: "/crew_account" },
   {
     icon: <FirewallIcon />,
-    name: "Fire Wall",
+    name: "FireWall",
     subItems: [
       {
         name: "Incoming",

@@ -128,8 +128,25 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
 
+  // antennaDisplayName → 표기 라벨 매핑
+  const DISPLAY_NAME_MAP: Record<string, string> = {
+    "VSAT-Failover": "FBB",
+    "LTE": "4G",
+    "OneWEB": "OneWEB",
+    "FBB-Failover": "FBB",
+  };
+
+  const getBreakdownLabel = (displayName: string | null, groupName: string) => {
+    if (!displayName) return groupName;
+    const mapped = DISPLAY_NAME_MAP[displayName];
+    if (!mapped) return displayName;
+    // 매핑된 이름과 원래 displayName이 같으면 그냥 표기 (예: OneWEB)
+    if (mapped === displayName) return displayName;
+    return `${mapped}(${displayName})`;
+  };
+
   const usageStats = useMemo(() => {
-    if (!coordinates || coordinates.length === 0) return [];
+    if (!_dataUsages || _dataUsages.length === 0) return [];
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
       const start = parseISO(timeRange.startAt);
@@ -138,23 +155,26 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
     if (totalSeconds === 0) totalSeconds = 1;
 
-    const aggregated = coordinates.reduce(
-      (acc, coord) => {
-        coord.dataUsages.forEach((usage) => {
-          const name = usage.antennaName || "Unknown";
-          if (!acc[name]) {
-            acc[name] = {
-              name,
-              dataUsageAmount: 0,
-              interfaces: new Set<string>(),
-            };
-          }
-          acc[name].dataUsageAmount += usage.dataUsage;
-          if (usage.interfaceName) acc[name].interfaces.add(usage.interfaceName);
-        });
+    type AggEntry = {
+      name: string;
+      dataUsageAmount: number;
+      interfaces: Set<string>;
+      items: Array<{ displayName: string | null; dataUsageAmount: number }>;
+    };
+
+    // name 기준으로 그룹화 — antennaDisplayName이 달라도 name이 같으면 합산
+    const aggregated = _dataUsages.reduce(
+      (acc, usage) => {
+        const name = usage.name || "Unknown";
+        if (!acc[name]) {
+          acc[name] = { name, dataUsageAmount: 0, interfaces: new Set<string>(), items: [] };
+        }
+        acc[name].dataUsageAmount += usage.dataUsageAmount;
+        if (usage.interfaceName) acc[name].interfaces.add(usage.interfaceName);
+        acc[name].items.push({ displayName: usage.antennaDisplayName, dataUsageAmount: usage.dataUsageAmount });
         return acc;
       },
-      {} as Record<string, { name: string; dataUsageAmount: number; interfaces: Set<string> }>,
+      {} as Record<string, AggEntry>,
     );
 
     return Object.values(aggregated).map((item) => {
@@ -174,7 +194,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         color: getServiceColor(item.name),
       };
     });
-  }, [coordinates, timeRange]);
+  }, [_dataUsages, timeRange]);
 
   if (loading)
     return (
@@ -207,7 +227,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             <span
               className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.available ? (data.status?.antennaServiceDisplayName ?? data.status?.antennaServiceName) : null)}`}
             >
-              {data.status?.available ? (data.status?.antennaServiceDisplayName ?? data.status?.antennaServiceName ?? "N/A") : "N/A"}
+              {data.status?.available ? (data.status?.antennaServiceDisplayName ??  "N/A") : "N/A"}
             </span>
           </div>
 
@@ -364,21 +384,40 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/5">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-medium text-gray-400 uppercase">
-                      Avg. Speed
-                    </span>
-                    <AnimatedCounter
-                      value={item.bpsRaw}
-                      duration={1200}
-                      suffix={item.bpsSuffix}
-                      formatOptions={{
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1,
-                      }}
-                      className="text-md font-bold text-gray-700 dark:text-gray-300"
-                    />
+                <div className="mt-2 border-t border-gray-50 pt-3 dark:border-white/5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-medium text-gray-400 uppercase">
+                        Avg. Speed
+                      </span>
+                      <AnimatedCounter
+                        value={item.bpsRaw}
+                        duration={1200}
+                        suffix={item.bpsSuffix}
+                        formatOptions={{
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }}
+                        className="text-md font-bold text-gray-700 dark:text-gray-300"
+                      />
+                    </div>
+
+                    {/* 동일 name 내 개별 항목 breakdown — 2개 이상일 때만 표시 */}
+                    {item.items.length > 1 && (
+                      <div className="flex flex-col items-end gap-0.5">
+                        {item.items.map((sub, idx) => {
+                          const { value: subVal, unit: subUnit } = formatDataSize(sub.dataUsageAmount);
+                          const label = getBreakdownLabel(sub.displayName, item.name);
+                          return (
+                            <span key={idx} className="font-mono text-[10px] text-gray-400">
+                              <span className="font-semibold text-gray-500">{label}</span>
+                              {": "}
+                              {subVal} {subUnit}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

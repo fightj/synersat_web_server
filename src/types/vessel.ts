@@ -19,8 +19,8 @@ export interface Vessel {
   logo?: string;
   manager?: string;
   mailAddress?: string;
-  acct:string;
-  status?: VesselStatus; 
+  acct: string;
+  status?: VesselStatus;
 }
 
 // API 응답 타입
@@ -57,7 +57,7 @@ export interface VesselDetail {
   fireWallId: string;
   fireWallPassword: string;
   acct: string;
-  serialNumber:string;
+  serialNumber: string;
   status: {
     available: boolean;
     currentRoute: string;
@@ -73,6 +73,7 @@ export interface DataUsageDetail {
   interfaceName: string;
   antennaName: string;
   antennaColor: string;
+  antennaDisplayName: string;
 }
 
 export interface RouteCoordinate {
@@ -100,12 +101,13 @@ export interface DataUsage {
   dataUsageAmount: number;
   interfaceName: string;
   name: string;
-  color: string;
+  color: string | null;
+  antennaDisplayName: string | null;
 }
 
 export interface VesselRouteResponse {
   coordinates: RouteCoordinate[];
-  dataUsages: any[]; 
+  dataUsages: DataUsage[];
 }
 
 export interface DashboardVesselPosition {
