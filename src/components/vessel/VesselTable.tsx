@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useMemo, useState } from "react";
+import React, { memo, useMemo, useState, useTransition, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -16,9 +16,9 @@ import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import { GrafanaIcon, SktelinkIcon } from "@/icons";
 import RedirectButtons from "../common/RedirectButtons";
 import { useRouter } from "next/navigation";
+
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
-
 type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb" | "fourgee" | "iridium" | "offline";
 
 interface VesselTableProps {
@@ -28,21 +28,14 @@ interface VesselTableProps {
 
 function getSortValue(v: Vessel, key: SortKey) {
   switch (key) {
-    case "company":
-      return v.acct ?? "";
-    case "vesselId":
-      return String(v.id ?? "");
-    case "vesselName":
-      return v.name ?? "";
+    case "company":    return v.acct ?? "";
+    case "vesselId":   return String(v.id ?? "");
+    case "vesselName": return v.name ?? "";
   }
 }
 
 const SortHeader = ({
-  label,
-  k,
-  sortKey,
-  sortDir,
-  onToggle,
+  label, k, sortKey, sortDir, onToggle,
 }: {
   label: string;
   k: SortKey;
@@ -60,44 +53,153 @@ const SortHeader = ({
       <span>{label}</span>
       <div className="relative flex h-4 w-4 items-center justify-center">
         <Image
-          src={
-            active
-              ? "/images/icons/ic_sortable_g.png"
-              : "/images/icons/ic_sortable_d.png"
-          }
+          src={active ? "/images/icons/ic_sortable_g.png" : "/images/icons/ic_sortable_d.png"}
           alt="sort"
           width={16}
           height={16}
           className={`transition-opacity ${active ? "opacity-100" : "opacity-30 group-hover:opacity-60"}`}
-          style={{
-            transform: active && sortDir === "desc" ? "rotate(180deg)" : "none",
-          }}
+          style={{ transform: active && sortDir === "desc" ? "rotate(180deg)" : "none" }}
         />
       </div>
     </button>
   );
 };
 
+// ── 메모이제이션된 행 컴포넌트 ─────────────────────────────────────────
+// isExpanded가 바뀐 행만 리렌더됨 → 600개 전체 리렌더 방지
+interface VesselRowProps {
+  vessel: Vessel;
+  isExpanded: boolean;
+  onToggleExpand: (id: string) => void;
+  onDoubleClick: (vessel: Vessel) => void;
+  onGrafanaClick: (e: React.MouseEvent, url: string) => void;
+}
 
+const VesselRow = memo(function VesselRow({
+  vessel,
+  isExpanded,
+  onToggleExpand,
+  onDoubleClick,
+  onGrafanaClick,
+}: VesselRowProps) {
+  // 한 번이라도 열렸으면 DOM 유지 (collapse 시 사라지지 않게)
+  const [everExpanded, setEverExpanded] = useState(false);
+
+  const handleToggle = useCallback(() => {
+    if (!everExpanded) setEverExpanded(true);
+    onToggleExpand(String(vessel.id));
+  }, [vessel.id, onToggleExpand, everExpanded]);
+
+  const available = vessel.status?.available;
+  const statusName = available
+    ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null)
+    : null;
+
+  return (
+    <React.Fragment>
+      <TableRow
+        onClick={handleToggle}
+        onDoubleClick={() => onDoubleClick(vessel)}
+        className={`group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/2 ${
+          !isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
+        }`}
+      >
+        <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
+          <div className="flex items-center gap-2">
+            {vessel.manager === "sktelink" && <SktelinkIcon className="h-4 w-auto" />}
+            {vessel.acct || "-"}
+          </div>
+        </TableCell>
+        <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
+          {vessel.name || "-"}
+        </TableCell>
+        <TableCell className="px-3 py-4 text-start">
+          <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}>
+            {statusName || "N/A"}
+          </span>
+        </TableCell>
+        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+          {vessel.id}
+        </TableCell>
+        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+          {vessel.imo || "-"}
+        </TableCell>
+        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+          {vessel.callsign || "-"}
+        </TableCell>
+        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+          {vessel.mmsi || "-"}
+        </TableCell>
+        <TableCell className="px-5 py-4 text-start">
+          <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
+            {vessel.vpnIp || "-"}
+          </code>
+        </TableCell>
+        <TableCell className="py-4 text-center">
+          <button
+            className="flex items-center justify-center transition-all hover:scale-110"
+            onClick={(e) => {
+              e.stopPropagation();
+              onGrafanaClick(e, "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached?orgId=1&refresh=5m&var-vesselTable=NO.303%20DAE%20HWA&var-vesselid=dh303&var-VPN_IP=10.8.129.115&var-pri_wan_traffic_rx=vtnet2_rx&var-pri_wan_traffic_tx=vtnet2_tx&var-sec_wan_traffic_tx=vtnet3_tx&var-sec_wan_traffic_rx=vtnet3_rx&var-corp_traffic_rx=vtnet4_1001_rx&var-corp_traffic_tx=vtnet4_1001_tx&var-crew_traffic_rx=vtnet4_1002_rx&var-crew_traffic_tx=vtnet4_1002_tx&var-thi_wan_traffic_tx=vtnet0_tx&var-thi_wan_traffic_rx=vtnet0_rx&var-vesselid_ori=dh303&var-vesselimo=8714047&var-Box_Password=globe1@3&var-iot_traffic_tx=vtnet4_1000_tx&var-iot_traffic_rx=vtnet4_1000_rx&var-vessel_url_id=dh303&var-serialnumber=NBOXJ6000125102100088");
+            }}
+          >
+            <GrafanaIcon className="h-5 w-5 text-orange-500" />
+          </button>
+        </TableCell>
+      </TableRow>
+
+      <tr>
+        <td colSpan={9} className="p-0">
+          <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+            <div className="overflow-hidden">
+              {/* 한 번이라도 열렸을 때만 마운트 — collapse 후에도 DOM 유지로 재마운트 비용 없음 */}
+              {everExpanded && (
+                <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
+                  <div className="w-fit">
+                    <RedirectButtons vesselId={String(vessel.id)} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </td>
+      </tr>
+    </React.Fragment>
+  );
+});
+
+// ── 메인 테이블 ────────────────────────────────────────────────────────
 export default function VesselTable({ searchTerm = "", categoryFilter = null }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
-  const error = useVesselStore((s) => s.error);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
   const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const router = useRouter();
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey !== key) {
-      setSortKey(key);
-      setSortDir("asc");
-    } else {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    }
-  };
+  const toggleSort = useCallback((key: SortKey) => {
+    if (sortKey !== key) { setSortKey(key); setSortDir("asc"); }
+    else setSortDir((d) => d === "asc" ? "desc" : "asc");
+  }, [sortKey]);
+
+  // expand 토글을 transition으로 감싸 클릭 응답성 확보
+  const handleToggleExpand = useCallback((id: string) => {
+    startTransition(() => {
+      setExpandedId((prev) => prev === id ? null : id);
+    });
+  }, []);
+
+  const handleDoubleClick = useCallback((vessel: Vessel) => {
+    setSelectedVessel({ id: vessel.id, imo: vessel.imo, name: vessel.name || "", vpnIp: vessel.vpnIp || "" });
+    router.push("/vessels/detail");
+  }, [setSelectedVessel, router]);
+
+  const handleGrafanaClick = useCallback((_e: React.MouseEvent, url: string) => {
+    setIframeUrl(url);
+  }, []);
 
   const displayVessels = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
@@ -132,7 +234,6 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
     return copy;
   }, [vessels, sortKey, sortDir, searchTerm, categoryFilter]);
 
-
   if (loading)
     return (
       <div className="p-8 text-center">
@@ -146,166 +247,37 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         <Table className="min-w-[1100px]">
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow className="bg-blue-50/50 dark:bg-slate-800/50">
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                <SortHeader
-                  label="Company"
-                  k="company"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onToggle={toggleSort}
-                />
+              <TableCell isHeader className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Company" k="company" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                <SortHeader
-                  label="Vessel Name"
-                  k="vesselName"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onToggle={toggleSort}
-                />
+              <TableCell isHeader className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Vessel Name" k="vesselName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </TableCell>
-              {/* ✅ Status: 좁게 설정 */}
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[8%] px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
+              <TableCell isHeader className="text-theme-xs w-[8%] px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 Status
               </TableCell>
-              {/* ✅ Vessel ID: Status와 IMO 사이로 이동 */}
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                <SortHeader
-                  label="Vessel ID"
-                  k="vesselId"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onToggle={toggleSort}
-                />
+              <TableCell isHeader className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Vessel ID" k="vesselId" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                IMO
-              </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                CallSign
-              </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                MMSI
-              </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
-              >
-                VPN IP
-              </TableCell>
-              <TableCell
-                isHeader
-                className="text-theme-xs w-[6%] py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
-              >{""}</TableCell>
+              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">IMO</TableCell>
+              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">CallSign</TableCell>
+              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">MMSI</TableCell>
+              <TableCell isHeader className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">VPN IP</TableCell>
+              <TableCell isHeader className="text-theme-xs w-[6%] py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</TableCell>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {displayVessels.map((vessel) => {
-              const isExpanded = expandedId === String(vessel.id);
-              return (
-                <React.Fragment key={vessel.id}>
-                  <TableRow
-                    onClick={() => setExpandedId(isExpanded ? null : String(vessel.id))}
-                    className={`group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""}`}
-                    onDoubleClick={() => {
-                      setSelectedVessel({ id: vessel.id, imo: vessel.imo, name: vessel.name || "", vpnIp: vessel.vpnIp || "" });
-                      router.push("/vessels/detail");
-                    }}
-                  >
-                    <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-                      <div className="flex items-center gap-2">
-                        {vessel.manager === "sktelink" && (
-                          <SktelinkIcon className="h-4 w-auto" />
-                        )}
-                        {vessel.acct || "-"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
-                      {vessel.name || "-"}
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell className="px-3 py-4 text-start">
-                      {(() => {
-                        const available = vessel.status?.available;
-                        const name = available ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null) : null;
-                        return (
-                          <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(name)}`}>
-                            {name || "N/A"}
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-
-                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                      {vessel.id}
-                    </TableCell>
-                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                      {vessel.imo || "-"}
-                    </TableCell>
-                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                      {vessel.callsign || "-"}
-                    </TableCell>
-                    <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                      {vessel.mmsi || "-"}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 text-start">
-                      <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                        {vessel.vpnIp || "-"}
-                      </code>
-                    </TableCell>
-
-                    <TableCell className="py-4 text-center">
-                      <button
-                        className="flex items-center justify-center transition-all hover:scale-110"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIframeUrl("https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached?orgId=1&refresh=5m&var-vesselTable=NO.303%20DAE%20HWA&var-vesselid=dh303&var-VPN_IP=10.8.129.115&var-pri_wan_traffic_rx=vtnet2_rx&var-pri_wan_traffic_tx=vtnet2_tx&var-sec_wan_traffic_tx=vtnet3_tx&var-sec_wan_traffic_rx=vtnet3_rx&var-corp_traffic_rx=vtnet4_1001_rx&var-corp_traffic_tx=vtnet4_1001_tx&var-crew_traffic_rx=vtnet4_1002_rx&var-crew_traffic_tx=vtnet4_1002_tx&var-thi_wan_traffic_tx=vtnet0_tx&var-thi_wan_traffic_rx=vtnet0_rx&var-vesselid_ori=dh303&var-vesselimo=8714047&var-Box_Password=globe1@3&var-iot_traffic_tx=vtnet4_1000_tx&var-iot_traffic_rx=vtnet4_1000_rx&var-vessel_url_id=dh303&var-serialnumber=NBOXJ6000125102100088");
-                        }}
-                      >
-                        <GrafanaIcon className="h-5 w-5 text-orange-500" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-
-                  <tr>
-                    <td colSpan={9} className="p-0">
-                      <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                        <div className="overflow-hidden">
-                          <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
-                            <div className="w-fit">
-                              <RedirectButtons vesselId={String(vessel.id)} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              );
-            })}
+            {displayVessels.map((vessel) => (
+              <VesselRow
+                key={vessel.id}
+                vessel={vessel}
+                isExpanded={expandedId === String(vessel.id)}
+                onToggleExpand={handleToggleExpand}
+                onDoubleClick={handleDoubleClick}
+                onGrafanaClick={handleGrafanaClick}
+              />
+            ))}
           </TableBody>
         </Table>
       </div>
