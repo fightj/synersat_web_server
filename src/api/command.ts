@@ -36,21 +36,17 @@ export async function getCommands(params: GetCommandsParams): Promise<CommandApi
 }
 
 export async function failCommand(commandId: number): Promise<void> {
-  try {
-    const url = `${BASE_URL}/vessels/commands/${commandId}`;
+  const url = `${BASE_URL}/vessels/commands/${commandId}`;
 
-    const res = await fetch(url, withTestUser({
-      ...fetchOptions,
-      method: "PUT",
-    }));
+  const res = await fetch(url, withTestUser({
+    ...fetchOptions,
+    method: "PUT",
+  }));
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Failed to fail command (${commandId}): ${res.status} ${errorText}`);
-    }
-  } catch (error) {
-    console.error("failCommand Error:", error);
-    throw error;
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const message = body?.errorMessage ?? `Command cancel failed (${res.status})`;
+    throw new Error(message);
   }
 }
 

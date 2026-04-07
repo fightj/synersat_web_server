@@ -16,6 +16,7 @@ import type {
 import Loading from "../common/Loading";
 import { format } from "date-fns";
 import { getCommandDetail, failCommand } from "@/api/command";
+import ErrorAlertModal from "../ui/ErrorAlertModal";
 interface CommandTableProps {
   commands: CommandContent[];
   isLoading: boolean;
@@ -65,6 +66,7 @@ export default function CommandTable({
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
 
   const toKST = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -94,7 +96,7 @@ export default function CommandTable({
       await failCommand(commandId);
       setCancelledIds((prev) => new Set(prev).add(commandId));
     } catch (error) {
-      console.error("Failed to cancel command:", error);
+      setErrorModal({ isOpen: true, message: error instanceof Error ? error.message : "Failed to cancel command" });
     } finally {
       setCancellingId(null);
     }
@@ -333,6 +335,12 @@ export default function CommandTable({
           </div>
         </div>
       )}
+
+      <ErrorAlertModal
+        isOpen={errorModal.isOpen}
+        message={errorModal.message}
+        onClose={() => setErrorModal({ isOpen: false, message: "" })}
+      />
     </div>
   );
 }

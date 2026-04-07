@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { getCommands, failCommand } from "@/api/command";
+import ErrorAlertModal from "../ui/ErrorAlertModal";
 import type {
   CommandContent,
   CommandStatus,
@@ -28,6 +29,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
 
   // ✅ 초기 파라미터 설정 (pageIndex: 1, pageSize: 5, imo: props로 받은 값)
   const [params, setParams] = useState<GetCommandsParams>({
@@ -87,7 +89,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
       await failCommand(commandId);
       setCancelledIds((prev) => new Set(prev).add(commandId));
     } catch (error) {
-      console.error("Failed to cancel command:", error);
+      setErrorModal({ isOpen: true, message: error instanceof Error ? error.message : "Failed to cancel command" });
     } finally {
       setCancellingId(null);
     }
@@ -253,6 +255,12 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
           />
         </div>
       )}
+
+      <ErrorAlertModal
+        isOpen={errorModal.isOpen}
+        message={errorModal.message}
+        onClose={() => setErrorModal({ isOpen: false, message: "" })}
+      />
     </div>
   );
 };
