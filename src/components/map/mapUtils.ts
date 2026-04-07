@@ -42,22 +42,24 @@ export function getClosestLng(baseLng: number, refLng: number): number {
 }
 
 export function matchFilter(
-  antennaName: string | null,
+  antennaDisplayName: string | null,
   connected: boolean,
   key: FilterKey,
 ): boolean {
   if (key === "all") return true;
   if (key === "offline") return !connected;
-  const name = antennaName?.toLowerCase() ?? "";
   if (!connected) return false; // offline 선박은 antenna 카테고리에서 제외
+  const name = antennaDisplayName?.toLowerCase() ?? "";
   if (key === "starlink") return name.includes("starlink");
   if (key === "nexuswave") return name.includes("nexuswave");
   if (key === "oneweb") return name.includes("oneweb");
-  if (key === "vsat") return name.includes("vsat") || name.includes("fx");
-  if (key === "fbb") return name.includes("fbb");
+  // VSAT-Failover / FBB-Failover → fbb로 분류, LTE → 4g로 분류
+  if (key === "fbb") return name.includes("fbb") || name.includes("vsat-failover");
   if (key === "4g") return name.includes("4g") || name.includes("lte");
   if (key === "iridium") return name.includes("iridium");
-  if (key === "none") return antennaName === null || antennaName.trim() === "";
+  // VSAT: failover 제외
+  if (key === "vsat") return (name.includes("vsat") || name.includes("fx")) && !name.includes("vsat-failover");
+  if (key === "none") return antennaDisplayName === null || antennaDisplayName.trim() === "";
   return false;
 }
 

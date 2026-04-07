@@ -62,6 +62,10 @@ export const getServiceColor = (serviceName: string | null | undefined): string 
   // OneWeb -> 밝은 노란색 (yellow-300 / amber-300)
   if (name.includes("oneweb")) return "#fcd34d";
 
+  // VSAT-Failover / FBB-Failover / FBB -> 파란색 (Sky 500)
+  // (failover 체크를 vsat보다 먼저 해야 vsat으로 분류되지 않음)
+  if (name.includes("vsat-failover") || name.includes("fbb")) return "#0ea5e9";
+
   // 4G / LTE -> 진한 주황-노란색 (amber-600)
   if (name.includes("4g") || name.includes("lte")) return "#d97706";
 
@@ -69,15 +73,8 @@ export const getServiceColor = (serviceName: string | null | undefined): string 
   if (name.includes("iridium")) return "#f59e0b";
 
   // VSAT, FX -> 녹색
-  if (name.includes("vsat") || name.includes("fx")) {
-    return "#10b981";
-  }
-  
-  // FBB -> 파란색 (Sky 500)
-  if (name.includes("fbb")) {
-    return "#0ea5e9";
-  }
-  
+  if (name.includes("vsat") || name.includes("fx")) return "#10b981";
+
   return "#64748b";
 };
 

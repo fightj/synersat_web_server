@@ -74,17 +74,17 @@ export function useVesselMarkers({
     const points = vessels
       .filter((v) => v.latitude !== null && v.longitude !== null)
       .filter((v) => { if (seenImos.has(v.imo)) return false; seenImos.add(v.imo); return true; })
-      .filter((v) => matchFilter(v.antennaName, v.connected !== false, activeFilter))
+      .filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, activeFilter))
       .map((v) => ({
         lat: v.latitude!,
         lng: v.longitude!,
         name: v.vesselName,
         heading: v.vesselHeading ?? 0,
         imo: v.imo,
-        color: v.connected === false ? "#ef4444" : getServiceColor(v.antennaName),
+        color: v.connected === false ? "#ef4444" : getServiceColor(v.antennaDisplayName),
         connected: v.connected !== false,
         timestamp: v.timestamp,
-        antennaName: v.antennaName,
+        antennaDisplayName: v.antennaDisplayName,
         satType: v.satType,
         vesselSpeed: v.vesselSpeed,
       }));
@@ -131,7 +131,7 @@ export function useVesselMarkers({
           </div>
           <div style="padding:9px 12px;background:#1e293b;display:flex;flex-direction:column;gap:5px;">
             <div style="display:flex;align-items:center;font-size:12px;">${statusDot}${statusText}</div>
-            ${vessel.antennaName ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:#e2e8f0;font-weight:600;">${vessel.antennaName}</span></div>` : ""}
+            ${vessel.antennaDisplayName ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:#e2e8f0;font-weight:600;">${vessel.antennaDisplayName}</span></div>` : ""}
             ${vessel.satType ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">SAT Type</span><span style="color:#e2e8f0;font-weight:600;">${vessel.satType}</span></div>` : ""}
             ${vessel.vesselSpeed != null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Speed</span><span style="color:#e2e8f0;font-weight:600;">${vessel.vesselSpeed} kn</span></div>` : ""}
             <div style="font-size:11px;margin-top:2px;color:#cbd5e1;">${vessel.lat}°N, ${vessel.lng}°E</div>

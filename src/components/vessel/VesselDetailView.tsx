@@ -15,9 +15,10 @@ import VesselFormModal from "./VesselFormModal";
 import VesselDeleteAlert from "./VesselDeleteAlert";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { SktelinkIcon } from "@/icons";
-import { deleteVessel } from "@/api/vessel";
+import { deleteVessel, antennaUpdate, vesselSmartboxUpdate } from "@/api/vessel";
 import { useRouter } from "next/navigation";
 import { AnimatedCounter } from "../ui/animated-counter";
+import Button from "../ui/button/Button";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -294,6 +295,28 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   Vessel Info
                 </span>
                 <div className="flex items-center gap-2">
+                  <Button
+                    size="xs"
+                    onClick={async () => {
+                      if (!data) return;
+                      await vesselSmartboxUpdate(data.imo);
+                      setViewMode("COMMANDS");
+                      router.refresh();
+                    }}
+                  >
+                    Run Update.sh
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={async () => {
+                      if (!data) return;
+                      await antennaUpdate(data.imo);
+                      setViewMode("COMMANDS");
+                      router.refresh();
+                    }}
+                  >
+                    Mapping Update
+                  </Button>
                   <button
                     onClick={() => setIsEditModalOpen(true)}
                     className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"

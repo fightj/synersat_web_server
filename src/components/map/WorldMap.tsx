@@ -20,6 +20,7 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
   const markersRef = useRef<
     { marker: any; data: RouteCoordinate; isLast: boolean }[]
   >([]);
+  const boundsRef = useRef<any>(null);
 
   // 1. GPS 정보가 단 하나라도 존재하는지 체크
   const hasValidGps = useMemo(() => {
@@ -248,7 +249,10 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
       );
       if (allLatLngs.length > 0) {
         const bounds = L.latLngBounds(allLatLngs);
-        if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
+        if (bounds.isValid()) {
+          boundsRef.current = bounds;
+          map.fitBounds(bounds, { padding: [40, 40] });
+        }
       }
 
       cleanupFn = () => {
@@ -293,6 +297,23 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
             </div>
           ))}
         </div>
+      )}
+
+      {/* 🔄 오른쪽 하단 Reset 버튼 */}
+      {hasValidGps && (
+        <button
+          onClick={() => {
+            const map = mapInstanceRef.current;
+            if (!map || !boundsRef.current) return;
+            map.fitBounds(boundsRef.current, { padding: [40, 40] });
+          }}
+          title="Reset view"
+          className="absolute bottom-4 right-4 z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        </button>
       )}
     </div>
     <div className="mt-3 rounded-xl border border-gray-200 bg-white p-2 dark:border-white/[0.05] dark:bg-white/[0.03]">

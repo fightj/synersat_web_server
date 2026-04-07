@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<AntennaStatus, string> = {
 };
 
 const SLOT_MS = 5 * 60 * 1000;
-const TICK_COUNT = 6;
+const TICK_COUNT = 12;
 
 interface RenderSeg {
   status: AntennaStatus | null;
@@ -162,6 +162,7 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
   const ticks = Array.from({ length: TICK_COUNT }, (_, i) =>
     rStart + ((rEnd - rStart) * i) / (TICK_COUNT - 1),
   );
+
 
   const handleMouseMove = (e: React.MouseEvent, seg: RenderSeg) => {
     if (!seg.status) return;

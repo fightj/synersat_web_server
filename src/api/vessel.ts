@@ -247,6 +247,32 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
   }
 }
 
+// -----------------선박 smartbox 업데이트 api-----------------
+export async function vesselSmartboxUpdate(imo: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/vessels/${imo}/updates`, withTestUser({
+    ...fetchOptions,
+    method: "POST",
+  }));
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update smartbox (${res.status}): ${errorText}`);
+  }
+}
+
+// -----------------안테나 매핑 업데이트 api-----------------
+export async function antennaUpdate(imo: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/vessels/${imo}/antennas/synchronization`, withTestUser({
+    ...fetchOptions,
+    method: "POST",
+  }));
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to sync antenna mapping (${res.status}): ${errorText}`);
+  }
+}
+
 // -----------------대시보드 api-----------------
 export async function getDashboardVessels(acct?: string): Promise<DashboardVesselsResponse> {
   const params = new URLSearchParams();

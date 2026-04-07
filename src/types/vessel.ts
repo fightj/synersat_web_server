@@ -122,6 +122,7 @@ export interface DashboardVesselPosition {
   timestamp: string;
   currentRouteInterface: string | null;
   antennaName: string | null;
+  antennaDisplayName: string | null;
   antennaColor: string | null;
   satType: string | null;
   connected: boolean;

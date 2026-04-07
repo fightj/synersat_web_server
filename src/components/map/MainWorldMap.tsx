@@ -81,14 +81,14 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     const gps = list.filter(hasGps);
     return {
       all:       list.length,
-      starlink:  gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "starlink")).length,
-      nexuswave: gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "nexuswave")).length,
-      oneweb:    gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "oneweb")).length,
-      vsat:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "vsat")).length,
-      fbb:       gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "fbb")).length,
-      "4g":      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "4g")).length,
-      iridium:   gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "iridium")).length,
-      none:      gps.filter((v) => matchFilter(v.antennaName, v.connected !== false, "none")).length,
+      starlink:  gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "starlink")).length,
+      nexuswave: gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "nexuswave")).length,
+      oneweb:    gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "oneweb")).length,
+      vsat:      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "vsat")).length,
+      fbb:       gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "fbb")).length,
+      "4g":      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "4g")).length,
+      iridium:   gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "iridium")).length,
+      none:      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "none")).length,
       offline:   gps.filter((v) => v.connected === false).length,
     };
   }, [vessels]);
@@ -183,7 +183,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         setClickedVessel({
           imo: found.imo,
           name: found.vesselName,
-          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaName),
+          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName),
         });
       });
     } else {
