@@ -13,7 +13,7 @@ export default function ResourcePage() {
     <div>
       <PageBreadcrumb pageTitle="Vessels" />
       <div className="space-y-2">
-        <VesselComponentCard />
+        {/* <VesselComponentCard /> */}
       </div>
     </div>
   );

@@ -117,7 +117,7 @@ export default function VesselComponentCard() {
       </div>
 
       <div className="mt-4">
-        <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} />
+        {/* <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} /> */}
       </div>
       {/* <VesselAddModal isOpen={isOpen} onClose={closeModal} /> */}
       <VesselFormModal isOpen={isOpen} onClose={closeModal} mode="add" />
