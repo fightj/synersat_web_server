@@ -12,7 +12,11 @@ export function useLeafletMap(
   const leafletRef = useRef<any>(null);
   const resizeHandlerRef = useRef<(() => void) | null>(null);
 
-  const [activeStyle, setActiveStyle] = useState("default");
+  const [activeStyle, setActiveStyle] = useState(() => {
+    if (typeof window === "undefined") return "default";
+    const saved = localStorage.getItem("map-style");
+    return MAP_STYLES.some((s) => s.id === saved) ? saved! : "default";
+  });
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -40,11 +44,19 @@ export function useLeafletMap(
       mapInstanceRef.current = map;
       leafletRef.current = L;
 
-      tileLayerRef.current = L.tileLayer(MAP_STYLES[0].url, {
+      const savedStyleId = localStorage.getItem("map-style");
+      const initialStyle = MAP_STYLES.find((s) => s.id === savedStyleId) ?? MAP_STYLES[0];
+
+      tileLayerRef.current = L.tileLayer(initialStyle.url, {
         noWrap: false,
         keepBuffer: 4,
-        subdomains: MAP_STYLES[0].url.includes("{s}") ? "abc" : "",
+        subdomains: initialStyle.url.includes("{s}") ? "abc" : "",
       }).addTo(map);
+
+      if (initialStyle.tileFilter) {
+        const tilePane = map.getPane("tilePane") as HTMLElement | undefined;
+        if (tilePane) tilePane.style.filter = initialStyle.tileFilter;
+      }
 
       map.on("move", () => {
         const ll = clickedLatLngRef.current;
@@ -117,6 +129,7 @@ export function useLeafletMap(
     applyTileFilter(map, style.tileFilter ?? "");
     map.invalidateSize();
     setActiveStyle(styleId);
+    localStorage.setItem("map-style", styleId);
   };
 
   return {

@@ -44,7 +44,7 @@ const AppHeader: React.FC = () => {
 
       {/* 오른쪽 영역: 검색 + 알림 + 테마 + 사용자 */}
       <div className="relative z-50 flex items-center gap-2 rounded-xl bg-gray-600/70 px-2 py-1 shadow-sm lg:gap-3 lg:px-4 dark:bg-gray-800/90">
-        {pathname !== "/vessels" && (
+        {pathname !== "/vessels" && pathname !== "/commands" && (
           <div className="min-w-[180px] lg:min-w-[200px]">
             <VesselSearch />
           </div>
