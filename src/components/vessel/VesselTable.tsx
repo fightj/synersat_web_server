@@ -7,8 +7,9 @@ import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
-import { GrafanaIcon, SktelinkIcon } from "@/icons";
+import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import RedirectButtons from "../common/RedirectButtons";
+import GrafanaDashModal from "./GrafanaDashModal";
 import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
@@ -65,11 +66,8 @@ interface VesselRowProps extends Omit<React.HTMLAttributes<HTMLTableSectionEleme
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
   onDoubleClick: (vessel: Vessel) => void;
-  onGrafanaClick: (e: React.MouseEvent, url: string) => void;
+  onGrafanaClick: (vessel: Vessel) => void;
 }
-
-const GRAFANA_URL =
-  "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached?orgId=1&refresh=5m&var-vesselTable=NO.303%20DAE%20HWA&var-vesselid=dh303&var-VPN_IP=10.8.129.115&var-pri_wan_traffic_rx=vtnet2_rx&var-pri_wan_traffic_tx=vtnet2_tx&var-sec_wan_traffic_tx=vtnet3_tx&var-sec_wan_traffic_rx=vtnet3_rx&var-corp_traffic_rx=vtnet4_1001_rx&var-corp_traffic_tx=vtnet4_1001_tx&var-crew_traffic_rx=vtnet4_1002_rx&var-crew_traffic_tx=vtnet4_1002_tx&var-thi_wan_traffic_tx=vtnet0_tx&var-thi_wan_traffic_rx=vtnet0_rx&var-vesselid_ori=dh303&var-vesselimo=8714047&var-Box_Password=globe1@3&var-iot_traffic_tx=vtnet4_1000_tx&var-iot_traffic_rx=vtnet4_1000_rx&var-vessel_url_id=dh303&var-serialnumber=NBOXJ6000125102100088";
 
 const VesselRow = memo(
   React.forwardRef<HTMLTableSectionElement, VesselRowProps>(
@@ -128,15 +126,15 @@ const VesselRow = memo(
                 {vessel.vpnIp || "-"}
               </code>
             </td>
-            <td className="py-4 text-center">
+            <td className="py-2 text-center">
               <button
                 className="flex items-center justify-center transition-all hover:scale-110"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onGrafanaClick(e, GRAFANA_URL);
+                  onGrafanaClick(vessel);
                 }}
               >
-                <GrafanaIcon className="h-5 w-5 text-orange-500" />
+                <GrafanaDashIcon className="h-5 w-5 text-blue-500 dark:text-blue-400" />
               </button>
             </td>
           </tr>
@@ -174,7 +172,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
   const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [grafanaVessel, setGrafanaVessel] = useState<Vessel | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const listRef = useRef<HTMLDivElement>(null);
@@ -217,8 +215,8 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
     [setSelectedVessel, router],
   );
 
-  const handleGrafanaClick = useCallback((_e: React.MouseEvent, url: string) => {
-    setIframeUrl(url);
+  const handleGrafanaClick = useCallback((vessel: Vessel) => {
+    setGrafanaVessel(vessel);
   }, []);
 
   const displayVessels = useMemo(() => {
@@ -360,25 +358,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         </table>
       </div>
 
-      {iframeUrl && (
-        <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div
-            className="flex flex-col overflow-hidden rounded-2xl shadow-2xl"
-            style={{ width: "90vw", height: "90vh" }}
-          >
-            <div className="flex shrink-0 items-center justify-between bg-gray-900 px-4 py-2">
-              <span className="truncate text-xs text-gray-400">{iframeUrl}</span>
-              <button
-                onClick={() => setIframeUrl(null)}
-                className="ml-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-500"
-              >
-                ✕
-              </button>
-            </div>
-            <iframe src={iframeUrl} className="h-full w-full border-0 bg-white" title="Grafana" />
-          </div>
-        </div>
-      )}
+      <GrafanaDashModal vessel={grafanaVessel} onClose={() => setGrafanaVessel(null)} />
     </div>
   );
 }

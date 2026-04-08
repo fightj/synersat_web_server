@@ -108,7 +108,14 @@ export default function MapBottomBar({
                 style={{ width: 32, height: 32 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={style.preview} alt={style.label} width={32} height={32} className="h-full w-full object-cover" />
+                <img
+                  src={style.preview}
+                  alt={style.label}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                  style={style.tileFilter ? { filter: style.tileFilter } : undefined}
+                />
               </div>
               <span className={`text-[9px] font-bold ${isActive ? "text-blue-400" : "text-gray-500"}`}>
                 {style.label}

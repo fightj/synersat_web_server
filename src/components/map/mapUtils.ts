@@ -1,21 +1,37 @@
-export const MAP_STYLES = [
+export const MAP_STYLES: {
+  id: string;
+  label: string;
+  url: string;
+  preview: string;
+  /** tile pane에 적용할 CSS filter (없으면 ''). OSM 타일을 다크로 변환할 때 사용 */
+  tileFilter?: string;
+}[] = [
   {
     id: "default",
     label: "Default",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    preview: "https://a.basemaps.cartocdn.com/rastertiles/voyager/2/2/1.png",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    preview: "https://a.tile.openstreetmap.org/2/2/1.png",
   },
   {
     id: "dark",
     label: "Dark",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    preview: "https://a.basemaps.cartocdn.com/dark_all/2/2/1.png",
+    // OSM 타일 + CSS invert → 배경·해안선 모두 유지하면서 다크 렌더링
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    preview: "https://a.tile.openstreetmap.org/2/2/1.png",
+    tileFilter: "invert(100%) hue-rotate(180deg) brightness(0.9) contrast(1.1)",
   },
   {
     id: "light",
     label: "Light",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    preview: "https://a.basemaps.cartocdn.com/light_all/2/2/1.png",
+    // OSM HOT 스타일: 더 밝고 대비가 강한 라이트 테마
+    url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+    preview: "https://a.tile.openstreetmap.fr/hot/2/2/1.png",
+  },
+  {
+    id: "satellite",
+    label: "Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    preview: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/2/1/2",
   },
 ];
 

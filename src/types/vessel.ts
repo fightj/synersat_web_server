@@ -20,6 +20,8 @@ export interface Vessel {
   manager?: string;
   mailAddress?: string;
   acct: string;
+  fireWallPassword?: string;
+  serialNumber?: string;
   status?: VesselStatus;
 }
 

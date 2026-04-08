@@ -43,6 +43,7 @@ export function useLeafletMap(
       tileLayerRef.current = L.tileLayer(MAP_STYLES[0].url, {
         noWrap: false,
         keepBuffer: 4,
+        subdomains: MAP_STYLES[0].url.includes("{s}") ? "abc" : "",
       }).addTo(map);
 
       map.on("move", () => {
@@ -96,6 +97,11 @@ export function useLeafletMap(
     map.flyTo([20, 170], zoom, { animate: true, duration: 1.2 });
   };
 
+  const applyTileFilter = (map: any, filter: string) => {
+    const tilePane = map.getPane("tilePane") as HTMLElement | undefined;
+    if (tilePane) tilePane.style.filter = filter;
+  };
+
   const handleStyleChange = async (styleId: string) => {
     const style = MAP_STYLES.find((s) => s.id === styleId);
     if (!style || !mapInstanceRef.current || !tileLayerRef.current) return;
@@ -105,8 +111,10 @@ export function useLeafletMap(
     tileLayerRef.current = L.tileLayer(style.url, {
       noWrap: false,
       keepBuffer: 4,
+      subdomains: style.url.includes("{s}") ? "abc" : "",
     }).addTo(map);
     tileLayerRef.current.bringToBack();
+    applyTileFilter(map, style.tileFilter ?? "");
     map.invalidateSize();
     setActiveStyle(styleId);
   };

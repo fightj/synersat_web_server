@@ -251,7 +251,7 @@ export default function LineChartOne({
         colors: ["#fff"],
         strokeColors: allSeries.map((s) => s.color || "#000"),
         strokeWidth: 2,
-        hover: { size: 5, sizeOffset: 3 },
+        hover: { size: 2, sizeOffset: 1 },
       },
       legend: { show: false },
       xaxis: {

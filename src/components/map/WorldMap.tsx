@@ -44,7 +44,7 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
           attributionControl: false,
         });
         mapInstanceRef.current = map;
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           noWrap: false,
           keepBuffer: 4,
         }).addTo(map);
