@@ -60,7 +60,7 @@ const SortHeader = ({
 };
 
 // ── VesselRow: <tbody> 래퍼로 virtualizer ref를 받음 ──────────────────────
-interface VesselRowProps extends React.HTMLAttributes<HTMLTableSectionElement> {
+interface VesselRowProps extends Omit<React.HTMLAttributes<HTMLTableSectionElement>, 'onDoubleClick'> {
   vessel: Vessel;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
