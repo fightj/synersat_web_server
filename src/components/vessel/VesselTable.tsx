@@ -1,14 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import React, { memo, useMemo, useState, useTransition, useCallback } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
+import React, { memo, useMemo, useState, useTransition, useCallback, useRef, useLayoutEffect } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Loading from "../common/Loading";
@@ -65,9 +59,8 @@ const SortHeader = ({
   );
 };
 
-// ── 메모이제이션된 행 컴포넌트 ─────────────────────────────────────────
-// isExpanded가 바뀐 행만 리렌더됨 → 600개 전체 리렌더 방지
-interface VesselRowProps {
+// ── VesselRow: <tbody> 래퍼로 virtualizer ref를 받음 ──────────────────────
+interface VesselRowProps extends React.HTMLAttributes<HTMLTableSectionElement> {
   vessel: Vessel;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
@@ -75,100 +68,105 @@ interface VesselRowProps {
   onGrafanaClick: (e: React.MouseEvent, url: string) => void;
 }
 
-const VesselRow = memo(function VesselRow({
-  vessel,
-  isExpanded,
-  onToggleExpand,
-  onDoubleClick,
-  onGrafanaClick,
-}: VesselRowProps) {
-  // 한 번이라도 열렸으면 DOM 유지 (collapse 시 사라지지 않게)
-  const [everExpanded, setEverExpanded] = useState(false);
+const GRAFANA_URL =
+  "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached?orgId=1&refresh=5m&var-vesselTable=NO.303%20DAE%20HWA&var-vesselid=dh303&var-VPN_IP=10.8.129.115&var-pri_wan_traffic_rx=vtnet2_rx&var-pri_wan_traffic_tx=vtnet2_tx&var-sec_wan_traffic_tx=vtnet3_tx&var-sec_wan_traffic_rx=vtnet3_rx&var-corp_traffic_rx=vtnet4_1001_rx&var-corp_traffic_tx=vtnet4_1001_tx&var-crew_traffic_rx=vtnet4_1002_rx&var-crew_traffic_tx=vtnet4_1002_tx&var-thi_wan_traffic_tx=vtnet0_tx&var-thi_wan_traffic_rx=vtnet0_rx&var-vesselid_ori=dh303&var-vesselimo=8714047&var-Box_Password=globe1@3&var-iot_traffic_tx=vtnet4_1000_tx&var-iot_traffic_rx=vtnet4_1000_rx&var-vessel_url_id=dh303&var-serialnumber=NBOXJ6000125102100088";
 
-  const handleToggle = useCallback(() => {
-    if (!everExpanded) setEverExpanded(true);
-    onToggleExpand(String(vessel.id));
-  }, [vessel.id, onToggleExpand, everExpanded]);
+const VesselRow = memo(
+  React.forwardRef<HTMLTableSectionElement, VesselRowProps>(
+    function VesselRow(
+      { vessel, isExpanded, onToggleExpand, onDoubleClick, onGrafanaClick, ...tbodyProps },
+      ref,
+    ) {
+      const handleToggle = useCallback(() => {
+        onToggleExpand(String(vessel.id));
+      }, [vessel.id, onToggleExpand]);
 
-  const available = vessel.status?.available;
-  const statusName = available
-    ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null)
-    : null;
+      const available = vessel.status?.available;
+      const statusName = available
+        ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null)
+        : null;
 
-  return (
-    <React.Fragment>
-      <TableRow
-        onClick={handleToggle}
-        onDoubleClick={() => onDoubleClick(vessel)}
-        className={`group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/2 ${
-          !isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
-        }`}
-      >
-        <TableCell className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-          <div className="flex items-center gap-2">
-            {vessel.manager === "sktelink" && <SktelinkIcon className="h-4 w-auto" />}
-            {vessel.acct || "-"}
-          </div>
-        </TableCell>
-        <TableCell className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
-          {vessel.name || "-"}
-        </TableCell>
-        <TableCell className="px-3 py-4 text-start">
-          <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}>
-            {statusName || "N/A"}
-          </span>
-        </TableCell>
-        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-          {vessel.id}
-        </TableCell>
-        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-          {vessel.imo || "-"}
-        </TableCell>
-        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-          {vessel.callsign || "-"}
-        </TableCell>
-        <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-          {vessel.mmsi || "-"}
-        </TableCell>
-        <TableCell className="px-5 py-4 text-start">
-          <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-            {vessel.vpnIp || "-"}
-          </code>
-        </TableCell>
-        <TableCell className="py-4 text-center">
-          <button
-            className="flex items-center justify-center transition-all hover:scale-110"
-            onClick={(e) => {
-              e.stopPropagation();
-              onGrafanaClick(e, "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached?orgId=1&refresh=5m&var-vesselTable=NO.303%20DAE%20HWA&var-vesselid=dh303&var-VPN_IP=10.8.129.115&var-pri_wan_traffic_rx=vtnet2_rx&var-pri_wan_traffic_tx=vtnet2_tx&var-sec_wan_traffic_tx=vtnet3_tx&var-sec_wan_traffic_rx=vtnet3_rx&var-corp_traffic_rx=vtnet4_1001_rx&var-corp_traffic_tx=vtnet4_1001_tx&var-crew_traffic_rx=vtnet4_1002_rx&var-crew_traffic_tx=vtnet4_1002_tx&var-thi_wan_traffic_tx=vtnet0_tx&var-thi_wan_traffic_rx=vtnet0_rx&var-vesselid_ori=dh303&var-vesselimo=8714047&var-Box_Password=globe1@3&var-iot_traffic_tx=vtnet4_1000_tx&var-iot_traffic_rx=vtnet4_1000_rx&var-vessel_url_id=dh303&var-serialnumber=NBOXJ6000125102100088");
-            }}
+      return (
+        <tbody ref={ref} {...tbodyProps}>
+          <tr
+            onClick={handleToggle}
+            onDoubleClick={() => onDoubleClick(vessel)}
+            className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${
+              !isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
+            }`}
           >
-            <GrafanaIcon className="h-5 w-5 text-orange-500" />
-          </button>
-        </TableCell>
-      </TableRow>
+            <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
+              <div className="flex items-center gap-2">
+                {vessel.manager === "sktelink" && <SktelinkIcon className="h-4 w-auto" />}
+                {vessel.acct || "-"}
+              </div>
+            </td>
+            <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
+              {vessel.name || "-"}
+            </td>
+            <td className="px-3 py-4 text-start">
+              <span
+                className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}
+              >
+                {statusName || "N/A"}
+              </span>
+            </td>
+            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+              {vessel.id}
+            </td>
+            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+              {vessel.imo || "-"}
+            </td>
+            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+              {vessel.callsign || "-"}
+            </td>
+            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
+              {vessel.mmsi || "-"}
+            </td>
+            <td className="px-5 py-4 text-start">
+              <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
+                {vessel.vpnIp || "-"}
+              </code>
+            </td>
+            <td className="py-4 text-center">
+              <button
+                className="flex items-center justify-center transition-all hover:scale-110"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGrafanaClick(e, GRAFANA_URL);
+                }}
+              >
+                <GrafanaIcon className="h-5 w-5 text-orange-500" />
+              </button>
+            </td>
+          </tr>
 
-      <tr>
-        <td colSpan={9} className="p-0">
-          <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-            <div className="overflow-hidden">
-              {/* 한 번이라도 열렸을 때만 마운트 — collapse 후에도 DOM 유지로 재마운트 비용 없음 */}
-              {everExpanded && (
-                <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
-                  <div className="w-fit">
-                    <RedirectButtons vesselId={String(vessel.id)} />
-                  </div>
+          <tr>
+            <td colSpan={9} className="p-0">
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  {isExpanded && (
+                    <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
+                      <div className="w-fit">
+                        <RedirectButtons vesselId={String(vessel.id)} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </td>
-      </tr>
-    </React.Fragment>
-  );
-});
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      );
+    },
+  ),
+);
 
-// ── 메인 테이블 ────────────────────────────────────────────────────────
+// ── 메인 테이블 ────────────────────────────────────────────────────────────
 export default function VesselTable({ searchTerm = "", categoryFilter = null }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
@@ -179,23 +177,45 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
 
-  const toggleSort = useCallback((key: SortKey) => {
-    if (sortKey !== key) { setSortKey(key); setSortDir("asc"); }
-    else setSortDir((d) => d === "asc" ? "desc" : "asc");
-  }, [sortKey]);
+  useLayoutEffect(() => {
+    if (listRef.current) {
+      setScrollMargin(listRef.current.offsetTop);
+    }
+  }, []);
 
-  // expand 토글을 transition으로 감싸 클릭 응답성 확보
+  const toggleSort = useCallback(
+    (key: SortKey) => {
+      if (sortKey !== key) {
+        setSortKey(key);
+        setSortDir("asc");
+      } else {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      }
+    },
+    [sortKey],
+  );
+
   const handleToggleExpand = useCallback((id: string) => {
     startTransition(() => {
-      setExpandedId((prev) => prev === id ? null : id);
+      setExpandedId((prev) => (prev === id ? null : id));
     });
   }, []);
 
-  const handleDoubleClick = useCallback((vessel: Vessel) => {
-    setSelectedVessel({ id: vessel.id, imo: vessel.imo, name: vessel.name || "", vpnIp: vessel.vpnIp || "" });
-    router.push("/vessels/detail");
-  }, [setSelectedVessel, router]);
+  const handleDoubleClick = useCallback(
+    (vessel: Vessel) => {
+      setSelectedVessel({
+        id: vessel.id,
+        imo: vessel.imo,
+        name: vessel.name || "",
+        vpnIp: vessel.vpnIp || "",
+      });
+      router.push("/vessels/detail");
+    },
+    [setSelectedVessel, router],
+  );
 
   const handleGrafanaClick = useCallback((_e: React.MouseEvent, url: string) => {
     setIframeUrl(url);
@@ -218,11 +238,14 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         case "oneweb":    return name(v).includes("oneweb");
         case "fourgee":   return name(v).includes("4g") || name(v).includes("lte");
         case "iridium":   return name(v).includes("iridium");
-        case "offline":   return !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName);
+        case "offline":
+          return !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName);
         default:          return true;
       }
     });
+
     if (searchTerm.trim() !== "") return filtered;
+
     const copy = [...filtered];
     copy.sort((a, b) => {
       const av = getSortValue(a, sortKey);
@@ -234,6 +257,20 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
     return copy;
   }, [vessels, sortKey, sortDir, searchTerm, categoryFilter]);
 
+  // ── 가상화 (window 스크롤 사용 → 내부 스크롤바 없음) ────────────────────
+  const rowVirtualizer = useWindowVirtualizer({
+    count: displayVessels.length,
+    estimateSize: () => 57,
+    overscan: 5,
+    scrollMargin,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualItems.length > 0 ? Math.max(0, virtualItems[0].start - scrollMargin) : 0;
+  const paddingBottom =
+    virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0;
+
   if (loading)
     return (
       <div className="p-8 text-center">
@@ -242,49 +279,93 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
     );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <div className="max-w-full overflow-x-auto">
-        <Table className="min-w-[1100px]">
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-            <TableRow className="bg-blue-50/50 dark:bg-slate-800/50">
-              <TableCell isHeader className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                <SortHeader label="Company" k="company" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
-              </TableCell>
-              <TableCell isHeader className="text-theme-xs w-[16%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                <SortHeader label="Vessel Name" k="vesselName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
-              </TableCell>
-              <TableCell isHeader className="text-theme-xs w-[8%] px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                Status
-              </TableCell>
-              <TableCell isHeader className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                <SortHeader label="Vessel ID" k="vesselId" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
-              </TableCell>
-              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">IMO</TableCell>
-              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">CallSign</TableCell>
-              <TableCell isHeader className="text-theme-xs w-[10%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">MMSI</TableCell>
-              <TableCell isHeader className="text-theme-xs w-[12%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">VPN IP</TableCell>
-              <TableCell isHeader className="text-theme-xs w-[6%] py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</TableCell>
-            </TableRow>
-          </TableHeader>
+    <div
+      ref={listRef}
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]"
+    >
+      <div className="overflow-x-auto">
+        <table
+          className="w-full min-w-[1100px]"
+          style={{ tableLayout: "fixed", borderCollapse: "collapse" }}
+        >
+          {/* colgroup: table-layout:fixed에서 열 너비 고정 */}
+          <colgroup>
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "6%" }} />
+          </colgroup>
 
-          <TableBody>
-            {displayVessels.map((vessel) => (
+          <thead className="border-b border-gray-100 bg-blue-50/50 dark:border-white/[0.05] dark:bg-slate-800/50">
+            <tr>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Company" k="company" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+              </th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Vessel Name" k="vesselName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+              </th>
+              <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                Status
+              </th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                <SortHeader label="Vessel ID" k="vesselId" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+              </th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">IMO</th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">CallSign</th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">MMSI</th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">VPN IP</th>
+              <th className="text-theme-xs py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</th>
+            </tr>
+          </thead>
+
+          {/* 상단 스페이서 */}
+          {paddingTop > 0 && (
+            <tbody aria-hidden="true">
+              <tr>
+                <td colSpan={9} style={{ height: paddingTop, padding: 0 }} />
+              </tr>
+            </tbody>
+          )}
+
+          {/* 가상화된 행들: 각 VesselRow는 <tbody>를 렌더 (2개 tr 포함) */}
+          {virtualItems.map((vItem) => {
+            const vessel = displayVessels[vItem.index];
+            return (
               <VesselRow
                 key={vessel.id}
+                ref={rowVirtualizer.measureElement}
+                data-index={vItem.index}
                 vessel={vessel}
                 isExpanded={expandedId === String(vessel.id)}
                 onToggleExpand={handleToggleExpand}
                 onDoubleClick={handleDoubleClick}
                 onGrafanaClick={handleGrafanaClick}
               />
-            ))}
-          </TableBody>
-        </Table>
+            );
+          })}
+
+          {/* 하단 스페이서 */}
+          {paddingBottom > 0 && (
+            <tbody aria-hidden="true">
+              <tr>
+                <td colSpan={9} style={{ height: paddingBottom, padding: 0 }} />
+              </tr>
+            </tbody>
+          )}
+        </table>
       </div>
 
       {iframeUrl && (
         <div className="fixed inset-0 z-500 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="flex flex-col overflow-hidden rounded-2xl shadow-2xl" style={{ width: "90vw", height: "90vh" }}>
+          <div
+            className="flex flex-col overflow-hidden rounded-2xl shadow-2xl"
+            style={{ width: "90vw", height: "90vh" }}
+          >
             <div className="flex shrink-0 items-center justify-between bg-gray-900 px-4 py-2">
               <span className="truncate text-xs text-gray-400">{iframeUrl}</span>
               <button
