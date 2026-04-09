@@ -242,8 +242,8 @@ export default function LineChartOne({
         opacity: fillOpacities,
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: 0.35,
-          opacityTo: 0.05,
+          opacityFrom: 0.4,
+          opacityTo: 0.55,
         },
       },
       markers: {

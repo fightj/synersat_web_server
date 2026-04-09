@@ -9,13 +9,12 @@ interface GrafanaDashModalProps {
 }
 
 const BASE_URL =
-  "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-all/fleet-data-usage-history-cached";
+  "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-detail/fleet-data-usage-history-cached";
 
 export default function GrafanaDashModal({ vessel, onClose }: GrafanaDashModalProps) {
   const iframeUrl = useMemo(() => {
     if (!vessel) return null;
     const params = new URLSearchParams({
-      orgId: "1",
       refresh: "5m",
       from: "now-12h",
       to: "now",
