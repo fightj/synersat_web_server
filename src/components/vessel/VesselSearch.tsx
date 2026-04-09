@@ -235,7 +235,7 @@ export default function VesselSearch({ className = "" }: Props) {
         </div>
 
         {open && (
-          <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+          <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <div
             ref={dropdownRef}
             onScroll={onDropdownScroll}

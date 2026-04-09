@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "SynerSAT Fleet Manager",
+};
 
 import { SidebarProvider } from "@/context/SidebarContext";
 import { ThemeProvider } from "@/context/ThemeContext";
