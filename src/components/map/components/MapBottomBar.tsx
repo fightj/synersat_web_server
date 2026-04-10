@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FILTER_CATEGORIES, FilterKey, MAP_STYLES } from "../mapUtils";
+import AntennaFilterBar from "@/components/common/AntennaFilterBar";
 
-// ── 숫자 카운팅 애니메이션 컴포넌트 ────────────────────────────────
+// ── 숫자 카운팅 애니메이션 (No GPS 버튼용) ──────────────────────────
 function AnimatedNumber({ value }: { value: number }) {
   const [displayed, setDisplayed] = useState(value);
   const prevRef = useRef(value);
@@ -15,7 +16,6 @@ function AnimatedNumber({ value }: { value: number }) {
     const end = value;
     const duration = 1000;
     const startTime = performance.now();
-
     const animate = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -27,7 +27,6 @@ function AnimatedNumber({ value }: { value: number }) {
         prevRef.current = value;
       }
     };
-
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
   }, [value]);
@@ -129,38 +128,15 @@ export default function MapBottomBar({
 
       {/* ── 가운데: 카테고리 필터 (가용 공간 차지, 스크롤 허용) ─── */}
       <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto flex w-max items-center gap-1 py-1">
-          {FILTER_CATEGORIES.map(({ key, label, color }) => {
-            const count = stats[key];
-            const isActive = activeFilter === key;
-            return (
-              <button
-                key={key}
-                onClick={() => onFilterChange(isActive && key !== "all" ? "all" : key)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                  isActive
-                    ? "border-transparent text-white"
-                    : "border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
-                }`}
-                style={
-                  isActive
-                    ? { background: color + "33", borderColor: color + "66", color: "#fff" }
-                    : {}
-                }
-              >
-                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
-                {label}
-                <span
-                  className={`rounded px-1 py-0.5 text-[10px] leading-none font-bold tabular-nums ${
-                    isActive ? "bg-white/20 text-white" : "bg-white/10 text-gray-300"
-                  }`}
-                >
-                  <AnimatedNumber value={count} />
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <AntennaFilterBar
+          categories={FILTER_CATEGORIES}
+          stats={stats}
+          activeKey={activeFilter}
+          onSelect={(key) => onFilterChange(activeFilter === key && key !== "all" ? "all" : key as FilterKey)}
+          variant="dark"
+          animated
+          className="mx-auto w-max py-1"
+        />
       </div>
 
       <div className="mx-2 h-5 w-px shrink-0 bg-white/10" />
