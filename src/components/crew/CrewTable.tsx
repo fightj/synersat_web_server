@@ -10,6 +10,7 @@ import {
 import { CalenderIcon } from "@/icons";
 import Badge from "@/components/ui/badge/Badge";
 import Loading from "@/components/common/Loading";
+import StatusPlaceholder from "@/components/common/StatusPlaceholder";
 import Checkbox from "@/components/form/input/Checkbox";
 import type { CrewUser } from "@/types/crew_user";
 
@@ -25,6 +26,7 @@ const TABLE_HEADERS = ["ID", "Description", "Duty", "Type", "Update Period", "Us
 interface CrewTableProps {
   crew: CrewUser[];
   isLoading: boolean;
+  hasVessel: boolean;
   selected: Set<string>;
   allSelected: boolean;
   onToggleAll: () => void;
@@ -35,6 +37,7 @@ interface CrewTableProps {
 export default function CrewTable({
   crew,
   isLoading,
+  hasVessel,
   selected,
   allSelected,
   onToggleAll,
@@ -68,6 +71,12 @@ export default function CrewTable({
             <TableRow>
               <TableCell colSpan={7} className="py-32 text-center">
                 <Loading message="Fetching data..." />
+              </TableCell>
+            </TableRow>
+          ) : !hasVessel ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center">
+                <StatusPlaceholder title="No vessel selected" description="Please select a vessel to view crew accounts." />
               </TableCell>
             </TableRow>
           ) : crew.length === 0 ? (

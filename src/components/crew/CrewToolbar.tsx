@@ -32,13 +32,19 @@ export default function CrewToolbar({
 }: CrewToolbarProps) {
   return (
     <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-500/10">
-          <span className="text-sm font-bold text-blue-700 dark:text-blue-400">
-            {vesselName ?? "No vessel selected"}
-          </span>
-        </div>
-      </div>
+      {vesselName ? (
+              <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-500/10">
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">
+                  {vesselName}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-1.5 dark:bg-red-500/10">
+                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                  No vessel selected
+                </span>
+              </div>
+            )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button

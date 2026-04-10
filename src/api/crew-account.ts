@@ -71,7 +71,7 @@ export async function updateCrewTopUp(imo: number, crewId: string, payload: Crew
     return await res.json()
   }
   catch (error) {
-    console.error("Error fetching TopUp Crew Data, error")
+    console.error("Error fetching TopUp Crew Data", error)
     throw error
   }
 }

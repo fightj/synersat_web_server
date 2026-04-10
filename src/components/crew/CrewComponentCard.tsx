@@ -127,7 +127,7 @@ export default function CrewComponentCard() {
     <div className="space-y-6">
       <PageBreadcrumb pageTitle="Manage Crew Account" />
 
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
         <CrewToolbar
           vesselName={selectedVessel?.name}
           noneSelected={noneSelected}
@@ -139,6 +139,7 @@ export default function CrewComponentCard() {
         <CrewTable
           crew={crew}
           isLoading={isLoading}
+          hasVessel={!!vpnIp}
           selected={selected}
           allSelected={allSelected}
           onToggleAll={toggleAll}
