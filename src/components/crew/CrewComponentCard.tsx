@@ -16,6 +16,7 @@ export default function CrewComponentCard() {
 
   const [crew, setCrew] = useState<CrewUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [suspensionModal, setSuspensionModal] = useState<{ open: boolean; username: string }>({
     open: false,
@@ -25,6 +26,7 @@ export default function CrewComponentCard() {
   const fetchCrewData = async () => {
     if (!vpnIp) return;
     setIsLoading(true);
+    setFetchError(null);
     try {
       const response = await fetch("/api/crew", {
         method: "POST",
@@ -53,6 +55,7 @@ export default function CrewComponentCard() {
       setCrew(processedData);
     } catch (error) {
       console.error("Crew Fetch Error:", error);
+      setFetchError("The vessel network is unstable. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +63,7 @@ export default function CrewComponentCard() {
 
   useEffect(() => {
     if (vpnIp) fetchCrewData();
-    else setCrew([]);
+    else { setCrew([]); setFetchError(null); }
     setSelected(new Set());
   }, [vpnIp]);
 
@@ -140,6 +143,7 @@ export default function CrewComponentCard() {
           crew={crew}
           isLoading={isLoading}
           hasVessel={!!vpnIp}
+          fetchError={fetchError}
           selected={selected}
           allSelected={allSelected}
           onToggleAll={toggleAll}

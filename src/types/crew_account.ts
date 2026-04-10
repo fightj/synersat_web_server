@@ -20,6 +20,7 @@ export interface AddCrewRequest {
   maxTotalOctets: string
   maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER",
   description: string
+  terminalType: string
 }
 
 export interface UpdateCrewRequest {

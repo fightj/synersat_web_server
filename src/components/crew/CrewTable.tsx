@@ -27,6 +27,7 @@ interface CrewTableProps {
   crew: CrewUser[];
   isLoading: boolean;
   hasVessel: boolean;
+  fetchError: string | null;
   selected: Set<string>;
   allSelected: boolean;
   onToggleAll: () => void;
@@ -38,6 +39,7 @@ export default function CrewTable({
   crew,
   isLoading,
   hasVessel,
+  fetchError,
   selected,
   allSelected,
   onToggleAll,
@@ -77,6 +79,12 @@ export default function CrewTable({
             <TableRow>
               <TableCell colSpan={7} className="text-center">
                 <StatusPlaceholder title="No vessel selected" description="Please select a vessel to view crew accounts." />
+              </TableCell>
+            </TableRow>
+          ) : fetchError ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center">
+                <StatusPlaceholder title="Failed to fetch crew data" description={fetchError} />
               </TableCell>
             </TableRow>
           ) : crew.length === 0 ? (
