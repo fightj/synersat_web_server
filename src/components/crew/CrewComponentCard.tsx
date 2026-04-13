@@ -8,6 +8,7 @@ import { getCrewData } from "@/api/crew-account";
 import CrewToolbar from "./CrewToolbar";
 import CrewTable from "./CrewTable";
 import SuspensionSetupModal from "./SuspensionSetupModal";
+import AddCrewModal from "./AddCrewModal";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
@@ -23,6 +24,7 @@ export default function CrewComponentCard() {
     open: false,
     username: "",
   });
+  const [addCrewOpen, setAddCrewOpen] = useState(false);
 
   const fetchCrewData = async () => {
     if (!imo) return;
@@ -135,6 +137,7 @@ export default function CrewComponentCard() {
           crewCount={crew.length}
           onAction={onAction}
           onExportCSV={handleExportCSV}
+          onAddVoucher={() => setAddCrewOpen(true)}
         />
         <CrewTable
           crew={crew}
@@ -155,6 +158,15 @@ export default function CrewComponentCard() {
         onClose={() => setSuspensionModal({ open: false, username: "" })}
         username={suspensionModal.username}
       />
+
+      {imo && (
+        <AddCrewModal
+          isOpen={addCrewOpen}
+          onClose={() => setAddCrewOpen(false)}
+          onSaved={() => { setAddCrewOpen(false); fetchCrewData(); }}
+          imo={imo}
+        />
+      )}
     </div>
   );
 }

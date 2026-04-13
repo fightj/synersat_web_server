@@ -76,7 +76,7 @@ export async function updateCrewTopUp(imo: number, crewId: string, payload: Crew
   }
 }
 
-export async function getGateways(imo: number): Promise<[]> {
+export async function getGateways(imo: number): Promise<string[]> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/gateways`, withTestUser(
       {

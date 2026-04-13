@@ -15,12 +15,12 @@ export interface CrewResponse {
 
 export interface AddCrewRequest {
   userId: string
-  password: string
-  halfTimePeriod: string
+  password?: string | null
+  halfTimePeriod?: string | null
   maxTotalOctets: string
   maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER",
-  description: string
-  terminalType: string
+  description: string | null
+  terminalType: string | null
 }
 
 export interface UpdateCrewRequest {
