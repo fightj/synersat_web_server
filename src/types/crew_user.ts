@@ -6,7 +6,7 @@ export type CrewUser = {
   varusersusername: string; // ID
   varuserspassword?: string;
   varusersmaxtotaloctets?: string; // max MB (string)
-  // varusersusage?: string; // used MB (string) ✅ 추가
+  currentOctetUsage?: string; // used MB (string)
   varusersterminaltype?: string; 
   duty?: string;
   updatedAt?: string;

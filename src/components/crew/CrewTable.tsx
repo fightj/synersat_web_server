@@ -33,6 +33,7 @@ interface CrewTableProps {
   onToggleAll: () => void;
   onToggleOne: (id: string) => void;
   onOpenSuspension: (username: string) => void;
+  onRetry?: () => void;
 }
 
 export default function CrewTable({
@@ -45,6 +46,7 @@ export default function CrewTable({
   onToggleAll,
   onToggleOne,
   onOpenSuspension,
+  onRetry,
 }: CrewTableProps) {
   return (
     <div className="max-w-full overflow-x-auto">
@@ -70,25 +72,25 @@ export default function CrewTable({
 
         <TableBody className="relative divide-y divide-gray-100 dark:divide-white/[0.05]">
           {isLoading ? (
-            <TableRow>
+            <TableRow key="loading">
               <TableCell colSpan={7} className="py-32 text-center">
                 <Loading message="Fetching data..." />
               </TableCell>
             </TableRow>
           ) : !hasVessel ? (
-            <TableRow>
+            <TableRow key="no-vessel">
               <TableCell colSpan={7} className="text-center">
                 <StatusPlaceholder title="No vessel selected" description="Please select a vessel to view crew accounts." />
               </TableCell>
             </TableRow>
           ) : fetchError ? (
-            <TableRow>
+            <TableRow key="fetch-error">
               <TableCell colSpan={7} className="text-center">
-                <StatusPlaceholder title="Failed to fetch crew data" description={fetchError} />
+                <StatusPlaceholder title="Failed to fetch crew data" description={fetchError} onRetry={onRetry} />
               </TableCell>
             </TableRow>
           ) : crew.length === 0 ? (
-            <TableRow>
+            <TableRow key="empty">
               <TableCell colSpan={7} className="py-24 text-center">
                 <p className="text-sm font-medium opacity-30 dark:text-gray-400">
                   No crew accounts found.
@@ -140,7 +142,7 @@ export default function CrewTable({
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                     <span className="text-blue-600 dark:text-blue-400">
-                      15645(exmaple)
+                      {u.currentOctetUsage ?? "-"}
                     </span>
                     <span className="mx-1 text-gray-300">/</span>
                     {u.varusersmaxtotaloctets} MB

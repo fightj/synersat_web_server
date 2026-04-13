@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
 import type { CrewUser } from "@/types/crew_user";
+import { getCrewData } from "@/api/crew-account";
 import CrewToolbar from "./CrewToolbar";
 import CrewTable from "./CrewTable";
 import SuspensionSetupModal from "./SuspensionSetupModal";
@@ -12,7 +13,7 @@ type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
 export default function CrewComponentCard() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const vpnIp = selectedVessel?.vpnIp || "";
+  const imo = selectedVessel?.imo ?? null;
 
   const [crew, setCrew] = useState<CrewUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,26 +25,22 @@ export default function CrewComponentCard() {
   });
 
   const fetchCrewData = async () => {
-    if (!vpnIp) return;
+    if (!imo) return;
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch("/api/crew", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vpnIp }),
-      });
-      const result = await response.json();
-      const crewList = Array.isArray(result.data) ? result.data : [];
-      const processedData: CrewUser[] = crewList
-        .filter((u: any) => u.varusersusername !== "synersat")
+      const result = await getCrewData(imo);
+      const rawList = Array.isArray(result) ? result : Array.isArray((result as any).data) ? (result as any).data : [];
+      const processedData: CrewUser[] = rawList
         .map((u: any) => ({
-          ...u,
-          description: u.description || "-",
-          duty: u.duty || "-",
-          varusersterminaltype: u.varusersterminaltype || "Auto",
-          varusersusage: u.varusersusage || "0",
-          varusershalftimeperiod: u.varusershalftimeperiod || "",
+          varusersusername:                u.userName,
+          varuserspassword:                u.password,
+          description:                     u.description || "-",
+          varusersterminaltype:            u.terminalType || "Auto",
+          varusershalftimeperiod:          u.halfTimePeriod || "",
+          varusersmaxtotaloctets:          u.maxTotalOctets,
+          varusersmaxtotaloctetstimerange: u.maxTotalOctetsTimeRange,
+          currentOctetUsage:               u.currentOctetUsage,
         }))
         .sort((a: CrewUser, b: CrewUser) => {
           const aIsSpecial = a.varusersusername.startsWith("startlinkuser");
@@ -62,10 +59,10 @@ export default function CrewComponentCard() {
   };
 
   useEffect(() => {
-    if (vpnIp) fetchCrewData();
+    if (imo) fetchCrewData();
     else { setCrew([]); setFetchError(null); }
     setSelected(new Set());
-  }, [vpnIp]);
+  }, [imo]);
 
   const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
@@ -142,13 +139,14 @@ export default function CrewComponentCard() {
         <CrewTable
           crew={crew}
           isLoading={isLoading}
-          hasVessel={!!vpnIp}
+          hasVessel={!!imo}
           fetchError={fetchError}
           selected={selected}
           allSelected={allSelected}
           onToggleAll={toggleAll}
           onToggleOne={toggleOne}
           onOpenSuspension={(username) => setSuspensionModal({ open: true, username })}
+          onRetry={fetchCrewData}
         />
       </div>
 

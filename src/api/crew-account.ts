@@ -76,3 +76,20 @@ export async function updateCrewTopUp(imo: number, crewId: string, payload: Crew
   }
 }
 
+export async function getGateways(imo: number): Promise<[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/gateways`, withTestUser(
+      {
+        ...fetchOptions,
+        method: "GET",
+      }
+
+    ))
+    if (!res.ok) throw new Error("Fail to fetch gateway data")
+    return await res.json()
+  }
+  catch (error) {
+    console.error("Error fetching gateway data", error)
+    throw error
+  }
+}
