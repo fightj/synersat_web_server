@@ -91,6 +91,15 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
     setErrors((prev) => ({ ...prev, [index]: { ...prev[index], [field]: undefined } }));
   };
 
+  const handleTimeRangeChange = (index: number, value: string) => {
+    setEntries((prev) => prev.map((e, i) =>
+      i === index
+        ? { ...e, maxTotalOctetsTimeRange: value as CrewEntry["maxTotalOctetsTimeRange"], ...(value !== "MONTHLY" ? { halfTimePeriod: "null" as const } : {}) }
+        : e
+    ));
+    setErrors((prev) => ({ ...prev, [index]: { ...prev[index], maxTotalOctetsTimeRange: undefined } }));
+  };
+
   const handleAdd = () => setEntries((prev) => [...prev, createEmptyEntry()]);
 
   const handleRemove = (index: number) => {
@@ -156,7 +165,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
         maxTotalOctets:          entry.maxTotalOctets.trim(),
         maxTotalOctetsTimeRange: entry.maxTotalOctetsTimeRange,
         description:             entry.description.trim() || null,
-        terminalType:            entry.terminalType || null,
+        terminalType:            entry.terminalType,
       };
       payload.password = entry.password.trim() || "1111";
       if (entry.halfTimePeriod === "half") payload.halfTimePeriod = "half";
@@ -283,7 +292,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                       onChange={(e) => handleChange(index, "terminalType", e.target.value)}
                       className={selectClass}
                     >
-                      <option value="">Select Terminal</option>
+                      <option value="">Auto</option>
                       {gateways.map((gw) => (
                         <option key={gw} value={gw}>{gw}</option>
                       ))}
@@ -320,7 +329,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                     </Label>
                     <NativeSelectWithIcon
                       value={entry.maxTotalOctetsTimeRange}
-                      onChange={(e) => handleChange(index, "maxTotalOctetsTimeRange", e.target.value)}
+                      onChange={(e) => handleTimeRangeChange(index, e.target.value)}
                       className={`${selectClass} ${entryErrors.maxTotalOctetsTimeRange ? "border-red-400" : ""}`}
                     >
                       {TIME_RANGE_OPTIONS.map((opt) => (
@@ -331,27 +340,37 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                   </div>
 
                   {/* Half Time Period */}
-                  <div>
-                    <Label className={labelClass}>Half Time Period</Label>
-                    <div className="flex h-10 items-center gap-6">
-                      <Radio
-                        id={`half-null-${index}`}
-                        name={`halfTimePeriod-${index}`}
-                        value="null"
-                        checked={entry.halfTimePeriod === "null"}
-                        label="None"
-                        onChange={(v) => handleChange(index, "halfTimePeriod", v)}
-                      />
-                      <Radio
-                        id={`half-half-${index}`}
-                        name={`halfTimePeriod-${index}`}
-                        value="half"
-                        checked={entry.halfTimePeriod === "half"}
-                        label="Half"
-                        onChange={(v) => handleChange(index, "halfTimePeriod", v)}
-                      />
-                    </div>
-                  </div>
+                  {(() => {
+                    const isMonthly = entry.maxTotalOctetsTimeRange === "MONTHLY";
+                    return (
+                      <div>
+                        <Label className={`${labelClass} ${!isMonthly ? "opacity-40" : ""}`}>
+                          Half Time Period
+                          {!isMonthly && <span className="ml-1.5 text-[10px] font-normal">(Monthly only)</span>}
+                        </Label>
+                        <div className={`flex h-10 items-center gap-6 transition-all ${!isMonthly ? "opacity-40" : ""}`}>
+                          <Radio
+                            id={`half-null-${index}`}
+                            name={`halfTimePeriod-${index}`}
+                            value="null"
+                            checked={entry.halfTimePeriod === "null"}
+                            label="None"
+                            onChange={(v) => isMonthly && handleChange(index, "halfTimePeriod", v)}
+                            disabled={!isMonthly}
+                          />
+                          <Radio
+                            id={`half-half-${index}`}
+                            name={`halfTimePeriod-${index}`}
+                            value="half"
+                            checked={entry.halfTimePeriod === "half"}
+                            label="Half"
+                            onChange={(v) => isMonthly && handleChange(index, "halfTimePeriod", v)}
+                            disabled={!isMonthly}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Description */}
                   <div className="md:col-span-2">

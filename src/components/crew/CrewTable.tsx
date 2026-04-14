@@ -14,10 +14,11 @@ import StatusPlaceholder from "@/components/common/StatusPlaceholder";
 import Checkbox from "@/components/form/input/Checkbox";
 import type { CrewUser } from "@/types/crew_user";
 
-function getBadgeProps(type: string) {
+function getBadgeProps(type: string | undefined | null) {
+  if (!type || type.trim() === "") return { color: "light" as const, label: "Auto" };
   const lower = type.toLowerCase();
-  if (lower === "starlink") return { color: "success" as const, label: "Starlink" };
-  if (lower === "vsat")     return { color: "warning" as const, label: "VSAT" };
+  if (lower === "starlink") return { color: "purple"  as const, label: "Starlink" };
+  if (lower === "vsat")     return { color: "success" as const, label: "VSAT" };
   return { color: "light" as const, label: type };
 }
 

@@ -104,7 +104,7 @@ const VesselRow = memo(
             </td>
             <td className="px-3 py-4 text-start">
               <span
-                className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}
+                className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}
               >
                 {statusName || "N/A"}
               </span>
