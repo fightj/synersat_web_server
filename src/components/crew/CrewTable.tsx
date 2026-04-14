@@ -22,7 +22,35 @@ function getBadgeProps(type: string | undefined | null) {
   return { color: "light" as const, label: type };
 }
 
-const TABLE_HEADERS = ["ID", "Description", "Duty", "Type", "Update Period", "Usage Limit"];
+const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage Limit"];
+
+const CHANGE_TYPE_BADGE: Record<
+  NonNullable<import("@/types/crew_user").CrewUser["updateType"]>,
+  { label: string; className: string }
+> = {
+  UPDATE: {
+    label: "Pending (Update)",
+    className:
+      "bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+  },
+  CREATE: {
+    label: "Pending (Create)",
+    className:
+      "bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+  },
+};
+
+function StatusBadge({ updateType }: { updateType: import("@/types/crew_user").CrewUser["updateType"] }) {
+  if (updateType && CHANGE_TYPE_BADGE[updateType]) {
+    const { label, className } = CHANGE_TYPE_BADGE[updateType];
+    return (
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${className}`}>
+        {label}
+      </span>
+    );
+  }
+  return null;
+}
 
 interface CrewTableProps {
   crew: CrewUser[];
@@ -74,25 +102,25 @@ export default function CrewTable({
         <TableBody className="relative divide-y divide-gray-100 dark:divide-white/[0.05]">
           {isLoading ? (
             <TableRow key="loading">
-              <TableCell colSpan={7} className="py-32 text-center">
+              <TableCell colSpan={8} className="py-32 text-center">
                 <Loading message="Fetching data..." />
               </TableCell>
             </TableRow>
           ) : !hasVessel ? (
             <TableRow key="no-vessel">
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <StatusPlaceholder title="No vessel selected" description="Please select a vessel to view crew accounts." />
               </TableCell>
             </TableRow>
           ) : fetchError ? (
             <TableRow key="fetch-error">
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <StatusPlaceholder title="Failed to fetch crew data" description={fetchError} onRetry={onRetry} />
               </TableCell>
             </TableRow>
           ) : crew.length === 0 ? (
             <TableRow key="empty">
-              <TableCell colSpan={7} className="py-24 text-center">
+              <TableCell colSpan={8} className="py-24 text-center">
                 <p className="text-sm font-medium opacity-30 dark:text-gray-400">
                   No crew accounts found.
                 </p>
@@ -101,26 +129,35 @@ export default function CrewTable({
           ) : (
             crew.map((u) => {
               const badge = getBadgeProps(u.varusersterminaltype || "");
+              const isPending = u.updateType != null;
               const isChecked = selected.has(u.varusersusername);
               return (
                 <TableRow
                   key={u.varusersusername}
                   className={`group transition-all duration-200 ${
-                    isChecked
-                      ? "bg-blue-50/50 dark:bg-blue-500/5"
-                      : "hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
+                    isPending
+                      ? u.updateType === "UPDATE"
+                        ? "cursor-not-allowed bg-orange-50/60 opacity-60 dark:bg-orange-500/5"
+                        : "cursor-not-allowed bg-blue-50/60 opacity-60 dark:bg-blue-500/5"
+                      : isChecked
+                        ? "bg-blue-50/50 dark:bg-blue-500/5"
+                        : "hover:bg-gray-50/80 dark:hover:bg-white/[0.02]"
                   }`}
                 >
                   <TableCell className="px-5 py-4 text-center">
                     <div className="flex justify-center">
                       <Checkbox
                         checked={isChecked}
-                        onChange={() => onToggleOne(u.varusersusername)}
+                        onChange={() => !isPending && onToggleOne(u.varusersusername)}
+                        disabled={isPending}
                       />
                     </div>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-bold text-gray-800 dark:text-white/90">
                     {u.varusersusername}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <StatusBadge updateType={u.updateType} />
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {u.description}

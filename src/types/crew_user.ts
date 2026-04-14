@@ -11,4 +11,5 @@ export type CrewUser = {
   duty?: string;
   updatedAt?: string;
   // varusersislogin?: boolean;
+  updateType?: "UPDATE" | "CREATE" | null;
 };

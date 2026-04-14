@@ -34,25 +34,29 @@ export default function CrewComponentCard() {
     setFetchError(null);
     try {
       const result = await getCrewData(imo);
-      const rawList = Array.isArray(result) ? result : Array.isArray((result as any).data) ? (result as any).data : [];
-      const processedData: CrewUser[] = rawList
-        .map((u: any) => ({
+      const rawList: any[] = Array.isArray(result) ? result : Array.isArray((result as any).data) ? (result as any).data : [];
+      const mapped: (CrewUser | null)[] = rawList.map((row: any) => {
+        const u = row.updateType === "CREATE" ? row.next : row.current;
+        if (!u) return null;
+        return {
           varusersusername:                u.userName,
           varuserspassword:                u.password,
           description:                     u.description || "-",
-          varusersterminaltype:            u.terminalType || "Auto",
+          varusersterminaltype:            u.terminalType || "",
           varusershalftimeperiod:          u.halfTimePeriod || "",
           varusersmaxtotaloctets:          u.maxTotalOctets,
           varusersmaxtotaloctetstimerange: u.maxTotalOctetsTimeRange,
           currentOctetUsage:               u.currentOctetUsage,
-        }))
-        .sort((a: CrewUser, b: CrewUser) => {
-          const aIsSpecial = a.varusersusername.startsWith("startlinkuser");
-          const bIsSpecial = b.varusersusername.startsWith("startlinkuser");
-          if (aIsSpecial && !bIsSpecial) return -1;
-          if (!aIsSpecial && bIsSpecial) return 1;
-          return a.varusersusername.localeCompare(b.varusersusername);
-        });
+          updateType:                      (row.updateType ?? null) as CrewUser["updateType"],
+        } satisfies CrewUser;
+      });
+      const processedData: CrewUser[] = (mapped.filter(Boolean) as CrewUser[]).sort((a, b) => {
+        const aIsSpecial = a.varusersusername.startsWith("startlinkuser");
+        const bIsSpecial = b.varusersusername.startsWith("startlinkuser");
+        if (aIsSpecial && !bIsSpecial) return -1;
+        if (!aIsSpecial && bIsSpecial) return 1;
+        return a.varusersusername.localeCompare(b.varusersusername);
+      });
       setCrew(processedData);
     } catch (error) {
       console.error("Crew Fetch Error:", error);
@@ -68,7 +72,7 @@ export default function CrewComponentCard() {
     setSelected(new Set());
   }, [imo]);
 
-  const allIds = useMemo(() => crew.map((u) => u.varusersusername), [crew]);
+  const allIds = useMemo(() => crew.filter((u) => u.updateType == null).map((u) => u.varusersusername), [crew]);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
   const noneSelected = selected.size === 0;
 

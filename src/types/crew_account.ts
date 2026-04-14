@@ -9,9 +9,15 @@ export interface CrewData {
   description: string | null
 }
 
-export interface CrewResponse {
-  data: CrewData[]
+export type CrewUpdateType = "UPDATE" | "CREATE" | null;
+
+export interface CrewRow {
+  current: CrewData | null;
+  next: CrewData | null;
+  updateType: CrewUpdateType;
 }
+
+export type CrewResponse = CrewRow[];
 
 export interface AddCrewRequest {
   userId: string
