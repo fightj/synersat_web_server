@@ -35,6 +35,12 @@ export async function getVessels(): Promise<Vessel[]> {
         antennaServiceName: v.status?.antennaServiceName,
         antennaServiceDisplayName: v.status?.antennaServiceDisplayName,
         antennaServiceColor: v.status?.antennaServiceColor,
+        satId: v.status?.satId,
+        satSignal: v.status?.satSignal,
+        satType: v.status?.satType,
+        antennaStatus: v.status?.antennaStatus,
+        transmitEnabled: v.status?.transmitEnabled,
+        discard: v.status?.discard,
       },
     }));
   } catch (error) {

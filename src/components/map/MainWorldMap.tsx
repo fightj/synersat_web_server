@@ -93,6 +93,14 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     };
   }, [vessels]);
 
+  // GPS 있는 + offline + discard≠true 카운트 (지도에 빨간 마커로 표시되는 선박)
+  const offlineNoGpsDiscardFalseCount = useMemo(() => {
+    return (vessels ?? []).filter(
+      (v) => v.connected === false && v.discard !== true &&
+        v.latitude !== null && v.longitude !== null,
+    ).length;
+  }, [vessels]);
+
   const noGpsVessels = useMemo(() => {
     const seen = new Set<number>();
     return (vessels ?? []).filter((v) => {
@@ -165,7 +173,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     if (!newImo || !mapReady || !mapInstanceRef.current) return;
 
     const found = vesselsRef.current?.find(
-      (v) => v.imo === newImo && v.latitude !== null && v.longitude !== null,
+      (v) =>
+        v.imo === newImo &&
+        v.latitude !== null &&
+        v.longitude !== null &&
+        !(v.connected === false && v.discard === true),
     );
     if (found) {
       const lat = found.latitude!;
@@ -411,7 +423,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         activeStyle={activeStyle}
         onStyleChange={handleStyleChange}
         noGpsCount={noGpsVessels.length}
-        offlineCount={offlineVessels.length}
+        offlineCount={offlineVessels.filter((v) => v.discard !== true).length}
+        offlineNoGpsDiscardFalseCount={offlineNoGpsDiscardFalseCount}
         activeListPanel={activeListPanel}
         isRefreshing={isRefreshing}
         onListPanelToggle={handleListPanelToggle}

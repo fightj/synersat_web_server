@@ -44,6 +44,7 @@ interface MapBottomBarProps {
   onStyleChange: (id: string) => void;
   noGpsCount: number;
   offlineCount: number;
+  offlineNoGpsDiscardFalseCount?: number;
   activeListPanel: "online" | "offline" | null;
   onListPanelToggle: (mode: "online" | "offline") => void;
   isRefreshing?: boolean;
@@ -59,6 +60,7 @@ export default function MapBottomBar({
   onStyleChange,
   noGpsCount,
   offlineCount,
+  offlineNoGpsDiscardFalseCount = 0,
   activeListPanel,
   onListPanelToggle,
   isRefreshing = false,
@@ -181,6 +183,16 @@ export default function MapBottomBar({
           >
             <AnimatedNumber value={offlineCount} />
           </span>
+          {offlineNoGpsDiscardFalseCount > 0 && (
+            <span className="flex items-center gap-0.5 rounded bg-red-500/20 px-1 py-0.5 text-[10px] font-bold text-red-300">
+              <svg width="10" height="10" viewBox="0 -5 16 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 -4C9 -2 14 1.5 14 5.5V21C14 22.65 12.65 24 11 24H5C3.35 24 2 22.65 2 21V5.5C2 1.5 7 -2 8 -4Z" fill="#ef444440" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"/>
+                <rect x="4" y="5.5" width="8" height="4" rx="1" fill="#ef4444"/>
+                <rect x="4" y="11.5" width="8" height="4" rx="1" fill="#ef4444"/>
+              </svg>
+              {offlineNoGpsDiscardFalseCount}
+            </span>
+          )}
         </button>
       </div>
     </div>

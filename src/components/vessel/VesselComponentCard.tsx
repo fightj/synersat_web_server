@@ -17,6 +17,8 @@ const STAT_CATEGORIES = [
   { key: "oneweb",    label: "OneWeb",    color: "#fcd34d" },
   { key: "fourgee",   label: "4G",    color: "#d97706" },
   { key: "iridium",   label: "Iridium",   color: "#f59e0b" },
+  { key: "na",        label: "N/A",       color: "#94a3b8" },
+  { key: "inactive",  label: "Inactive",  color: "#f97316" },
   { key: "offline",   label: "Offline",   color: "#ef4444" },
 ] as const;
 
@@ -29,7 +31,7 @@ export default function VesselComponentCard() {
   const stats = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
       v.status?.available
-        ? (v.status?.antennaServiceDisplayName ?? v.status?.antennaServiceName)?.toLowerCase() ?? ""
+        ? (v.status?.antennaServiceDisplayName)?.toLowerCase() ?? ""
         : "";
     return {
       total:     vessels.length,
@@ -40,7 +42,9 @@ export default function VesselComponentCard() {
       oneweb:    vessels.filter((v) => name(v).includes("oneweb")).length,
       fourgee:   vessels.filter((v) => name(v).includes("4g") || name(v).includes("lte")).length,
       iridium:   vessels.filter((v) => name(v).includes("iridium")).length,
-      offline:   vessels.filter((v) => !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName)).length,
+      na:        vessels.filter((v) => v.status?.available === true && !v.status?.antennaServiceDisplayName).length,
+      inactive:  vessels.filter((v) => !v.status?.available && v.status?.discard === true).length,
+      offline:   vessels.filter((v) => !v.status?.available && v.status?.discard !== true).length,
     };
   }, [vessels]);
 

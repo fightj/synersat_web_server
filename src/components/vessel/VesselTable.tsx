@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
-type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb" | "fourgee" | "iridium" | "offline";
+type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb" | "fourgee" | "iridium" | "offline" | "inactive" | "na";
 
 interface VesselTableProps {
   searchTerm?: string;
@@ -80,9 +80,19 @@ const VesselRow = memo(
       }, [vessel.id, onToggleExpand]);
 
       const available = vessel.status?.available;
-      const statusName = available
-        ? (vessel.status?.antennaServiceDisplayName ?? vessel.status?.antennaServiceName ?? null)
-        : null;
+      const discard = vessel.status?.discard;
+      const displayName = vessel.status?.antennaServiceDisplayName ?? null;
+      const isInactive = !available && discard === true;
+      const isOffline = !available && !isInactive;
+      const isNA = available === true && !displayName;
+      const badgeLabel = isInactive ? "Inactive" : isOffline ? "Offline" : isNA ? "N/A" : (displayName ?? null);
+      const badgeClass = isInactive
+        ? "bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20"
+        : isOffline
+        ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+        : isNA
+        ? "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
+        : getServiceBadgeStyles(displayName);
 
       return (
         <tbody ref={ref} {...tbodyProps}>
@@ -103,11 +113,11 @@ const VesselRow = memo(
               {vessel.name || "-"}
             </td>
             <td className="px-3 py-4 text-start">
-              <span
-                className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase ${getServiceBadgeStyles(statusName)}`}
-              >
-                {statusName || "N/A"}
-              </span>
+              {badgeLabel && (
+                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase ${badgeClass}`}>
+                  {badgeLabel}
+                </span>
+              )}
             </td>
             <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
               {vessel.id}
@@ -222,7 +232,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
   const displayVessels = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
       v.status?.available
-        ? (v.status?.antennaServiceDisplayName ?? v.status?.antennaServiceName)?.toLowerCase() ?? ""
+        ? (v.status?.antennaServiceDisplayName)?.toLowerCase() ?? ""
         : "";
 
     const filtered = vessels.filter((v) => {
@@ -236,8 +246,12 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         case "oneweb":    return name(v).includes("oneweb");
         case "fourgee":   return name(v).includes("4g") || name(v).includes("lte");
         case "iridium":   return name(v).includes("iridium");
+        case "na":
+          return v.status?.available === true && !v.status?.antennaServiceDisplayName;
+        case "inactive":
+          return !v.status?.available && v.status?.discard === true;
         case "offline":
-          return !v.status?.available || (!v.status?.antennaServiceDisplayName && !v.status?.antennaServiceName);
+          return !v.status?.available && v.status?.discard !== true;
         default:          return true;
       }
     });

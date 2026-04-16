@@ -225,11 +225,24 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 {data.name}
               </h3>
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${getServiceBadgeStyles(data.status?.available ? (data.status?.antennaServiceDisplayName ?? data.status?.antennaServiceName) : null)}`}
-            >
-              {data.status?.available ? (data.status?.antennaServiceDisplayName ??  "N/A") : "N/A"}
-            </span>
+            {(() => {
+              const available = data.status?.available;
+              const discard = data.status?.discard;
+              const displayName = data.status?.antennaServiceDisplayName ?? null;
+              const isInactive = !available && discard === true;
+              const isOffline = !available && !isInactive;
+              const badgeLabel = isInactive ? "Inactive" : isOffline ? "Offline" : (displayName ?? "N/A");
+              const badgeClass = isInactive
+                ? "bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20"
+                : isOffline
+                ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+                : getServiceBadgeStyles(displayName);
+              return (
+                <span className={`rounded-full px-3 py-1 text-[12px] font-black tracking-wider uppercase ${badgeClass}`}>
+                  {badgeLabel}
+                </span>
+              );
+            })()}
           </div>
 
           {/* 오른쪽: 탭 스위치 + 상세정보 토글 */}

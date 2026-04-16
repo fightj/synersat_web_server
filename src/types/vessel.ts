@@ -5,6 +5,12 @@ export interface VesselStatus {
   antennaServiceName: string | null;
   antennaServiceDisplayName: string | null;
   antennaServiceColor: string | null;
+  satId?: number | null;
+  satSignal?: number | null;
+  satType?: string | null;
+  antennaStatus?: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
+  transmitEnabled?: boolean | null;
+  discard?: boolean | null;
 }
 
 export interface Vessel {
@@ -67,6 +73,12 @@ export interface VesselDetail {
     antennaServiceName: string;
     antennaServiceDisplayName: string;
     antennaServiceColor: string;
+    satId?: number | null;
+    satSignal?: number | null;
+    satType?: string | null;
+    antennaStatus?: string | null;
+    transmitEnabled?: boolean | null;
+    discard?: boolean | null;
   };
 }
 // 단일 데이터 사용량 타입
@@ -128,6 +140,7 @@ export interface DashboardVesselPosition {
   antennaColor: string | null;
   satType: string | null;
   connected: boolean;
+  discard?: boolean | null;
 }
 
 export interface DashboardVesselsResponse {

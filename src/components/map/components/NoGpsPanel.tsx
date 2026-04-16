@@ -12,12 +12,26 @@ interface NoGpsPanelProps {
 
 export default function NoGpsPanel({ mode, vessels, onClose, onViewDetail }: NoGpsPanelProps) {
   const [search, setSearch] = useState("");
+  const [discardTab, setDiscardTab] = useState<"active" | "inactive">("active");
 
-  const filtered = search.trim()
-    ? vessels.filter((v) =>
+  // offline 모드일 때만 discard 기준으로 분리
+  const displayVessels = (() => {
+    let list = vessels;
+    if (mode === "offline") {
+      list = vessels.filter((v) =>
+        discardTab === "active" ? v.discard !== true : v.discard === true,
+      );
+    }
+    if (search.trim()) {
+      list = list.filter((v) =>
         v.vesselName.toLowerCase().includes(search.trim().toLowerCase()),
-      )
-    : vessels;
+      );
+    }
+    return list;
+  })();
+
+  const activeCount = mode === "offline" ? vessels.filter((v) => v.discard !== true).length : 0;
+  const inactiveCount = mode === "offline" ? vessels.filter((v) => v.discard === true).length : 0;
 
   return (
     <div className="absolute right-14 bottom-[calc(10vh+8px)] z-1000 flex w-68 max-h-96 flex-col overflow-hidden rounded-xl border border-white/10 bg-gray-900/70 shadow-2xl backdrop-blur-md">
@@ -26,7 +40,7 @@ export default function NoGpsPanel({ mode, vessels, onClose, onViewDetail }: NoG
         <span className="flex items-baseline gap-1 font-bold text-white">
           <span className="text-xs">{mode === "online" ? "Online" : "Offline"}</span>
           <span className="text-[10px] font-semibold text-gray-400">· No GPS</span>
-          <span className="text-[11px] font-normal text-orange-400">({filtered.length})</span>
+          <span className="text-[11px] font-normal text-orange-400">({displayVessels.length})</span>
         </span>
         <button
           onClick={onClose}
@@ -37,6 +51,38 @@ export default function NoGpsPanel({ mode, vessels, onClose, onViewDetail }: NoG
           </svg>
         </button>
       </div>
+
+      {/* offline 모드 전용: Offline / Inactive 스위치 */}
+      {mode === "offline" && (
+        <div className="flex gap-0.5 border-b border-white/10 p-1.5">
+          <button
+            onClick={() => setDiscardTab("active")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold transition-all ${
+              discardTab === "active"
+                ? "bg-white/10"
+                : "hover:bg-white/5"
+            }`}
+          >
+            <span className={discardTab === "active" ? "text-red-400" : "text-red-400/50"}>Offline</span>
+            <span className={`rounded px-1 py-0.5 text-[9px] font-bold tabular-nums ${discardTab === "active" ? "bg-white/15 text-gray-200" : "bg-white/5 text-gray-500"}`}>
+              {activeCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setDiscardTab("inactive")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold transition-all ${
+              discardTab === "inactive"
+                ? "bg-white/10"
+                : "hover:bg-white/5"
+            }`}
+          >
+            <span className={discardTab === "inactive" ? "text-orange-400" : "text-orange-400/50"}>Inactive</span>
+            <span className={`rounded px-1 py-0.5 text-[9px] font-bold tabular-nums ${discardTab === "inactive" ? "bg-white/15 text-gray-200" : "bg-white/5 text-gray-500"}`}>
+              {inactiveCount}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* 검색바 */}
       <div className="border-b border-white/10 px-3 py-2">
@@ -63,12 +109,12 @@ export default function NoGpsPanel({ mode, vessels, onClose, onViewDetail }: NoG
 
       {/* 목록 */}
       <ul className="custom-scrollbar flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {displayVessels.length === 0 ? (
           <li className="flex items-center justify-center py-8 text-xs text-gray-500">
             No vessels found
           </li>
         ) : (
-          filtered.map((v) => (
+          displayVessels.map((v) => (
             <li
               key={v.imo}
               className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2 hover:bg-white/5"

@@ -73,6 +73,7 @@ export function useVesselMarkers({
     const seenImos = new Set<number>();
     const points = vessels
       .filter((v) => v.latitude !== null && v.longitude !== null)
+      .filter((v) => !(v.connected === false && v.discard === true))
       .filter((v) => { if (seenImos.has(v.imo)) return false; seenImos.add(v.imo); return true; })
       .filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, activeFilter))
       .map((v) => ({
@@ -123,6 +124,9 @@ export function useVesselMarkers({
       const statusText = vessel.connected
         ? `<span style="color:#22c55e;font-weight:700;">Online</span>`
         : `<span style="color:#ef4444;font-weight:700;">Offline</span>`;
+      const antennaLabel = vessel.connected
+        ? (vessel.antennaDisplayName ?? "N/A")
+        : null;
 
       marker.bindTooltip(
         `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-width:175px;padding:0;border-radius:10px;overflow:hidden;">
@@ -131,7 +135,7 @@ export function useVesselMarkers({
           </div>
           <div style="padding:9px 12px;background:#1e293b;display:flex;flex-direction:column;gap:5px;">
             <div style="display:flex;align-items:center;font-size:12px;">${statusDot}${statusText}</div>
-            ${vessel.antennaDisplayName ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:#e2e8f0;font-weight:600;">${vessel.antennaDisplayName}</span></div>` : ""}
+            ${antennaLabel !== null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Antenna</span><span style="color:${antennaLabel === "N/A" ? "#64748b" : "#e2e8f0"};font-weight:600;">${antennaLabel}</span></div>` : ""}
             ${vessel.satType ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">SAT Type</span><span style="color:#e2e8f0;font-weight:600;">${vessel.satType}</span></div>` : ""}
             ${vessel.vesselSpeed != null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Speed</span><span style="color:#e2e8f0;font-weight:600;">${vessel.vesselSpeed} kn</span></div>` : ""}
             <div style="font-size:11px;margin-top:2px;color:#cbd5e1;">${vessel.lat}°N, ${vessel.lng}°E</div>
