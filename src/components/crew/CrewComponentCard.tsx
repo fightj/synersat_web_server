@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
+import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
 import type { CrewEntry } from "@/types/crew_account";
 import { getCrewData } from "@/api/crew-account";
 import CrewToolbar from "./CrewToolbar";
@@ -15,9 +17,54 @@ import TopUpModal from "./TopUpModal";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
+function RefreshBanner({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [visible, onClose]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed top-6 left-1/2 z-9999 -translate-x-1/2">
+      <div className="flex w-[360px] items-start gap-4 rounded-2xl border border-blue-200 bg-white px-5 py-4 shadow-xl dark:border-blue-500/30 dark:bg-gray-900">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/15">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 12a8 8 0 0 1 8-8V2l4 3-4 3V6a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div className="flex-1 pt-0.5">
+          <p className="text-sm font-bold text-gray-800 dark:text-white">Data Updated</p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Crew account data has been refreshed automatically.
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-0.5 shrink-0 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function CrewComponentCard() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ?? null;
+  const pathname = usePathname();
+  const lastEvent = useCommandEventStore((s) => s.lastEvent);
+  const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent);
 
   const [crew, setCrew] = useState<CrewEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,50 +79,77 @@ export default function CrewComponentCard() {
   const [checkPwOpen, setCheckPwOpen] = useState(false);
   const [checkPwEntries, setCheckPwEntries] = useState<{ username: string; password: string | undefined }[]>([]);
   const [topUpTarget, setTopUpTarget] = useState<CrewEntry | null>(null);
+  const [refreshBanner, setRefreshBanner] = useState(false);
 
-  const fetchCrewData = async () => {
+  const processRaw = useCallback((result: any): CrewEntry[] => {
+    const rawList: any[] = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
+    const mapped: (CrewEntry | null)[] = rawList.map((row: any) => {
+      const u = row.updateType === "CREATE" ? row.next : row.current;
+      if (!u) return null;
+      return {
+        userId:                  u.userName,
+        password:                u.password ?? "",
+        description:             u.description ?? null,
+        terminalType:            u.terminalType ?? null,
+        halfTimePeriod:          u.halfTimePeriod ?? null,
+        maxTotalOctets:          u.maxTotalOctets,
+        maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange,
+        currentOctetUsage:       u.currentOctetUsage,
+        updateType:              row.updateType ?? null,
+      };
+    });
+    return (mapped.filter(Boolean) as CrewEntry[]).sort((a, b) => {
+      const aS = a.userId.startsWith("startlinkuser");
+      const bS = b.userId.startsWith("startlinkuser");
+      if (aS && !bS) return -1;
+      if (!aS && bS) return 1;
+      return a.userId.localeCompare(b.userId);
+    });
+  }, []);
+
+  const fetchCrewData = useCallback(async () => {
     if (!imo) return;
     setIsLoading(true);
     setFetchError(null);
     try {
       const result = await getCrewData(imo);
-      const rawList: any[] = Array.isArray(result) ? result : Array.isArray((result as any).data) ? (result as any).data : [];
-      const mapped: (CrewEntry | null)[] = rawList.map((row: any) => {
-        const u = row.updateType === "CREATE" ? row.next : row.current;
-        if (!u) return null;
-        return {
-          userId:                  u.userName,
-          password:                u.password ?? "",
-          description:             u.description ?? null,
-          terminalType:            u.terminalType ?? null,
-          halfTimePeriod:          u.halfTimePeriod ?? null,
-          maxTotalOctets:          u.maxTotalOctets,
-          maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange,
-          currentOctetUsage:       u.currentOctetUsage,
-          updateType:              row.updateType ?? null,
-        };
-      });
-      const processedData: CrewEntry[] = (mapped.filter(Boolean) as CrewEntry[]).sort((a, b) => {
-        const aIsSpecial = a.userId.startsWith("startlinkuser");
-        const bIsSpecial = b.userId.startsWith("startlinkuser");
-        if (aIsSpecial && !bIsSpecial) return -1;
-        if (!aIsSpecial && bIsSpecial) return 1;
-        return a.userId.localeCompare(b.userId);
-      });
-      setCrew(processedData);
+      setCrew(processRaw(result));
     } catch (error) {
       console.error("Crew Fetch Error:", error);
       setFetchError("The vessel network is unstable. Please try again later.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [imo, processRaw]);
+
+  // 로딩 없이 조용히 데이터 갱신
+  const silentRefetch = useCallback(async () => {
+    if (!imo) return;
+    try {
+      const result = await getCrewData(imo);
+      setCrew(processRaw(result));
+      setRefreshBanner(true);
+    } catch (error) {
+      console.error("Crew Silent Refetch Error:", error);
+    }
+  }, [imo, processRaw]);
 
   useEffect(() => {
     if (imo) fetchCrewData();
     else { setCrew([]); setFetchError(null); }
     setSelected(new Set());
   }, [imo]);
+
+  // SSE 이벤트 감지 → 자동 갱신
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (!CREW_COMMAND_TYPES.includes(lastEvent.commandType)) return;
+    if (Number(lastEvent.imo) !== Number(imo)) return;
+    if (!pathname.startsWith("/crew_account")) return;
+
+    silentRefetch();
+    clearLastEvent();
+  }, [lastEvent, imo, pathname, silentRefetch, clearLastEvent]);
 
   const allIds = useMemo(() => crew.filter((u) => u.updateType == null).map((u) => u.userId), [crew]);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
@@ -134,6 +208,8 @@ export default function CrewComponentCard() {
 
   return (
     <div className="space-y-6">
+      <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
+
       <PageBreadcrumb pageTitle="Manage Crew Account" />
 
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">

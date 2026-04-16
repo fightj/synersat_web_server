@@ -168,12 +168,8 @@ export default function TopUpModal({
 
     try {
       await updateCrewTopUp(imo, username, payload as { maxTotalOctets: string; currentOctetUsage: string });
-      setAlertState({ variant: "success", title: "Applied", message: `Top-up applied to ${username}.` });
-      setTimeout(() => {
-        setAlertState(null);
-        handleClose();
-        onSaved?.();
-      }, 1200);
+      handleClose();
+      onSaved?.();
     } catch {
       setAlertState({ variant: "error", title: "Failed", message: "Could not apply top-up. Please try again." });
     } finally {

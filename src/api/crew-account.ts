@@ -8,7 +8,11 @@ export async function getCrewData(imo: number): Promise<CrewResponse> {
         ...fetchOptions,
         method: "GET",
       }))
-    if (!res.ok) throw new Error("Fail to fetch Crew Data")
+    if (!res.ok) {
+      const body = await res.text().catch(() => "(no body)");
+      console.error("[getCrewData] status:", res.status, "body:", body);
+      throw new Error("Fail to fetch Crew Data");
+    }
     const data = await res.json();
     return data
   }
