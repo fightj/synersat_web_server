@@ -6,6 +6,7 @@ import PortForwardTable from "./PortForwardTable";
 import DeleteConfirmAlert from "./DeleteConfirmAlert";
 import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
 import PortForwardAddModal from "@/components/port-forward/PortForwardAddModal";
+import RefreshBanner from "@/components/common/RefreshBanner";
 import { usePortForward, RuleType } from "./usePortForward";
 
 interface PortForwardPageTemplateProps {
@@ -42,10 +43,13 @@ export default function PortForwardPageTemplate({
     handleEditClick,
     handleDeleteRequest,
     handleDeleteConfirm,
+    refreshBanner,
+    setRefreshBanner,
   } = usePortForward(ruleType);
 
   return (
     <div className="space-y-6">
+      <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
       <PageBreadcrumb pageTitle={pageTitle} />
 
       <DeleteConfirmAlert

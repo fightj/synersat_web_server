@@ -30,7 +30,7 @@ export function usePortForward(ruleType: RuleType) {
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
-  
+  const [refreshBanner, setRefreshBanner] = useState(false);
 
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
@@ -51,6 +51,21 @@ export function usePortForward(ruleType: RuleType) {
     }
   }, [imo]);
 
+  const silentRefetch = useCallback(async () => {
+    if (!imo) return;
+    try {
+      const [natsData, ifaceData] = await Promise.all([
+        getDeviceNats(Number(imo)),
+        getDeviceInterfaces(Number(imo)),
+      ]);
+      setRules(Array.isArray(natsData) ? natsData : []);
+      setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
+      setRefreshBanner(true);
+    } catch (error) {
+      console.error("Silent Refetch Error:", error);
+    }
+  }, [imo]);
+
   useEffect(() => {
     if (imo) fetchAllData();
     else {
@@ -59,23 +74,22 @@ export function usePortForward(ruleType: RuleType) {
     }
   }, [imo, fetchAllData]);
 
-  // SSE 이벤트 감지 -> 자동갱신
+  // SSE 이벤트 감지 -> 자동갱신 (로딩 없이 silent)
   useEffect(() => {
-  if (!lastEvent) return;
-  if (!NAT_COMMAND_TYPES.includes(lastEvent.commandType)) return;
-  if (Number(lastEvent.imo) !== Number(selectedVessel?.imo)) return;
+    if (!lastEvent) return;
+    if (!NAT_COMMAND_TYPES.includes(lastEvent.commandType)) return;
+    if (Number(lastEvent.imo) !== Number(selectedVessel?.imo)) return;
 
-  const isPortForwardPage =
-    pathname.startsWith("/port_forward_system") ||
-    pathname.startsWith("/port_forward_user");
-  if (!isPortForwardPage) return;
+    const isPortForwardPage =
+      pathname.startsWith("/port_forward_system") ||
+      pathname.startsWith("/port_forward_user");
+    if (!isPortForwardPage) return;
 
-  if (isEditModalOpen || isAddModalOpen) return;
+    if (isEditModalOpen || isAddModalOpen) return;
 
-  console.log("[AutoRefresh] NAT 변경 감지 → 자동 갱신");
-  fetchAllData();
-  clearLastEvent();
-}, [lastEvent]);
+    silentRefetch();
+    clearLastEvent();
+  }, [lastEvent, selectedVessel?.imo, pathname, isEditModalOpen, isAddModalOpen, silentRefetch, clearLastEvent]);
 
   // 탭별 필터링된 rules
   const filteredRules = useMemo(() => {
@@ -191,5 +205,7 @@ export function usePortForward(ruleType: RuleType) {
     handleEditClick,
     handleDeleteRequest,
     handleDeleteConfirm,
+    refreshBanner,
+    setRefreshBanner,
   };
 }
