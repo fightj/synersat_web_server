@@ -7,14 +7,13 @@ import Radio from "@/components/form/input/Radio";
 import Label from "@/components/form/Label";
 import { getGateways, updateCrewData } from "@/api/crew-account";
 import Alert from "@/components/ui/alert/Alert";
-import type { CrewUser } from "@/types/crew_user";
-import type { UpdateCrewRequest } from "@/types/crew_account";
+import type { CrewEntry, UpdateCrewRequest } from "@/types/crew_account";
 
 interface ModifyCrewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
-  selectedCrew: CrewUser[];
+  selectedCrew: CrewEntry[];
   imo: number;
 }
 
@@ -48,13 +47,13 @@ const labelClass         = "text-xs font-bold text-gray-700 dark:text-gray-300 m
 const readonlyLabelClass = "text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 block";
 const disabledLabelClass = "text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 block";
 
-function initDraft(u: CrewUser): CrewDraft {
+function initDraft(u: CrewEntry): CrewDraft {
   return {
-    description:             u.description === "-" ? "" : (u.description ?? ""),
-    terminalType:            u.varusersterminaltype === "Auto" ? "" : (u.varusersterminaltype ?? ""),
-    halfTimePeriod:          u.varusershalftimeperiod === "half" ? "half" : "null",
-    maxTotalOctets:          u.varusersmaxtotaloctets ?? "",
-    maxTotalOctetsTimeRange: u.varusersmaxtotaloctetstimerange ?? "MONTHLY",
+    description:             u.description ?? "",
+    terminalType:            u.terminalType ?? "",
+    halfTimePeriod:          u.halfTimePeriod === "half" ? "half" : "null",
+    maxTotalOctets:          u.maxTotalOctets ?? "",
+    maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange ?? "MONTHLY",
     currentOctetUsage:       u.currentOctetUsage ?? "",
   };
 }
@@ -76,9 +75,9 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
   useEffect(() => {
     if (!isOpen || selectedCrew.length === 0) return;
     const initial: Record<string, CrewDraft> = {};
-    selectedCrew.forEach((u) => { initial[u.varusersusername] = initDraft(u); });
+    selectedCrew.forEach((u) => { initial[u.userId] = initDraft(u); });
     setDrafts(initial);
-    setActiveId(selectedCrew[0].varusersusername);
+    setActiveId(selectedCrew[0].userId);
 
     getGateways(imo)
       .then((data) => {
@@ -98,13 +97,13 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
 
     const handleScroll = () => {
       const containerTop = container.getBoundingClientRect().top;
-      let closestId = selectedCrew[0]?.varusersusername ?? "";
+      let closestId = selectedCrew[0]?.userId ?? "";
       let closestDist = Infinity;
       selectedCrew.forEach((u) => {
-        const el = cardRefs.current[u.varusersusername];
+        const el = cardRefs.current[u.userId];
         if (!el) return;
         const dist = Math.abs(el.getBoundingClientRect().top - containerTop);
-        if (dist < closestDist) { closestDist = dist; closestId = u.varusersusername; }
+        if (dist < closestDist) { closestDist = dist; closestId = u.userId; }
       });
       setActiveId(closestId);
     };
@@ -142,8 +141,8 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     setSaving(true);
 
     const payloads = selectedCrew.map((u) => {
-      const draft = drafts[u.varusersusername];
-      if (!draft) return { userId: u.varusersusername, payload: {} };
+      const draft = drafts[u.userId];
+      if (!draft) return { userId: u.userId, payload: {} };
 
       const payload: Partial<UpdateCrewRequest> = {};
       if (draft.description.trim())       payload.description             = draft.description.trim();
@@ -155,7 +154,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
         ? "half"
         : "";
 
-      return { userId: u.varusersusername, payload };
+      return { userId: u.userId, payload };
     });
 
     console.log("[ModifyCrew] payloads:", JSON.stringify(payloads, null, 2));
@@ -230,11 +229,11 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
             </p>
             <div className="flex-1 overflow-y-auto pb-4">
               {selectedCrew.map((u) => {
-                const isActive = activeId === u.varusersusername;
+                const isActive = activeId === u.userId;
                 return (
                   <button
-                    key={u.varusersusername}
-                    onClick={() => scrollToCard(u.varusersusername)}
+                    key={u.userId}
+                    onClick={() => scrollToCard(u.userId)}
                     className={`flex w-full items-center gap-2 px-4 py-2.5 text-left transition-all ${
                       isActive
                         ? "border-r-2 border-blue-500 bg-blue-50 dark:bg-blue-500/10"
@@ -247,7 +246,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                     <span className={`truncate text-sm font-medium transition-colors ${
                       isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
                     }`}>
-                      {u.varusersusername}
+                      {u.userId}
                     </span>
                   </button>
                 );
@@ -258,20 +257,20 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
           {/* Right: scrollable cards */}
           <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-6 py-4 pb-16">
             {selectedCrew.map((u) => {
-              const draft = drafts[u.varusersusername];
+              const draft = drafts[u.userId];
               if (!draft) return null;
               const isMonthly = draft.maxTotalOctetsTimeRange === "MONTHLY";
 
               return (
                 <div
-                  key={u.varusersusername}
-                  id={`crew-card-${u.varusersusername}`}
-                  ref={(el) => { cardRefs.current[u.varusersusername] = el; }}
+                  key={u.userId}
+                  id={`crew-card-${u.userId}`}
+                  ref={(el) => { cardRefs.current[u.userId] = el; }}
                   className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/2"
                 >
                   <div className="mb-4 border-b border-gray-100 pb-3 dark:border-white/5">
                     <span className="text-sm font-black text-gray-900 dark:text-white">
-                      {u.varusersusername}
+                      {u.userId}
                     </span>
                   </div>
 
@@ -282,13 +281,13 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       <Label className={readonlyLabelClass}>
                         User ID
                       </Label>
-                      <input type="text" className={readonlyInputClass} value={u.varusersusername} readOnly disabled />
+                      <input type="text" className={readonlyInputClass} value={u.userId} readOnly disabled />
                     </div>
                     <div>
                       <Label className={readonlyLabelClass}>
                         Password
                       </Label>
-                      <input type="password" className={readonlyInputClass} value={u.varuserspassword ?? ""} readOnly disabled />
+                      <input type="password" className={readonlyInputClass} value={u.password ?? ""} readOnly disabled />
                     </div>
 
                     {/* Row 2: Terminal Type | Usage Limit */}
@@ -296,7 +295,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       <Label className={labelClass}>Terminal Type</Label>
                       <NativeSelectWithIcon
                         value={draft.terminalType}
-                        onChange={(e) => handleChange(u.varusersusername, "terminalType", e.target.value)}
+                        onChange={(e) => handleChange(u.userId, "terminalType", e.target.value)}
                         className={selectClass}
                       >
                         <option value="">Auto</option>
@@ -315,7 +314,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                           placeholder="e.g. 10000"
                           value={draft.maxTotalOctets}
                           onChange={(e) =>
-                            handleChange(u.varusersusername, "maxTotalOctets", e.target.value.replace(/\D/g, ""))
+                            handleChange(u.userId, "maxTotalOctets", e.target.value.replace(/\D/g, ""))
                           }
                         />
                         <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
@@ -327,7 +326,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       <Label className={labelClass}>Time Range</Label>
                       <NativeSelectWithIcon
                         value={draft.maxTotalOctetsTimeRange}
-                        onChange={(e) => handleTimeRangeChange(u.varusersusername, e.target.value)}
+                        onChange={(e) => handleTimeRangeChange(u.userId, e.target.value)}
                         className={selectClass}
                       >
                         {TIME_RANGE_OPTIONS.map((opt) => (
@@ -346,21 +345,21 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                         !isMonthly ? "opacity-40" : ""
                       }`}>
                         <Radio
-                          id={`modify-half-null-${u.varusersusername}`}
-                          name={`modify-half-${u.varusersusername}`}
+                          id={`modify-half-null-${u.userId}`}
+                          name={`modify-half-${u.userId}`}
                           value="null"
                           checked={draft.halfTimePeriod === "null"}
                           label="None"
-                          onChange={(v) => isMonthly && handleChange(u.varusersusername, "halfTimePeriod", v)}
+                          onChange={(v) => isMonthly && handleChange(u.userId, "halfTimePeriod", v)}
                           disabled={!isMonthly}
                         />
                         <Radio
-                          id={`modify-half-half-${u.varusersusername}`}
-                          name={`modify-half-${u.varusersusername}`}
+                          id={`modify-half-half-${u.userId}`}
+                          name={`modify-half-${u.userId}`}
                           value="half"
                           checked={draft.halfTimePeriod === "half"}
                           label="Half"
-                          onChange={(v) => isMonthly && handleChange(u.varusersusername, "halfTimePeriod", v)}
+                          onChange={(v) => isMonthly && handleChange(u.userId, "halfTimePeriod", v)}
                           disabled={!isMonthly}
                         />
                       </div>
@@ -374,7 +373,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                         className={inputClass}
                         placeholder="Optional description"
                         value={draft.description}
-                        onChange={(e) => handleChange(u.varusersusername, "description", e.target.value)}
+                        onChange={(e) => handleChange(u.userId, "description", e.target.value)}
                       />
                     </div>
 
@@ -389,7 +388,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                           placeholder="e.g. 4.50"
                           value={draft.currentOctetUsage}
                           onChange={(e) =>
-                            handleChange(u.varusersusername, "currentOctetUsage", e.target.value.replace(/[^0-9.]/g, ""))
+                            handleChange(u.userId, "currentOctetUsage", e.target.value.replace(/[^0-9.]/g, ""))
                           }
                         />
                         <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>

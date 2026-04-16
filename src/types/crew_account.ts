@@ -19,6 +19,10 @@ export interface CrewRow {
 
 export type CrewResponse = CrewRow[];
 
+export interface CrewEntry extends CrewData {
+  updateType: CrewUpdateType;
+}
+
 export interface AddCrewRequest {
   userId: string
   password?: string | null

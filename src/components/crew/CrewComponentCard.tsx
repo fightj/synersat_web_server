@@ -3,13 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
-import type { CrewUser } from "@/types/crew_user";
+import type { CrewEntry } from "@/types/crew_account";
 import { getCrewData } from "@/api/crew-account";
 import CrewToolbar from "./CrewToolbar";
 import CrewTable from "./CrewTable";
 import SuspensionSetupModal from "./SuspensionSetupModal";
 import AddCrewModal from "./AddCrewModal";
 import ModifyCrewModal from "./ModifyCrewModal";
+import CheckPwModal from "./CheckPwModal";
+import TopUpModal from "./TopUpModal";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
 
@@ -17,16 +19,19 @@ export default function CrewComponentCard() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ?? null;
 
-  const [crew, setCrew] = useState<CrewUser[]>([]);
+  const [crew, setCrew] = useState<CrewEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [suspensionModal, setSuspensionModal] = useState<{ open: boolean; username: string }>({
+  const [suspensionModal, setSuspensionModal] = useState<{ open: boolean; userId: string }>({
     open: false,
-    username: "",
+    userId: "",
   });
   const [addCrewOpen, setAddCrewOpen] = useState(false);
   const [modifyCrewOpen, setModifyCrewOpen] = useState(false);
+  const [checkPwOpen, setCheckPwOpen] = useState(false);
+  const [checkPwEntries, setCheckPwEntries] = useState<{ username: string; password: string | undefined }[]>([]);
+  const [topUpTarget, setTopUpTarget] = useState<CrewEntry | null>(null);
 
   const fetchCrewData = async () => {
     if (!imo) return;
@@ -35,27 +40,27 @@ export default function CrewComponentCard() {
     try {
       const result = await getCrewData(imo);
       const rawList: any[] = Array.isArray(result) ? result : Array.isArray((result as any).data) ? (result as any).data : [];
-      const mapped: (CrewUser | null)[] = rawList.map((row: any) => {
+      const mapped: (CrewEntry | null)[] = rawList.map((row: any) => {
         const u = row.updateType === "CREATE" ? row.next : row.current;
         if (!u) return null;
         return {
-          varusersusername:                u.userName,
-          varuserspassword:                u.password,
-          description:                     u.description || "-",
-          varusersterminaltype:            u.terminalType || "",
-          varusershalftimeperiod:          u.halfTimePeriod || "",
-          varusersmaxtotaloctets:          u.maxTotalOctets,
-          varusersmaxtotaloctetstimerange: u.maxTotalOctetsTimeRange,
-          currentOctetUsage:               u.currentOctetUsage,
-          updateType:                      (row.updateType ?? null) as CrewUser["updateType"],
-        } satisfies CrewUser;
+          userId:                  u.userName,
+          password:                u.password ?? "",
+          description:             u.description ?? null,
+          terminalType:            u.terminalType ?? null,
+          halfTimePeriod:          u.halfTimePeriod ?? null,
+          maxTotalOctets:          u.maxTotalOctets,
+          maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange,
+          currentOctetUsage:       u.currentOctetUsage,
+          updateType:              row.updateType ?? null,
+        };
       });
-      const processedData: CrewUser[] = (mapped.filter(Boolean) as CrewUser[]).sort((a, b) => {
-        const aIsSpecial = a.varusersusername.startsWith("startlinkuser");
-        const bIsSpecial = b.varusersusername.startsWith("startlinkuser");
+      const processedData: CrewEntry[] = (mapped.filter(Boolean) as CrewEntry[]).sort((a, b) => {
+        const aIsSpecial = a.userId.startsWith("startlinkuser");
+        const bIsSpecial = b.userId.startsWith("startlinkuser");
         if (aIsSpecial && !bIsSpecial) return -1;
         if (!aIsSpecial && bIsSpecial) return 1;
-        return a.varusersusername.localeCompare(b.varusersusername);
+        return a.userId.localeCompare(b.userId);
       });
       setCrew(processedData);
     } catch (error) {
@@ -72,7 +77,7 @@ export default function CrewComponentCard() {
     setSelected(new Set());
   }, [imo]);
 
-  const allIds = useMemo(() => crew.filter((u) => u.updateType == null).map((u) => u.varusersusername), [crew]);
+  const allIds = useMemo(() => crew.filter((u) => u.updateType == null).map((u) => u.userId), [crew]);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
   const noneSelected = selected.size === 0;
 
@@ -91,33 +96,29 @@ export default function CrewComponentCard() {
   };
 
   const onAction = async (action: ActionType) => {
-    const selectedUsers = crew.filter((u) => selected.has(u.varusersusername));
+    const selectedUsers = crew.filter((u) => selected.has(u.userId));
     if (action === "CHECK_PW") {
-      const lines =
-        selectedUsers.length === 0
-          ? ["No users selected"]
-          : selectedUsers.map((u) => `${u.varusersusername} → PW: ${u.varuserspassword}`);
-      alert(lines.join("\n"));
+      setCheckPwEntries(selectedUsers.map((u) => ({ username: u.userId, password: u.password })));
+      setCheckPwOpen(true);
       return;
     }
     if (confirm(`${action} action for ${selected.size} users. Are you sure?`)) {
-      console.log(`Executing ${action} for:`, selectedUsers.map((u) => u.varusersusername));
+      console.log(`Executing ${action} for:`, selectedUsers.map((u) => u.userId));
       alert(`${action} has been requested.`);
     }
   };
 
   const handleExportCSV = () => {
     if (crew.length === 0) return;
-    const headers = ["ID", "Description", "Duty", "Type", "Update Period", "Usage Limit (MB)"];
+    const headers = ["ID", "Description", "Type", "Update Period", "Usage Limit (MB)"];
     const rows = crew.map((u) => [
-      u.varusersusername,
-      u.description,
-      u.duty,
-      u.varusersterminaltype,
-      u.varusershalftimeperiod === "half"
-        ? `Half-${u.varusersmaxtotaloctetstimerange}`
-        : u.varusersmaxtotaloctetstimerange,
-      u.varusersmaxtotaloctets,
+      u.userId,
+      u.description ?? "",
+      u.terminalType ?? "",
+      u.halfTimePeriod === "half"
+        ? `Half-${u.maxTotalOctetsTimeRange}`
+        : u.maxTotalOctetsTimeRange,
+      u.maxTotalOctets,
     ]);
     const csvContent = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -155,15 +156,34 @@ export default function CrewComponentCard() {
           allSelected={allSelected}
           onToggleAll={toggleAll}
           onToggleOne={toggleOne}
-          onOpenSuspension={(username) => setSuspensionModal({ open: true, username })}
+          onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
+          onOpenTopUp={(u) => setTopUpTarget(u)}
           onRetry={fetchCrewData}
         />
       </div>
 
+      {imo && topUpTarget && (
+        <TopUpModal
+          isOpen={!!topUpTarget}
+          onClose={() => setTopUpTarget(null)}
+          onSaved={() => { setTopUpTarget(null); fetchCrewData(); }}
+          imo={imo}
+          username={topUpTarget.userId}
+          currentMaxOctets={topUpTarget.maxTotalOctets}
+          currentOctetUsage={topUpTarget.currentOctetUsage}
+        />
+      )}
+
+      <CheckPwModal
+        isOpen={checkPwOpen}
+        onClose={() => setCheckPwOpen(false)}
+        entries={checkPwEntries}
+      />
+
       <SuspensionSetupModal
         isOpen={suspensionModal.open}
-        onClose={() => setSuspensionModal({ open: false, username: "" })}
-        username={suspensionModal.username}
+        onClose={() => setSuspensionModal({ open: false, userId: "" })}
+        username={suspensionModal.userId}
       />
 
       {imo && (
@@ -171,7 +191,7 @@ export default function CrewComponentCard() {
           isOpen={modifyCrewOpen}
           onClose={() => setModifyCrewOpen(false)}
           onSaved={() => { setModifyCrewOpen(false); fetchCrewData(); }}
-          selectedCrew={crew.filter((u) => selected.has(u.varusersusername))}
+          selectedCrew={crew.filter((u) => selected.has(u.userId))}
           imo={imo}
         />
       )}
