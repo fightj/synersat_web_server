@@ -273,29 +273,70 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
     toRender.forEach((gx) => {
       LNG_OFFSETS.forEach((offset) => {
-        // 폴리곤
         const shifted = gx.points.map(
           ([lat, lng]) => [lat, lng + offset] as [number, number],
         );
-        const polygon = L.polygon(shifted, {
-          color: gx.color,
-          weight: 1.5,
-          opacity: 0.8,
-          fillColor: gx.color,
-          fillOpacity: 0.08,
-          dashArray: "6 4",
-        }).addTo(map);
-        gxLayersRef.current.push(polygon);
 
-        // 위성 아이콘 마커
+        if (gx.hideBoundaryMeridians) {
+          // fill만 있는 polygon (선 없음)
+          const fill = L.polygon(shifted, {
+            stroke: false,
+            fillColor: gx.color,
+            fillOpacity: gx.fillOpacity ?? 0.08,
+          }).addTo(map);
+          gxLayersRef.current.push(fill);
+
+          // lng=0+offset 또는 lng=360+offset 경계 선분을 건너뛰고
+          // 나머지 연속 선분을 묶어서 polyline으로 렌더링
+          const m0 = 0 + offset;
+          const m360 = 360 + offset;
+          const isBoundaryEdge = (p1: [number, number], p2: [number, number]) => {
+            const on = (lng: number) => Math.abs(lng - m0) < 0.01 || Math.abs(lng - m360) < 0.01;
+            return on(p1[1]) && on(p2[1]);
+          };
+
+          let seg: [number, number][] = [];
+          for (let i = 0; i < shifted.length - 1; i++) {
+            if (isBoundaryEdge(shifted[i], shifted[i + 1])) {
+              if (seg.length > 1) {
+                gxLayersRef.current.push(
+                  L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }).addTo(map),
+                );
+              }
+              seg = [];
+            } else {
+              if (seg.length === 0) seg.push(shifted[i]);
+              seg.push(shifted[i + 1]);
+            }
+          }
+          if (seg.length > 1) {
+            gxLayersRef.current.push(
+              L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }).addTo(map),
+            );
+          }
+        } else {
+          const polygon = L.polygon(shifted, {
+            color: gx.color,
+            weight: 1.5,
+            opacity: 0.8,
+            fillColor: gx.color,
+            fillOpacity: gx.fillOpacity ?? 0.08,
+            dashArray: "6 4",
+          }).addTo(map);
+          gxLayersRef.current.push(polygon);
+        }
+      });
+
+      // OneWeb은 아이콘 마커 생략
+      if (gx.key !== "oneweb") {
         const [cLat, cLng] = gx.center;
-        const marker = L.marker([cLat, cLng + offset], {
+        const marker = L.marker([cLat, cLng], {
           icon: makeSatelliteIcon(gx.label),
           interactive: false,
           zIndexOffset: 500,
         }).addTo(map);
         gxLayersRef.current.push(marker);
-      });
+      }
     });
 
     return () => {
@@ -392,7 +433,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
               <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
               <path d="M2 12h20" />
             </svg>
-            <span className="text-xs font-bold">GX-Coverage</span>
+            <span className="text-xs font-bold">Coverage</span>
             {showCoverage && (
               <span className="rounded bg-orange-400 px-1 py-0.5 text-[10px] font-bold text-white uppercase">
                 {activeGx === "all" ? "All" : activeGx.toUpperCase()}
