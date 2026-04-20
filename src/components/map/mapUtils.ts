@@ -5,25 +5,27 @@ export const MAP_STYLES: {
   preview: string;
   /** tile pane에 적용할 CSS filter (없으면 ''). OSM 타일을 다크로 변환할 때 사용 */
   tileFilter?: string;
+  /** 베이스 타일 위에 덧씌울 영문 지명 레이어 URL */
+  overlayUrl?: string;
 }[] = [
   {
     id: "default",
     label: "Default",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
     preview: "https://a.tile.openstreetmap.org/2/2/1.png",
+    overlayUrl: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
   },
   {
     id: "dark",
     label: "Dark",
-    // OSM 타일 + CSS invert → 배경·해안선 모두 유지하면서 다크 렌더링
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
     preview: "https://a.tile.openstreetmap.org/2/2/1.png",
     tileFilter: "invert(100%) hue-rotate(180deg) brightness(0.9) contrast(1.1)",
+    overlayUrl: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
   },
   {
     id: "light",
     label: "Light",
-    // OSM HOT 스타일: 더 밝고 대비가 강한 라이트 테마
     url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
     preview: "https://a.tile.openstreetmap.fr/hot/2/2/1.png",
   },

@@ -9,6 +9,7 @@ export function useLeafletMap(
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
+  const overlayLayerRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
   const resizeHandlerRef = useRef<(() => void) | null>(null);
 
@@ -52,6 +53,14 @@ export function useLeafletMap(
         keepBuffer: 4,
         subdomains: initialStyle.url.includes("{s}") ? "abc" : "",
       }).addTo(map);
+
+      if (initialStyle.overlayUrl) {
+        overlayLayerRef.current = L.tileLayer(initialStyle.overlayUrl, {
+          noWrap: false,
+          subdomains: "abcd",
+          zIndex: 10,
+        }).addTo(map);
+      }
 
       if (initialStyle.tileFilter) {
         const tilePane = map.getPane("tilePane") as HTMLElement | undefined;
@@ -119,13 +128,28 @@ export function useLeafletMap(
     if (!style || !mapInstanceRef.current || !tileLayerRef.current) return;
     const L = await import("leaflet");
     const map = mapInstanceRef.current;
+
     map.removeLayer(tileLayerRef.current);
+    if (overlayLayerRef.current) {
+      map.removeLayer(overlayLayerRef.current);
+      overlayLayerRef.current = null;
+    }
+
     tileLayerRef.current = L.tileLayer(style.url, {
       noWrap: false,
       keepBuffer: 4,
       subdomains: style.url.includes("{s}") ? "abc" : "",
     }).addTo(map);
     tileLayerRef.current.bringToBack();
+
+    if (style.overlayUrl) {
+      overlayLayerRef.current = L.tileLayer(style.overlayUrl, {
+        noWrap: false,
+        subdomains: "abcd",
+        zIndex: 10,
+      }).addTo(map);
+    }
+
     applyTileFilter(map, style.tileFilter ?? "");
     map.invalidateSize();
     setActiveStyle(styleId);
