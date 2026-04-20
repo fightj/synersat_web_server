@@ -89,7 +89,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       "4g":      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "4g")).length,
       iridium:   gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "iridium")).length,
       none:      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "none")).length,
-      offline:   gps.filter((v) => v.connected === false).length,
+      offline: (() => {
+        const seen = new Set<number>();
+        return gps.filter((v) => {
+          if (v.connected !== false || v.discard === true) return false;
+          if (seen.has(v.imo)) return false;
+          seen.add(v.imo);
+          return true;
+        }).length;
+      })(),
     };
   }, [vessels]);
 

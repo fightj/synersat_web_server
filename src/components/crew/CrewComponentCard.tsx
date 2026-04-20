@@ -66,7 +66,7 @@ export default function CrewComponentCard() {
     });
   }, []);
 
-  const fetchCrewData = useCallback(async () => {
+  const fetchCrewData = useCallback(async (preserveOnError = false) => {
     if (!imo) return;
     setIsLoading(true);
     setFetchError(null);
@@ -75,7 +75,9 @@ export default function CrewComponentCard() {
       setCrew(processRaw(result));
     } catch (error) {
       console.error("Crew Fetch Error:", error);
-      setFetchError("The vessel network is unstable. Please try again later.");
+      if (!preserveOnError) {
+        setFetchError("The vessel network is unstable. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -143,7 +145,7 @@ export default function CrewComponentCard() {
 
   const handleExportCSV = () => {
     if (crew.length === 0) return;
-    const headers = ["ID", "Description", "Type", "Update Period", "Usage Limit (MB)"];
+    const headers = ["ID", "Description", "Type", "Update Period", "Usage (MB)"];
     const rows = crew.map((u) => [
       u.userId,
       u.description ?? "",
@@ -151,7 +153,7 @@ export default function CrewComponentCard() {
       u.halfTimePeriod === "half"
         ? `Half-${u.maxTotalOctetsTimeRange}`
         : u.maxTotalOctetsTimeRange,
-      u.maxTotalOctets,
+      `${u.currentOctetUsage ?? "0"} / ${u.maxTotalOctets ?? "0"}`,
     ]);
     const csvContent = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -201,7 +203,7 @@ export default function CrewComponentCard() {
         <TopUpModal
           isOpen={!!topUpTarget}
           onClose={() => setTopUpTarget(null)}
-          onSaved={() => { setTopUpTarget(null); fetchCrewData(); }}
+          onSaved={() => { setTopUpTarget(null); fetchCrewData(true); }}
           imo={imo}
           username={topUpTarget.userId}
           currentMaxOctets={topUpTarget.maxTotalOctets}
@@ -225,7 +227,7 @@ export default function CrewComponentCard() {
         <ModifyCrewModal
           isOpen={modifyCrewOpen}
           onClose={() => setModifyCrewOpen(false)}
-          onSaved={() => { setModifyCrewOpen(false); fetchCrewData(); }}
+          onSaved={() => { setModifyCrewOpen(false); fetchCrewData(true); }}
           selectedCrew={crew.filter((u) => selected.has(u.userId))}
           imo={imo}
         />
@@ -235,7 +237,7 @@ export default function CrewComponentCard() {
         <AddCrewModal
           isOpen={addCrewOpen}
           onClose={() => setAddCrewOpen(false)}
-          onSaved={() => { setAddCrewOpen(false); fetchCrewData(); }}
+          onSaved={() => { setAddCrewOpen(false); fetchCrewData(true); }}
           imo={imo}
         />
       )}

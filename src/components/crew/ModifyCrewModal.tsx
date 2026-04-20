@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 import Radio from "@/components/form/input/Radio";
@@ -26,6 +26,8 @@ interface CrewDraft {
   currentOctetUsage: string;
 }
 
+type RowResult = "success" | "error" | "retrying";
+
 const TIME_RANGE_OPTIONS = [
   { value: "MONTHLY", label: "Monthly" },
   { value: "WEEKLY",  label: "Weekly" },
@@ -35,7 +37,6 @@ const TIME_RANGE_OPTIONS = [
 
 const selectClass =
   "h-10 w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 pr-8 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white";
-
 
 const inputClass =
   "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -58,11 +59,25 @@ function initDraft(u: CrewEntry): CrewDraft {
   };
 }
 
+function buildPayload(draft: CrewDraft): UpdateCrewRequest {
+  const payload: Partial<UpdateCrewRequest> = {};
+  if (draft.description.trim())       payload.description             = draft.description.trim();
+  payload.terminalType = draft.terminalType.trim();
+  if (draft.maxTotalOctets.trim())    payload.maxTotalOctets          = draft.maxTotalOctets.trim();
+  if (draft.maxTotalOctetsTimeRange)  payload.maxTotalOctetsTimeRange = draft.maxTotalOctetsTimeRange as UpdateCrewRequest["maxTotalOctetsTimeRange"];
+  if (draft.currentOctetUsage.trim()) payload.currentOctetUsage       = draft.currentOctetUsage.trim();
+  payload.halfTimePeriod = (draft.maxTotalOctetsTimeRange === "MONTHLY" && draft.halfTimePeriod === "half")
+    ? "half"
+    : "";
+  return payload as UpdateCrewRequest;
+}
+
 export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew, imo }: ModifyCrewModalProps) {
   const [drafts, setDrafts]       = useState<Record<string, CrewDraft>>({});
   const [activeId, setActiveId]   = useState<string>("");
   const [gateways, setGateways]   = useState<string[]>([]);
   const [saving, setSaving]       = useState(false);
+  const [resultMap, setResultMap] = useState<Record<string, RowResult>>({});
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
@@ -76,8 +91,12 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     if (!isOpen || selectedCrew.length === 0) return;
     const initial: Record<string, CrewDraft> = {};
     selectedCrew.forEach((u) => { initial[u.userId] = initDraft(u); });
+    /* eslint-disable react-hooks/set-state-in-effect */
     setDrafts(initial);
     setActiveId(selectedCrew[0].userId);
+    setResultMap({});
+    setAlertState(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     getGateways(imo)
       .then((data) => {
@@ -116,7 +135,6 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
 
-  // Time Range 변경 시 MONTHLY 아니면 halfTimePeriod 강제 null
   const handleTimeRangeChange = (id: string, value: string) => {
     setDrafts((prev) => ({
       ...prev,
@@ -137,64 +155,70 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     container.scrollTo({ top, behavior: "smooth" });
   };
 
+  const checkAllSucceeded = useCallback((map: Record<string, RowResult>) => {
+    return selectedCrew.every((u) => map[u.userId] === "success");
+  }, [selectedCrew]);
+
   const handleSaveAll = async () => {
     setSaving(true);
+    setResultMap({});
+    setAlertState(null);
 
-    const payloads = selectedCrew.map((u) => {
-      const draft = drafts[u.userId];
-      if (!draft) return { userId: u.userId, payload: {} };
-
-      const payload: Partial<UpdateCrewRequest> = {};
-      if (draft.description.trim())       payload.description             = draft.description.trim();
-      payload.terminalType = draft.terminalType.trim();
-      if (draft.maxTotalOctets.trim())    payload.maxTotalOctets          = draft.maxTotalOctets.trim();
-      if (draft.maxTotalOctetsTimeRange)  payload.maxTotalOctetsTimeRange = draft.maxTotalOctetsTimeRange as UpdateCrewRequest["maxTotalOctetsTimeRange"];
-      if (draft.currentOctetUsage.trim()) payload.currentOctetUsage       = draft.currentOctetUsage.trim();
-      payload.halfTimePeriod = (draft.maxTotalOctetsTimeRange === "MONTHLY" && draft.halfTimePeriod === "half")
-        ? "half"
-        : "";
-
-      return { userId: u.userId, payload };
-    });
+    const payloads = selectedCrew.map((u) => ({
+      userId: u.userId,
+      payload: buildPayload(drafts[u.userId] ?? initDraft(u)),
+    }));
 
     console.log("[ModifyCrew] payloads:", JSON.stringify(payloads, null, 2));
 
-    try {
-      const results = await Promise.allSettled(
-        payloads.map(({ userId, payload }) =>
-          updateCrewData(imo, userId, payload as UpdateCrewRequest),
-        ),
-      );
+    const results = await Promise.allSettled(
+      payloads.map(({ userId, payload }) => updateCrewData(imo, userId, payload)),
+    );
 
-      const failed    = results.filter((r) => r.status === "rejected");
-      const succeeded = results.filter((r) => r.status === "fulfilled");
+    const newResultMap: Record<string, RowResult> = {};
+    payloads.forEach(({ userId }, i) => {
+      newResultMap[userId] = results[i].status === "fulfilled" ? "success" : "error";
+    });
+    setResultMap(newResultMap);
 
-      if (failed.length > 0) {
-        setAlertState({
-          variant: "warning",
-          title:   "Partial Success",
-          message: `${succeeded.length} updated, ${failed.length} failed.`,
-        });
-      } else {
-        setAlertState({
-          variant: "success",
-          title:   "Saved Successfully",
-          message: `${succeeded.length} crew account${succeeded.length > 1 ? "s" : ""} updated.`,
-        });
-        setTimeout(() => {
-          setAlertState(null);
-          onSaved?.();
-          onClose();
-        }, 1500);
-      }
-    } catch {
+    const failedCount    = results.filter((r) => r.status === "rejected").length;
+    const succeededCount = results.filter((r) => r.status === "fulfilled").length;
+
+    if (failedCount === 0) {
+      setAlertState({ variant: "success", title: "Saved Successfully", message: `${succeededCount} crew account${succeededCount > 1 ? "s" : ""} updated.` });
+      setTimeout(() => { setAlertState(null); onSaved?.(); onClose(); }, 1500);
+    } else {
       setAlertState({
-        variant: "error",
-        title:   "Save Failed",
-        message: "An error occurred while saving. Please try again.",
+        variant: "warning",
+        title: "Partial Success",
+        message: `${succeededCount} succeeded, ${failedCount} failed. Retry the failed ones individually.`,
       });
-    } finally {
-      setSaving(false);
+    }
+
+    setSaving(false);
+  };
+
+  const handleRetry = async (userId: string) => {
+    const draft = drafts[userId];
+    if (!draft) return;
+
+    setResultMap((prev) => ({ ...prev, [userId]: "retrying" }));
+
+    try {
+      await updateCrewData(imo, userId, buildPayload(draft));
+      setResultMap((prev) => {
+        const next = { ...prev, [userId]: "success" as RowResult };
+        if (checkAllSucceeded(next)) {
+          setAlertState({ variant: "success", title: "All Saved", message: "All crew accounts updated successfully." });
+          setTimeout(() => { onSaved?.(); onClose(); }, 1500);
+        } else {
+          const remaining = selectedCrew.filter((u) => next[u.userId] === "error").length;
+          setAlertState((a) => a ? { ...a, message: `${remaining} failed. Retry the failed ones individually.` } : a);
+        }
+        return next;
+      });
+    } catch {
+      setResultMap((prev) => ({ ...prev, [userId]: "error" }));
     }
   };
 
@@ -230,6 +254,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
             <div className="flex-1 overflow-y-auto pb-4">
               {selectedCrew.map((u) => {
                 const isActive = activeId === u.userId;
+                const result = resultMap[u.userId];
                 return (
                   <button
                     key={u.userId}
@@ -240,11 +265,33 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                         : "hover:bg-gray-50 dark:hover:bg-white/2"
                     }`}
                   >
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all ${
-                      isActive ? "bg-blue-500" : "bg-gray-300 dark:bg-white/20"
-                    }`} />
+                    {/* 상태 아이콘 */}
+                    {result === "success" && (
+                      <svg className="h-3.5 w-3.5 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {result === "error" && (
+                      <svg className="h-3.5 w-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    {result === "retrying" && (
+                      <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                      </svg>
+                    )}
+                    {!result && (
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all ${
+                        isActive ? "bg-blue-500" : "bg-gray-300 dark:bg-white/20"
+                      }`} />
+                    )}
                     <span className={`truncate text-sm font-medium transition-colors ${
-                      isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
+                      result === "success" ? "text-green-600 dark:text-green-400"
+                      : result === "error" ? "text-red-500 dark:text-red-400"
+                      : isActive ? "text-blue-600 dark:text-blue-400"
+                      : "text-gray-600 dark:text-gray-400"
                     }`}>
                       {u.userId}
                     </span>
@@ -260,37 +307,78 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
               const draft = drafts[u.userId];
               if (!draft) return null;
               const isMonthly = draft.maxTotalOctetsTimeRange === "MONTHLY";
+              const result = resultMap[u.userId];
 
               return (
                 <div
                   key={u.userId}
                   id={`crew-card-${u.userId}`}
                   ref={(el) => { cardRefs.current[u.userId] = el; }}
-                  className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/2"
+                  className={`rounded-xl border bg-white p-5 shadow-sm transition-colors dark:bg-white/2 ${
+                    result === "success"
+                      ? "border-green-400/60 dark:border-green-500/40"
+                      : result === "error"
+                      ? "border-red-400/60 dark:border-red-500/40"
+                      : "border-gray-200 dark:border-white/10"
+                  }`}
                 >
-                  <div className="mb-4 border-b border-gray-100 pb-3 dark:border-white/5">
+                  <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-white/5">
                     <span className="text-sm font-black text-gray-900 dark:text-white">
                       {u.userId}
                     </span>
+
+                    {/* 카드 상태 배지 + 재시도 버튼 */}
+                    <div className="flex items-center gap-2">
+                      {result === "success" && (
+                        <span className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Success
+                        </span>
+                      )}
+                      {result === "error" && (
+                        <>
+                          <span className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-600 dark:bg-red-500/15 dark:text-red-400">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Failed
+                          </span>
+                          <button
+                            onClick={() => handleRetry(u.userId)}
+                            className="flex items-center gap-1 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-600 transition-all hover:bg-red-100 active:scale-95 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Retry
+                          </button>
+                        </>
+                      )}
+                      {result === "retrying" && (
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-blue-500">
+                          <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                          </svg>
+                          Retrying...
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-                    {/* Row 1: User ID | Password (readonly) */}
                     <div>
-                      <Label className={readonlyLabelClass}>
-                        User ID
-                      </Label>
+                      <Label className={readonlyLabelClass}>User ID</Label>
                       <input type="text" className={readonlyInputClass} value={u.userId} readOnly disabled />
                     </div>
                     <div>
-                      <Label className={readonlyLabelClass}>
-                        Password
-                      </Label>
+                      <Label className={readonlyLabelClass}>Password</Label>
                       <input type="password" className={readonlyInputClass} value={u.password ?? ""} readOnly disabled />
                     </div>
 
-                    {/* Row 2: Terminal Type | Usage Limit */}
                     <div>
                       <Label className={labelClass}>Terminal Type</Label>
                       <NativeSelectWithIcon
@@ -321,7 +409,6 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       </div>
                     </div>
 
-                    {/* Row 3: Time Range | Half Time Period */}
                     <div>
                       <Label className={labelClass}>Time Range</Label>
                       <NativeSelectWithIcon
@@ -365,7 +452,6 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       </div>
                     </div>
 
-                    {/* Row 4: Description (full width) */}
                     <div className="md:col-span-2">
                       <Label className={labelClass}>Description</Label>
                       <input
@@ -377,7 +463,6 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       />
                     </div>
 
-                    {/* Row 5: Current Usage (full width) */}
                     <div className="md:col-span-2">
                       <Label className={labelClass}>Current Usage</Label>
                       <div className="flex items-center gap-2">

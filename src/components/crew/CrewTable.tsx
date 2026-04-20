@@ -23,7 +23,55 @@ function getBadgeProps(type: string | undefined | null) {
   return { color: "light" as const, label: type };
 }
 
-const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage Limit"];
+const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage"];
+
+function UsageBar({ current, max, onTopUp }: { current: string | null; max: string | null; onTopUp: () => void }) {
+  const used  = parseFloat(current ?? "0") || 0;
+  const limit = parseFloat(max ?? "0") || 0;
+  const pct   = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+
+  const barColor =
+    pct >= 90 ? "bg-red-500"
+    : pct >= 70 ? "bg-amber-400"
+    : "bg-blue-500";
+
+  const textColor =
+    pct >= 90 ? "text-red-500 dark:text-red-400"
+    : pct >= 70 ? "text-amber-500 dark:text-amber-400"
+    : "text-blue-500 dark:text-blue-400";
+
+  return (
+    <div className="flex min-w-40 items-center gap-2">
+      <div className="flex-1">
+        {/* 수치 + 퍼센트 */}
+        <div className="mb-1 flex items-baseline justify-between gap-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="font-semibold text-gray-700 dark:text-gray-200">{current ?? "0"}</span>
+            <span className="mx-0.5 text-gray-300">/</span>
+            {max ?? "0"} MB
+          </span>
+          <span className={`text-xs font-bold tabular-nums ${textColor}`}>
+            {pct.toFixed(1)}%
+          </span>
+        </div>
+        {/* 바 */}
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+      <button
+        onClick={onTopUp}
+        className="shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-white/10 dark:hover:text-blue-400"
+        title="Top-up / Adjust"
+      >
+        <ArrowsUpDownIcon className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 const CHANGE_TYPE_BADGE: Record<NonNullable<CrewUpdateType>, { label: string; className: string }> = {
   UPDATE: {
@@ -178,23 +226,12 @@ export default function CrewTable({
                       ? `Half-${u.maxTotalOctetsTimeRange}`
                       : u.maxTotalOctetsTimeRange}
                   </TableCell>
-                  <TableCell className="px-5 py-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    <div className="flex items-center gap-2">
-                      <span>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {u.currentOctetUsage ?? "-"}
-                        </span>
-                        <span className="mx-1 text-gray-300">/</span>
-                        {u.maxTotalOctets} MB
-                      </span>
-                      <button
-                        onClick={() => onOpenTopUp(u)}
-                        className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-white/10 dark:hover:text-blue-400"
-                        title="Top-up / Adjust"
-                      >
-                        <ArrowsUpDownIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                  <TableCell className="px-5 py-3">
+                    <UsageBar
+                      current={u.currentOctetUsage}
+                      max={u.maxTotalOctets}
+                      onTopUp={() => onOpenTopUp(u)}
+                    />
                   </TableCell>
                 </TableRow>
               );
