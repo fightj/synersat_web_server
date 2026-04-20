@@ -65,7 +65,7 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
   // ✅ 모달 열릴 때 초기값 세팅
   const init = useCallback(async () => {
     const data = await getAccounts();
-    setOptions(data.map((acct) => ({ value: acct, label: acct })));
+    setOptions(data);
 
     if (mode === "edit" && vesselData) {
       setAccount(vesselData.acct || "");

@@ -120,13 +120,16 @@ export async function deleteVessel(imos: number[]): Promise<boolean> {
   }
 }
 
-export async function getAccounts(): Promise<string[]> {
+export async function getAccounts(): Promise<{ value: string; label: string }[]> {
   try {
     const res = await fetch(`${BASE_URL}/accounts`, withTestUser({ ...fetchOptions }));
     if (!res.ok) throw new Error("Failed to fetch accounts");
 
     const rawData: AccountApiResponse = await res.json();
-    return rawData.accounts.map((item) => item.acct);
+    return rawData.accounts.map((item) => ({
+      value: item.acct,
+      label: item.description || item.acct,
+    }));
   } catch (error) {
     console.error("Error fetching accounts:", error);
     throw error;
