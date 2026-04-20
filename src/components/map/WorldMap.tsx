@@ -44,9 +44,14 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
           attributionControl: false,
         });
         mapInstanceRef.current = map;
-        L.tileLayer("https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png", {
+        L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
           noWrap: false,
           keepBuffer: 4,
+        }).addTo(map);
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
+          noWrap: false,
+          subdomains: "abcd",
+          zIndex: 10,
         }).addTo(map);
       }
 

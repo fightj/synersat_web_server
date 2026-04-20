@@ -28,6 +28,7 @@ export const MAP_STYLES: {
     label: "Light",
     url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
     preview: "https://a.tile.openstreetmap.fr/hot/2/2/1.png",
+    overlayUrl: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
   },
   {
     id: "satellite",
