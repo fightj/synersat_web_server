@@ -784,6 +784,7 @@ html:not(.dark) .apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-t
   /* border-bottom: 1px solid rgba(229, 231, 235, 0.5) !important; */
 }
 html {
+  scrollbar-gutter: stable;
   background-color: #eff6ff;
 }
 html.dark {

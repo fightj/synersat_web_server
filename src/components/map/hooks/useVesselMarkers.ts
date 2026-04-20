@@ -110,7 +110,7 @@ export function useVesselMarkers({
         const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
         setPopupPos({ x: pt.x, y: pt.y });
         setClickedVessel({ imo: vessel.imo, name: vessel.name, color: vessel.color });
-        map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.2 });
+        map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.8, easeLinearity: 0.1 });
         getVesselDetail(vessel.imo)
           .then((detail) => {
             setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });

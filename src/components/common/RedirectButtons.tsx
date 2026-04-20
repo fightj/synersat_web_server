@@ -7,7 +7,7 @@ interface VesselNameProps {
   vesselId: string | null;
 }
 
-type buttonTypes = "fw" | "pdu" | "fleetlink" | "ow" | "fbb" | "acu" | "modem" | "core" | "nas";
+type buttonTypes = "fw" | "pdu" | "fleetlink" | "owant" | "fbb" | "acu" | "modem" | "core" | "nas";
 
 export default function RedirectButtons({ vesselId }: VesselNameProps) {
   const safeId = vesselId ? vesselId.replace(/[^a-zA-Z0-9-]/g, "") : "";
