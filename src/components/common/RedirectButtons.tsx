@@ -22,7 +22,7 @@ export default function RedirectButtons({ vesselId }: VesselNameProps) {
         { id: "fw", label: "FireWall" },
         { id: "pdu", label: "PDU" },
         { id: "fleetlink", label: "FleetLink" },
-        { id: "ow", label: "OneWEB" },
+        { id: "owant", label: "OneWEB" },
         { id: "fbb", label: "FBB" },
         { id: "acu", label: "ACU" },
         { id: "modem", label: "iDirect" },
