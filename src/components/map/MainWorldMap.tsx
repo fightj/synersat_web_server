@@ -8,7 +8,7 @@ import { getServiceColor } from "../common/AnntennaMapping";
 import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
-import { matchFilter, FilterKey, GX_COVERAGES, GxKey } from "./mapUtils";
+import { matchFilter, FilterKey, GX_COVERAGES, GxKey, GxBeam, loadBeams, hasBeams } from "./mapUtils";
 import { useLeafletMap } from "./hooks/useLeafletMap";
 import { useVesselMarkers } from "./hooks/useVesselMarkers";
 import ViewDetailPopup from "./components/ViewDetailPopup";
@@ -18,6 +18,45 @@ import MapBottomBar from "./components/MapBottomBar";
 
 interface MainWorldMapProps {
   vessels?: DashboardVesselPosition[];
+}
+
+function BeamThumb({ points, size = 32 }: { points: [number, number][]; size?: number }) {
+  const lngs = points.map((p) => p[1]);
+  const lats = points.map((p) => p[0]);
+  const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+  const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+
+  // Web Mercator 투영으로 lat/lng → OSM 타일 픽셀 좌표 변환
+  const zoom = 3;
+  const n = Math.pow(2, zoom); // 타일 수 = 8
+
+  const lngToWorldPx = (lng: number) => (lng + 180) / 360 * n * 256;
+  const latToWorldPy = (lat: number) => {
+    const r = lat * Math.PI / 180;
+    return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n * 256;
+  };
+
+  // 중심 좌표가 속한 타일
+  const tileX = Math.max(0, Math.min(n - 1, Math.floor(lngToWorldPx(centerLng) / 256)));
+  const tileY = Math.max(0, Math.min(n - 1, Math.floor(latToWorldPy(centerLat) / 256)));
+
+  // 타일 내부 픽셀 좌표 → SVG 좌표 (size px 기준)
+  const toSvgX = (lng: number) => (lngToWorldPx(lng) - tileX * 256) / 256 * size;
+  const toSvgY = (lat: number) => (latToWorldPy(lat) - tileY * 256) / 256 * size;
+
+  const d = points.map((p, i) =>
+    `${i === 0 ? "M" : "L"}${toSvgX(p[1]).toFixed(1)} ${toSvgY(p[0]).toFixed(1)}`
+  ).join(" ") + " Z";
+
+  const tileUrl = `https://a.tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <rect width={size} height={size} fill="#1e3a5f" />
+      <image href={tileUrl} x="0" y="0" width={size} height={size} preserveAspectRatio="none" />
+      <path d={d} fill="#f9731640" stroke="#f97316" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default function WorldMap({ vessels }: MainWorldMapProps) {
@@ -36,7 +75,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [gpsAlert, setGpsAlert] = useState(false);
   const [showCoverage, setShowCoverage] = useState(false);
   const [activeGx, setActiveGx] = useState<GxKey>("all");
+  const [activeBeam, setActiveBeam] = useState<string | null>(null);
+  const [beamList, setBeamList] = useState<GxBeam[]>([]);
   const gxLayersRef = useRef<any[]>([]);
+  const beamLayersRef = useRef<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const prevVesselsLengthRef = useRef<number | null>(null);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
@@ -354,6 +396,45 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCoverage, activeGx, mapReady]);
 
+  // coverage ON + activeGx 변경 시 빔 데이터 lazy load
+  useEffect(() => {
+    if (!showCoverage || !hasBeams(activeGx)) {
+      setBeamList([]);
+      setActiveBeam(null);
+      return;
+    }
+    loadBeams(activeGx).then(setBeamList);
+    setActiveBeam(null);
+  }, [showCoverage, activeGx]);
+
+  // ── 개별 빔 폴리곤 렌더링 ─────────────────────────────────────────
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+    beamLayersRef.current.forEach((l) => l.remove());
+    beamLayersRef.current = [];
+    if (!activeBeam || !L || !map || !mapReady) return;
+    const beam = beamList.find((b: GxBeam) => b.id === activeBeam);
+    if (!beam) return;
+    const LNG_OFFSETS = [-360, 0, 360];
+    LNG_OFFSETS.forEach((offset) => {
+      const shifted = beam.points.map(([lat, lng]) => [lat, lng + offset] as [number, number]);
+      const poly = L.polygon(shifted, {
+        color: "#f97316",
+        weight: 2,
+        opacity: 1,
+        fillColor: "#f97316",
+        fillOpacity: 0.22,
+      }).addTo(map);
+      beamLayersRef.current.push(poly);
+    });
+    return () => {
+      beamLayersRef.current.forEach((l) => l.remove());
+      beamLayersRef.current = [];
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBeam, activeGx, mapReady]);
+
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -380,8 +461,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         />
       )}
 
-      {/* GX Coverage 버튼 + 서브메뉴 */}
-      <div className="absolute left-3 bottom-[calc(10vh+12px)] z-1000">
+      {/* GX Coverage 버튼 + 빔 셀렉터 */}
+      <div className="absolute left-3 bottom-[calc(10vh+12px)] z-1000 flex items-end gap-2">
+        {/* Coverage 버튼 + GX 서브메뉴 */}
+        <div className="relative">
         {/* GX 선택 서브메뉴 — coverage ON 상태에서만 표시 */}
         {showCoverage && (
           <div className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
@@ -449,9 +532,40 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
             )}
           </button>
           {/* GX 선택 chevron — coverage ON 일 때만 */}
-          
+
         </div>
-      </div>
+        </div>{/* end .relative */}
+
+        {/* 빔 셀렉터 — GX 위성별 빔 목록 */}
+        {showCoverage && beamList.length > 0 && (
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-gray-950/70 p-2 shadow-2xl backdrop-blur-md">
+            {beamList.map((beam) => {
+              const isActive = activeBeam === beam.id;
+              return (
+                <button
+                  key={beam.id}
+                  onClick={() => setActiveBeam(isActive ? null : beam.id)}
+                  className="flex shrink-0 flex-col items-center gap-0.5"
+                >
+                  <div
+                    className={`overflow-hidden rounded-md transition-all duration-200 ${
+                      isActive
+                        ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-gray-900"
+                        : "opacity-50 hover:opacity-90"
+                    }`}
+                    style={{ width: 32, height: 32 }}
+                  >
+                    <BeamThumb points={beam.points} size={32} />
+                  </div>
+                  <span className={`text-[9px] font-bold ${isActive ? "text-orange-400" : "text-gray-400"}`}>
+                    {beam.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>{/* end flex row */}
 
       {/* 리셋 버튼 */}
       <button

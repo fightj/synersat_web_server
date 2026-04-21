@@ -236,6 +236,36 @@ export const GX_COVERAGES: GxCoverage[] = [
   },
 ];
 
+// ── GX Beam Coverage ─────────────────────────────────────────────────
+
+export interface GxBeam {
+  id: string;
+  label: string;
+  points: [number, number][];
+}
+
+const BEAM_SUPPORTED: Partial<Record<GxKey, true>> = {
+  gx1: true, gx2: true, gx3: true, gx4: true,
+};
+
+export function hasBeams(gxKey: GxKey): boolean {
+  return !!BEAM_SUPPORTED[gxKey];
+}
+
+export async function loadBeams(gxKey: GxKey): Promise<GxBeam[]> {
+  if (!hasBeams(gxKey)) return [];
+  try {
+    const res = await fetch(`/data/beams/${gxKey}.json`);
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+/** 하위 호환용 타입 별칭 */
+export type Gx1Beam = GxBeam;
+
 export function makeVesselIcon(
   L: any,
   w: number,

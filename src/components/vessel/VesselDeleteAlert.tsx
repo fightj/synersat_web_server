@@ -36,7 +36,13 @@ export default function VesselDeleteAlert({
         <Alert
           variant="warning"
           title="Delete Vessel"
-          message={`Are you sure you want to delete [${targetVesselName}]? This action cannot be undone.`}
+          message={
+            <>
+              Are you sure you want to delete{" "}
+              <span className="font-bold text-gray-800 dark:text-white">{targetVesselName}</span>
+              ? This action cannot be undone.
+            </>
+          }
           showLink={false}
         />
         <div className="mt-4">
