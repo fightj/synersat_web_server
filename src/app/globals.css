@@ -934,3 +934,17 @@ html.dark {
 .vessel-hover-tooltip::before {
   display: none !important;
 }
+
+.beam-selector-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.beam-selector-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.beam-selector-scroll::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 9999px;
+}
+.beam-selector-scroll::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

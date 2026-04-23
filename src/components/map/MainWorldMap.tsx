@@ -76,7 +76,9 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [showCoverage, setShowCoverage] = useState(false);
   const [activeGx, setActiveGx] = useState<GxKey>("all");
   const [activeBeam, setActiveBeam] = useState<string | null>(null);
+  const [hoveredBeam, setHoveredBeam] = useState<string | null>(null);
   const [beamList, setBeamList] = useState<GxBeam[]>([]);
+  const beamScrollRef = useRef<HTMLDivElement>(null);
   const gxLayersRef = useRef<any[]>([]);
   const beamLayersRef = useRef<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -413,16 +415,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     const map = mapInstanceRef.current;
     beamLayersRef.current.forEach((l) => l.remove());
     beamLayersRef.current = [];
-    if (!activeBeam || !L || !map || !mapReady) return;
-    const beam = beamList.find((b: GxBeam) => b.id === activeBeam);
+    const displayBeam = hoveredBeam ?? activeBeam;
+    if (!displayBeam || !L || !map || !mapReady) return;
+    const beam = beamList.find((b: GxBeam) => b.id === displayBeam);
     if (!beam) return;
     const LNG_OFFSETS = [-360, 0, 360];
     LNG_OFFSETS.forEach((offset) => {
       const shifted = beam.points.map(([lat, lng]) => [lat, lng + offset] as [number, number]);
       const poly = L.polygon(shifted, {
-        color: "#f97316",
-        weight: 2,
-        opacity: 1,
+        stroke: false,
         fillColor: "#f97316",
         fillOpacity: 0.22,
       }).addTo(map);
@@ -433,7 +434,18 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       beamLayersRef.current = [];
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBeam, activeGx, mapReady]);
+  }, [hoveredBeam, activeBeam, activeGx, mapReady]);
+
+  useEffect(() => {
+    const el = beamScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [beamList]);
 
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
@@ -538,31 +550,39 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
         {/* 빔 셀렉터 — GX 위성별 빔 목록 */}
         {showCoverage && beamList.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-gray-950/70 p-2 shadow-2xl backdrop-blur-md">
-            {beamList.map((beam) => {
-              const isActive = activeBeam === beam.id;
-              return (
-                <button
-                  key={beam.id}
-                  onClick={() => setActiveBeam(isActive ? null : beam.id)}
-                  className="flex shrink-0 flex-col items-center gap-0.5"
-                >
-                  <div
-                    className={`overflow-hidden rounded-md transition-all duration-200 ${
-                      isActive
-                        ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-gray-900"
-                        : "opacity-50 hover:opacity-90"
-                    }`}
-                    style={{ width: 32, height: 32 }}
+          <div
+            ref={beamScrollRef}
+            className="beam-selector-scroll overflow-x-auto rounded-xl border border-white/15 bg-gray-950/70 shadow-2xl backdrop-blur-md"
+            style={{ maxWidth: "calc(100vw - 490px)", minWidth: 160, scrollbarWidth: "thin", scrollbarColor: "#4b5563 transparent" }}
+          >
+            <div className="flex items-center gap-1.5 p-2 pb-2.5">
+              {beamList.map((beam) => {
+                const isActive = activeBeam === beam.id;
+                return (
+                  <button
+                    key={beam.id}
+                    onClick={() => setActiveBeam(isActive ? null : beam.id)}
+                    onMouseEnter={() => setHoveredBeam(beam.id)}
+                    onMouseLeave={() => setHoveredBeam(null)}
+                    className="flex shrink-0 flex-col items-center gap-0.5"
                   >
-                    <BeamThumb points={beam.points} size={32} />
-                  </div>
-                  <span className={`text-[9px] font-bold ${isActive ? "text-orange-400" : "text-gray-400"}`}>
-                    {beam.label}
-                  </span>
-                </button>
-              );
-            })}
+                    <div
+                      className={`overflow-hidden rounded-md transition-all duration-200 ${
+                        isActive
+                          ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-gray-900"
+                          : "opacity-50 hover:opacity-90"
+                      }`}
+                      style={{ width: 32, height: 32 }}
+                    >
+                      <BeamThumb points={beam.points} size={32} />
+                    </div>
+                    <span className={`text-[9px] font-bold ${isActive ? "text-orange-400" : "text-gray-400"}`}>
+                      {beam.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>{/* end flex row */}
