@@ -50,9 +50,8 @@ export default function VesselFiltering({
 
     const q = query.trim().toLowerCase();
     if (!q) return sortedVessels;
-    return vessels
-      .filter((v) => (v.name ?? "").toLowerCase().includes(q))
-      .slice(0, 10);
+    return sortedVessels
+      .filter((v) => (v.name ?? "").toLowerCase().includes(q));
   }, [vessels, query]);
 
   // ✅ 선택 로직 공통화

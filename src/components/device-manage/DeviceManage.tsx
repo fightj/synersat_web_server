@@ -116,7 +116,7 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
   return (
     <div className="space-y-4">
       {/* ✅ 상단 툴바 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-end gap-2">
         {/* Add Device 버튼 */}
         <button
           onClick={() => setIsModalOpen(true)}
@@ -219,21 +219,21 @@ function DeviceCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border-2 bg-white p-4 transition-all hover:shadow-md dark:bg-white/[0.02] ${style.border}`}
+      className="relative flex flex-col gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all hover:shadow-md dark:border-white/10 dark:bg-white/2"
     >
-      {device.matchNat && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-green-500 px-2 py-0.5">
-          <CheckCircleIcon className="h-3 w-3 text-white" />
-          <span className="text-[10px] font-bold text-white">NAT</span>
-        </div>
-      )}
-
-      <div className="pr-12">
-        <p
-          className={`text-lg font-black tracking-tight capitalize ${style.text}`}
-        >
+      <div className="flex items-center justify-between">
+        <span className={`rounded-lg px-2.5 py-1 text-xs font-bold uppercase text-white ${style.dot}`}>
           {device.deviceCategory}
-        </p>
+        </span>
+        {device.matchNat && (
+          <div className="flex items-center gap-1 rounded-full bg-green-500 px-2 py-0.5">
+            <CheckCircleIcon className="h-3 w-3 text-white" />
+            <span className="text-[10px] font-bold text-white">NAT</span>
+          </div>
+        )}
+      </div>
+
+      <div>
         <p className="text-xs font-medium text-gray-400 capitalize">
           {device.deviceModel}
         </p>
