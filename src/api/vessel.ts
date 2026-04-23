@@ -283,6 +283,18 @@ export async function antennaUpdate(imo: number): Promise<void> {
     throw new Error(`Failed to sync antenna mapping (${res.status}): ${errorText}`);
   }
 }
+// -----------------선박 파이프라인 재시작 api-----------------
+export async function resetCore(imo: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/vessels/${imo}/core/reset`, withTestUser({
+    ...fetchOptions,
+    method: "POST",
+  }));
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to reset core (${res.status}): ${errorText}`);
+  }
+}
 
 // -----------------대시보드 api-----------------
 export async function getDashboardVessels(acct?: string): Promise<DashboardVesselsResponse> {
