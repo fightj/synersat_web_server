@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { PlusIcon } from "@heroicons/react/24/solid";
 import Button from "@/components/ui/button/Button";
 import PortForwardTable from "./PortForwardTable";
 import DeleteConfirmAlert from "./DeleteConfirmAlert";
@@ -91,7 +92,8 @@ export default function PortForwardPageTemplate({
                 setIsAddModalOpen(true);
               }}
             >
-              + Add New Rule
+              <PlusIcon className="h-4 w-4" />
+              Add New Rule
             </Button>
             {isLocked && (
               <p className="absolute top-full right-0 mt-1 text-[10px] whitespace-nowrap text-red-400">

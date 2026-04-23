@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { PlusIcon } from "@heroicons/react/24/solid";
 import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import VesselFormModal from "./VesselFormModal";
@@ -57,8 +58,9 @@ export default function VesselComponentCard() {
           {/* 1행: 필터 + 추가 버튼 */}
           <div className="flex items-center justify-between gap-4">
             <VesselFiltering onFilter={(name) => { setSearchTerm(name); setCategoryFilter(null); }} />
-            <Button size="sm" onClick={openModal} className="bg-brand-500 shrink-0 text-white">
-              + Add Vessel
+            <Button size="sm" onClick={openModal} className="bg-brand-500 flex shrink-0 items-center gap-2 text-white">
+              <PlusIcon className="h-4 w-4" />
+              Add Vessel
             </Button>
           </div>
 
