@@ -44,7 +44,7 @@ export async function addCrewData(imo: number, payload: AddCrewRequest): Promise
 
 export async function updateCrewData(imo: number, crewId: string, payload: UpdateCrewRequest): Promise<number | null> {
   try {
-    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${crewId}`, withTestUser(
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${encodeURIComponent(crewId)}`, withTestUser(
       {
         ...fetchOptions,
         method: "PUT",
@@ -63,7 +63,7 @@ export async function updateCrewData(imo: number, crewId: string, payload: Updat
 
 export async function updateCrewTopUp(imo: number, crewId: string, payload: CrewTopUpRequest): Promise<number | null> {
   try {
-    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${crewId}/octets/topUps`, withTestUser(
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${encodeURIComponent(crewId)}/octets/topUps`, withTestUser(
       {
         ...fetchOptions,
         method: "PUT",
