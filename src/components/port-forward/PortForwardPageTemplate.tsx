@@ -81,25 +81,20 @@ export default function PortForwardPageTemplate({
           <div className="relative">
             <Button
               size="sm"
-              disabled={isLocked || !selectedVessel}
+              disabled={!selectedVessel}
               className={`font-semibold shadow-md transition-all ${
-                isLocked || !selectedVessel
+                !selectedVessel
                   ? "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none dark:bg-white/5 dark:text-white/20"
                   : "bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
               }`}
               onClick={() => {
-                if (isLocked || !selectedVessel) return;
+                if (!selectedVessel) return;
                 setIsAddModalOpen(true);
               }}
             >
               <PlusIcon className="h-4 w-4" />
               Add New Rule
             </Button>
-            {isLocked && (
-              <p className="absolute top-full right-0 mt-1 text-[10px] whitespace-nowrap text-red-400">
-                Resolve pending CREATE/DELETE first
-              </p>
-            )}
           </div>
         </div>
 

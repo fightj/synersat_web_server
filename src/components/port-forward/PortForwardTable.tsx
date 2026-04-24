@@ -293,8 +293,7 @@ export default function PortForwardTable({
             />
           </svg>
           <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">
-            Pending CREATE or DELETE exists — Add Rule and Edit Rule are
-            disabled until resolved.
+            Pending CREATE or DELETE exists — Edit and Delete are disabled until resolved.
           </span>
         </div>
       )}
