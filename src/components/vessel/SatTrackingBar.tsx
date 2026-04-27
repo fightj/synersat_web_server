@@ -235,12 +235,14 @@ export default function SatTrackingBar({ coordinates, timeRange }: {
                   width: `${seg.widthPct}%`,
                   backgroundColor: seg.id !== undefined ? color : "transparent",
                 }}
-                className="relative flex cursor-pointer items-center justify-center overflow-hidden transition-[filter] duration-150 hover:brightness-90 dark:hover:brightness-125"
+                className="group relative flex cursor-pointer items-center justify-center overflow-hidden"
                 onMouseMove={(e) => handleMouseMove(e, seg)}
               >
+                {/* 배경 오버레이 — 텍스트 영향 없이 밝기만 조절 */}
+                <div className="absolute inset-0 transition-colors duration-150 group-hover:bg-black/15 dark:group-hover:bg-white/20" />
                 {pxW >= 10 && (
                   <span
-                    className="pointer-events-none w-full select-none overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center font-bold text-white"
+                    className="pointer-events-none relative z-10 w-full select-none overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center font-bold text-white"
                     style={{ fontSize: pxW >= 40 ? 11 : pxW >= 24 ? 9 : 7 }}
                   >
                     {label}
