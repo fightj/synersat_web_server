@@ -239,11 +239,11 @@ export default function LineChartOne({
       },
       fill: {
         type: fillTypes,
-        opacity: fillOpacities,
+        opacity: isDark ? fillOpacities.map((o) => o * 0.7) : fillOpacities,
         gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.4,
-          opacityTo: 0.55,
+          shadeIntensity: isDark ? 0.5 : 1,
+          opacityFrom: isDark ? 0.25 : 0.4,
+          opacityTo: isDark ? 0.05 : 0.55,
         },
       },
       markers: {
