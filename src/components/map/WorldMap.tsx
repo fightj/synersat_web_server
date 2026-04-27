@@ -6,6 +6,7 @@ import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import RedirectButtons from "../common/RedirectButtons";
 import AntennaStatusBar from "../vessel/AntennaStatusBar";
+import SatTrackingBar from "../vessel/SatTrackingBar";
 
 interface WorldMapProps {
   vesselImo: string;
@@ -325,6 +326,7 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
       <RedirectButtons vesselId={vesselId} />
     </div>
     <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />
+    <SatTrackingBar coordinates={coordinates} timeRange={timeRange} />
     </>
     
   );
