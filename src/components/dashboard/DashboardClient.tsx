@@ -16,6 +16,11 @@ export default function DashboardClient() {
     {
       refreshInterval: THREE_MINUTES,
       revalidateOnFocus: false,
+      compare(a, b) {
+        if (a === b) return true;
+        if (!a || !b) return a === b;
+        return JSON.stringify(a.positions) === JSON.stringify(b.positions);
+      },
     },
   );
 

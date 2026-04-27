@@ -9,7 +9,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MainLogoDark } from "@/icons";
-import { icon } from "leaflet";
 
 const AppHeader: React.FC = () => {
   const pathname = usePathname();

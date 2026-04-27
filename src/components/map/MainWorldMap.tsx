@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, memo } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
@@ -20,7 +20,7 @@ interface MainWorldMapProps {
   vessels?: DashboardVesselPosition[];
 }
 
-function BeamThumb({ points, size = 32 }: { points: [number, number][]; size?: number }) {
+const BeamThumb = memo(function BeamThumb({ points, size = 32 }: { points: [number, number][]; size?: number }) {
   const lngs = points.map((p) => p[1]);
   const lats = points.map((p) => p[0]);
   const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
@@ -57,7 +57,7 @@ function BeamThumb({ points, size = 32 }: { points: [number, number][]; size?: n
       <path d={d} fill="#f9731640" stroke="#f97316" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
-}
+});
 
 export default function WorldMap({ vessels }: MainWorldMapProps) {
   const router = useRouter();
@@ -79,7 +79,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [hoveredBeam, setHoveredBeam] = useState<string | null>(null);
   const [beamList, setBeamList] = useState<GxBeam[]>([]);
   const beamScrollRef = useRef<HTMLDivElement>(null);
-  const gxLayersRef = useRef<any[]>([]);
+  const gxLayerCacheRef = useRef<Map<string, any[]>>(new Map());
+  const gxCacheBuiltRef = useRef(false);
   const beamLayersRef = useRef<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const prevVesselsLengthRef = useRef<number | null>(null);
@@ -271,130 +272,99 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setActiveListPanel((v) => (v === mode ? null : mode));
   };
 
-  // ── GX Coverage 폴리곤 렌더링 ──────────────────────────────────────
+  // ── GX Coverage 레이어 캐시 빌드 (mapReady 시 1회) ──────────────────
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
+    if (!mapReady || !L || !map || gxCacheBuiltRef.current) return;
 
-    // 기존 레이어 제거
-    gxLayersRef.current.forEach((layer) => layer.remove());
-    gxLayersRef.current = [];
-
-    if (!showCoverage || !L || !map) return;
-
-    const toRender = activeGx === "all"
-      ? GX_COVERAGES.filter((g) => g.points.length > 0)
-      : GX_COVERAGES.filter((g) => g.key === activeGx && g.points.length > 0);
-
-    // 위성 아이콘 SVG (안테나 빨간색)
     const makeSatelliteIcon = (label: string) => L.divIcon({
       className: "",
       html: `
         <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- 위성 본체 -->
             <rect x="9" y="9" width="6" height="6" rx="1" fill="#e2e8f0" stroke="#94a3b8" stroke-width="0.8"/>
-            <!-- 왼쪽 패널 -->
             <rect x="2" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
-            <!-- 오른쪽 패널 -->
             <rect x="16" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
-            <!-- 안테나 (빨간색) -->
             <line x1="12" y1="9" x2="12" y2="4" stroke="#ef4444" stroke-width="1.2"/>
             <circle cx="12" cy="3.5" r="1.2" fill="#ef4444"/>
-            <!-- 패널 연결 막대 -->
             <line x1="8" y1="12" x2="9" y2="12" stroke="#64748b" stroke-width="0.8"/>
             <line x1="15" y1="12" x2="16" y2="12" stroke="#64748b" stroke-width="0.8"/>
           </svg>
-          <span style="
-            margin-top:2px;
-            font-size:9px;
-            font-weight:800;
-            color:#fff;
-            text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);
-            letter-spacing:0.05em;
-            white-space:nowrap;
-          ">${label}</span>
+          <span style="margin-top:2px;font-size:9px;font-weight:800;color:#fff;text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);letter-spacing:0.05em;white-space:nowrap;">${label}</span>
         </div>
       `,
       iconSize: [28, 42],
       iconAnchor: [14, 21],
     });
 
-    // 지도 반복 타일에 맞춰 -360, 0, +360 세 벌 렌더링
     const LNG_OFFSETS = [-360, 0, 360];
 
-    toRender.forEach((gx) => {
+    GX_COVERAGES.filter((g) => g.points.length > 0).forEach((gx) => {
+      const layers: any[] = [];
+
       LNG_OFFSETS.forEach((offset) => {
-        const shifted = gx.points.map(
-          ([lat, lng]) => [lat, lng + offset] as [number, number],
-        );
+        const shifted = gx.points.map(([lat, lng]) => [lat, lng + offset] as [number, number]);
 
         if (gx.hideBoundaryMeridians) {
-          // fill만 있는 polygon (선 없음)
-          const fill = L.polygon(shifted, {
-            stroke: false,
-            fillColor: gx.color,
-            fillOpacity: gx.fillOpacity ?? 0.08,
-          }).addTo(map);
-          gxLayersRef.current.push(fill);
+          layers.push(L.polygon(shifted, { stroke: false, fillColor: gx.color, fillOpacity: gx.fillOpacity ?? 0.08 }));
 
-          // lng=0+offset 또는 lng=360+offset 경계 선분을 건너뛰고
-          // 나머지 연속 선분을 묶어서 polyline으로 렌더링
           const m0 = 0 + offset;
           const m360 = 360 + offset;
           const isBoundaryEdge = (p1: [number, number], p2: [number, number]) => {
             const on = (lng: number) => Math.abs(lng - m0) < 0.01 || Math.abs(lng - m360) < 0.01;
             return on(p1[1]) && on(p2[1]);
           };
-
           let seg: [number, number][] = [];
           for (let i = 0; i < shifted.length - 1; i++) {
             if (isBoundaryEdge(shifted[i], shifted[i + 1])) {
-              if (seg.length > 1) {
-                gxLayersRef.current.push(
-                  L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }).addTo(map),
-                );
-              }
+              if (seg.length > 1) layers.push(L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }));
               seg = [];
             } else {
               if (seg.length === 0) seg.push(shifted[i]);
               seg.push(shifted[i + 1]);
             }
           }
-          if (seg.length > 1) {
-            gxLayersRef.current.push(
-              L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }).addTo(map),
-            );
-          }
+          if (seg.length > 1) layers.push(L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }));
         } else {
-          const polygon = L.polygon(shifted, {
-            color: gx.color,
-            weight: 1.5,
-            opacity: 0.8,
-            fillColor: gx.color,
-            fillOpacity: gx.fillOpacity ?? 0.08,
-            dashArray: "6 4",
-          }).addTo(map);
-          gxLayersRef.current.push(polygon);
+          layers.push(L.polygon(shifted, { color: gx.color, weight: 1.5, opacity: 0.8, fillColor: gx.color, fillOpacity: gx.fillOpacity ?? 0.08, dashArray: "6 4" }));
         }
       });
 
-      // OneWeb은 아이콘 마커 생략
       if (gx.key !== "oneweb") {
         const [cLat, cLng] = gx.center;
-        const marker = L.marker([cLat, cLng], {
-          icon: makeSatelliteIcon(gx.label),
-          interactive: false,
-          zIndexOffset: 500,
-        }).addTo(map);
-        gxLayersRef.current.push(marker);
+        layers.push(L.marker([cLat, cLng], { icon: makeSatelliteIcon(gx.label), interactive: false, zIndexOffset: 500 }));
       }
+
+      gxLayerCacheRef.current.set(gx.key, layers);
     });
 
+    gxCacheBuiltRef.current = true;
+
+    const cache = gxLayerCacheRef.current;
     return () => {
-      gxLayersRef.current.forEach((layer) => layer.remove());
-      gxLayersRef.current = [];
+      cache.forEach((layers) => layers.forEach((l) => l.remove()));
+      cache.clear();
+      gxCacheBuiltRef.current = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
+
+  // ── showCoverage / activeGx 변경 시 show/hide 토글 ──────────────────
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!mapReady || !map || !gxCacheBuiltRef.current) return;
+
+    gxLayerCacheRef.current.forEach((layers, key) => {
+      const shouldShow = showCoverage && (activeGx === "all" || activeGx === key);
+      layers.forEach((layer) => {
+        if (shouldShow) {
+          if (!map.hasLayer(layer)) layer.addTo(map);
+        } else {
+          layer.remove();
+        }
+      });
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCoverage, activeGx, mapReady]);
 
