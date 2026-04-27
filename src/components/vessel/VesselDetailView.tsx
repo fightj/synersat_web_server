@@ -14,11 +14,12 @@ import VesselCommandOne from "./VesselCommandOne";
 import VesselFormModal from "./VesselFormModal";
 import VesselDeleteAlert from "./VesselDeleteAlert";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
-import { SktelinkIcon } from "@/icons";
+import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import { deleteVessel, antennaUpdate, vesselSmartboxUpdate, resetCore } from "@/api/vessel";
 import { useRouter } from "next/navigation";
 import { AnimatedCounter } from "../ui/animated-counter";
 import Button from "../ui/button/Button";
+import GrafanaDashModal from "./GrafanaDashModal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -75,6 +76,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showGrafana, setShowGrafana] = useState(false);
   const router = useRouter();
 
   const handleDeleteVessel = async () => {
@@ -243,6 +245,15 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 </span>
               );
             })()}
+
+            {/* Grafana Dashboard 버튼 */}
+            <button
+              onClick={() => setShowGrafana(true)}
+              title="Grafana Dashboard"
+              className="flex items-center justify-center transition-all hover:scale-110"
+            >
+              <GrafanaDashIcon className="h-6 w-6 text-blue-500 dark:text-blue-400" />
+            </button>
           </div>
 
           {/* 오른쪽: 탭 스위치 + 상세정보 토글 */}
@@ -509,6 +520,25 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         onClose={() => setIsDeleteAlertOpen(false)}
         onConfirm={handleDeleteVessel}
       />
+
+      {showGrafana && (
+        <GrafanaDashModal
+          vessel={{
+            id: data.id,
+            name: data.name,
+            callsign: data.callsign,
+            imo: data.imo,
+            mmsi: data.mmsi,
+            vpnIp: data.vpn_ip,
+            enabled: true,
+            description: data.description,
+            acct: data.acct,
+            fireWallPassword: data.fireWallPassword,
+            serialNumber: data.serialNumber,
+          }}
+          onClose={() => setShowGrafana(false)}
+        />
+      )}
     </div>
   );
 };
