@@ -147,7 +147,7 @@ export function useVesselMarkers({
         marker.on("click", (e: any) => {
           L.DomEvent.stop(e);
           const v: VesselPoint = marker._vesselData;
-          const targetLng = getClosestLng(v.lng, map.getCenter().lng);
+          const targetLng = getClosestLng(v.lng, e.latlng.lng);
           const latlng = { lat: v.lat, lng: targetLng };
           clickedLatLngRef.current = latlng;
           const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
