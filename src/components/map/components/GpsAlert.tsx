@@ -1,18 +1,21 @@
 "use client";
 
+import ViewDetailButton from "./ViewDetailButton";
+
 interface GpsAlertProps {
   show: boolean;
   vesselName: string | undefined;
+  onViewDetail: () => void;
 }
 
-export default function GpsAlert({ show, vesselName }: GpsAlertProps) {
+export default function GpsAlert({ show, vesselName, onViewDetail }: GpsAlertProps) {
   return (
     <div
       className={`pointer-events-none absolute bottom-[calc(10vh+16px)] left-1/2 z-1000 -translate-x-1/2 transition-all duration-300 ${
-        show ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+        show ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0 pointer-events-none"
       }`}
     >
-      <div className="flex items-center gap-2 rounded-xl bg-gray-900/90 px-4 py-2.5 shadow-xl backdrop-blur-sm">
+      <div className={`flex items-center gap-3 rounded-xl bg-gray-900/90 px-4 py-2.5 shadow-xl backdrop-blur-sm ${show ? "pointer-events-auto" : "pointer-events-none"}`}>
         <svg
           width="15"
           height="15"
@@ -29,6 +32,7 @@ export default function GpsAlert({ show, vesselName }: GpsAlertProps) {
           No GPS Data for{" "}
           <span className="text-orange-400">{vesselName}</span>
         </span>
+        <ViewDetailButton onClick={onViewDetail} />
       </div>
     </div>
   );

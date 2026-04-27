@@ -69,6 +69,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const prevSelectedImoRef = useRef<number | null>(null);
   const vesselsRef = useRef(vessels);
   const pingMarkerRef = useRef<any>(null);
+  const gpsAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
@@ -223,6 +224,16 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     const newImo = selectedVessel?.imo ?? null;
     if (newImo === prevSelectedImoRef.current) return;
     prevSelectedImoRef.current = newImo;
+
+    // 이전 선박의 ping/팝업 초기화
+    setClickedVessel(null);
+    setPopupPos(null);
+    clickedLatLngRef.current = null;
+
+    // GPS 알림 타이머 초기화
+    if (gpsAlertTimerRef.current) clearTimeout(gpsAlertTimerRef.current);
+    setGpsAlert(false);
+
     if (!newImo || !mapReady || !mapInstanceRef.current) return;
 
     const found = vesselsRef.current?.find(
@@ -252,10 +263,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         });
       });
     } else {
-      setTimeout(() => {
-        setGpsAlert(true);
-        setTimeout(() => setGpsAlert(false), 3500);
-      }, 0);
+      setGpsAlert(true);
+      gpsAlertTimerRef.current = setTimeout(() => setGpsAlert(false), 30000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVessel, mapReady]);
@@ -263,6 +272,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const handleListViewDetail = async (imo: number) => {
     try {
       const detail = await getVesselDetail(imo);
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      router.push("/vessels/detail");
+    } catch {}
+  };
+
+  const handleGpsAlertViewDetail = async () => {
+    if (!selectedVessel) return;
+    try {
+      const detail = await getVesselDetail(selectedVessel.imo);
       setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
       router.push("/vessels/detail");
     } catch {}
@@ -431,7 +449,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       )}
 
       {/* No GPS 알림 토스트 */}
-      <GpsAlert show={gpsAlert} vesselName={selectedVessel?.name} />
+      <GpsAlert show={gpsAlert} vesselName={selectedVessel?.name} onViewDetail={handleGpsAlertViewDetail} />
 
       {/* No GPS 선박 목록 패널 */}
       {activeListPanel && (
