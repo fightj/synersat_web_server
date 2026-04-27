@@ -3,30 +3,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { differenceInDays } from "date-fns";
 import type { RouteCoordinate } from "@/types/vessel";
+import { getServiceColor } from "../common/AnntennaMapping";
 
-type AntennaStatus = "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE";
-
-const STATUS_COLOR: Record<AntennaStatus, string> = {
-  TRACKING: "#22c55e",
-  SEARCHING: "#eab308",
-  BLOCKING: "#3b82f6",
-  COMMUNICATION_ERROR: "#ef4444",
-  NOT_AVAILABLE: "#a855f7",
-};
-
-const STATUS_LABEL: Record<AntennaStatus, string> = {
-  TRACKING: "TRACKING",
-  SEARCHING: "SEARCHING",
-  BLOCKING: "BLOCKING",
-  COMMUNICATION_ERROR: "COMM. ERR",
-  NOT_AVAILABLE: "NOT AVAILABLE",
-};
+const NA_COLOR = "#64748b";
+const NA_LABEL = "N/A";
 
 const SLOT_MS = 5 * 60 * 1000;
 const TICK_COUNT = 12;
 
 interface RenderSeg {
-  status: AntennaStatus | null;
+  displayName: string | null;
   from: number;
   to: number;
   widthPct: number;
@@ -48,7 +34,7 @@ function fmtFull(ms: number) {
   }).format(new Date(ms));
 }
 
-export default function AntennaStatusBar({ coordinates, timeRange }: {
+export default function MainRoutingBar({ coordinates, timeRange }: {
   coordinates: RouteCoordinate[];
   timeRange?: { startAt: string; endAt: string };
 }) {
@@ -83,7 +69,6 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
     const raw_rStart = timeRange ? new Date(timeRange.startAt + "Z").getTime() : 0;
     const raw_rEnd   = timeRange ? new Date(timeRange.endAt   + "Z").getTime() : 0;
 
-    // 5분 경계에 맞게 정렬
     const rS = Math.floor(raw_rStart / SLOT_MS) * SLOT_MS;
     const rE = Math.ceil(raw_rEnd   / SLOT_MS) * SLOT_MS;
     const totalMs = rE - rS;
@@ -94,35 +79,31 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
 
     if (totalMs <= 0) return { segs: [], rStart: rS, rEnd: rE, longTerm: lt };
 
-    // timestamp → status 맵 (5분 경계로 floor)
-    const statusMap = new Map<number, AntennaStatus>();
+    // timestamp → antennaServiceDisplayName 슬롯 맵
+    const nameMap = new Map<number, string | null>();
     for (const c of coordinates) {
-      if (!c.status?.antennaStatus) continue;
       const t = Math.floor(new Date(c.timeStamp + "Z").getTime() / SLOT_MS) * SLOT_MS;
-      statusMap.set(t, c.status.antennaStatus as AntennaStatus);
+      nameMap.set(t, c.status?.antennaServiceDisplayName ?? null);
     }
 
-    if (statusMap.size === 0) return { segs: [], rStart: rS, rEnd: rE, longTerm: lt };
+    if (nameMap.size === 0) return { segs: [], rStart: rS, rEnd: rE, longTerm: lt };
 
-    // 마지막 데이터 슬롯 타임스탬프
-    const lastDataSlot = Math.max(...statusMap.keys());
+    const lastDataSlot = Math.max(...nameMap.keys());
 
-    // 슬롯 순서대로 병합 세그먼트 생성 (빈 슬롯은 직전 상태로 forward-fill)
     const merged: RenderSeg[] = [];
-    let lastKnownStatus: AntennaStatus | null = null;
+    let lastKnown: string | null = null;
     for (let t = rS; t < rE; t += SLOT_MS) {
-      const raw = statusMap.get(t) ?? null;
-      if (raw !== null) lastKnownStatus = raw;
-      const status = raw ?? lastKnownStatus;
+      const raw = nameMap.has(t) ? nameMap.get(t)! : undefined;
+      if (raw !== undefined) lastKnown = raw;
+      const name = raw !== undefined ? raw : lastKnown;
       const last = merged[merged.length - 1];
 
-      if (last && last.status === status) {
-        // 동일 상태 연장
+      if (last && last.displayName === name) {
         last.to = t + SLOT_MS;
         last.widthPct = ((last.to - last.from) / totalMs) * 100;
       } else {
         merged.push({
-          status,
+          displayName: name,
           from: t,
           to: t + SLOT_MS,
           widthPct: (SLOT_MS / totalMs) * 100,
@@ -131,24 +112,20 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
       }
     }
 
-    // 마지막 데이터 슬롯을 포함하는 세그먼트 → ongoing 처리 및 rangeEnd까지 연장
     for (const seg of merged) {
-      if (seg.status !== null && lastDataSlot >= seg.from && lastDataSlot < seg.to) {
+      if (lastDataSlot >= seg.from && lastDataSlot < seg.to) {
         seg.isOngoing = true;
-        // rangeEnd까지 연장
         const extra = rE - seg.to;
         if (extra > 0) {
           seg.to = rE;
           seg.widthPct = ((seg.to - seg.from) / totalMs) * 100;
         }
-        // 이후의 null 세그먼트 제거
         const idx = merged.indexOf(seg);
         merged.splice(idx + 1);
         break;
       }
     }
 
-    // widthPct 합 보정
     const sum = merged.reduce((s, r) => s + r.widthPct, 0);
     if (merged.length > 0 && sum > 0) {
       merged[merged.length - 1].widthPct += 100 - sum;
@@ -163,9 +140,7 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
     rStart + ((rEnd - rStart) * i) / (TICK_COUNT - 1),
   );
 
-
   const handleMouseMove = (e: React.MouseEvent, seg: RenderSeg) => {
-    if (!seg.status) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setTooltip({ seg, x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -188,7 +163,7 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
       )}
 
       <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-        Antenna State History
+        Main Routing History
       </h4>
 
       <div
@@ -197,24 +172,25 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
         onMouseLeave={() => setTooltip(null)}
       >
         {/* 막대 */}
-        <div className="flex h-8 w-full overflow-hidden rounded-md">
+        <div className="flex h-8 w-full overflow-hidden rounded-sm">
           {segs.map((seg, i) => {
+            const color = seg.displayName ? getServiceColor(seg.displayName) : NA_COLOR;
+            const label = seg.displayName ?? NA_LABEL;
             const pxW = containerWidth * seg.widthPct / 100;
             return (
               <div
                 key={i}
-                style={{
-                  width: `${seg.widthPct}%`,
-                  backgroundColor: seg.status ? STATUS_COLOR[seg.status] : "transparent",
-                }}
-                className={`relative flex items-center justify-center overflow-hidden ${
-                  seg.status ? "cursor-pointer opacity-90 transition-opacity hover:opacity-100" : ""
-                }`}
+                style={{ width: `${seg.widthPct}%`, backgroundColor: color }}
+                className="group relative flex cursor-pointer items-center justify-center overflow-hidden"
                 onMouseMove={(e) => handleMouseMove(e, seg)}
               >
-                {seg.status && pxW >= 28 && (
-                  <span className="pointer-events-none w-full select-none overflow-hidden text-ellipsis whitespace-nowrap px-1 text-center text-[11px] font-bold tracking-wide text-white">
-                    {STATUS_LABEL[seg.status]}
+                <div className="absolute inset-0 transition-colors duration-150 group-hover:bg-black/15 dark:group-hover:bg-white/20" />
+                {pxW >= 10 && (
+                  <span
+                    className="pointer-events-none relative z-10 w-full select-none overflow-hidden text-ellipsis whitespace-nowrap px-0.5 text-center font-bold text-white"
+                    style={{ fontSize: pxW >= 40 ? 11 : pxW >= 24 ? 9 : 7 }}
+                  >
+                    {label}
                   </span>
                 )}
               </div>
@@ -244,7 +220,7 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
         </div>
 
         {/* 툴팁 */}
-        {tooltip && tooltip.seg.status && (
+        {tooltip && (
           <div
             className="pointer-events-none absolute z-50 rounded-lg border border-white/10 bg-gray-900 px-3 py-2 text-xs text-white shadow-xl"
             style={{
@@ -252,8 +228,11 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
               top: tooltip.y - 80,
             }}
           >
-            <p className="font-bold" style={{ color: STATUS_COLOR[tooltip.seg.status] }}>
-              {tooltip.seg.status.replace(/_/g, " ")}
+            <p
+              className="font-bold"
+              style={{ color: tooltip.seg.displayName ? getServiceColor(tooltip.seg.displayName) : NA_COLOR }}
+            >
+              {tooltip.seg.displayName ?? NA_LABEL}
             </p>
             {tooltip.seg.isOngoing ? (
               <p className="mt-0.5 text-gray-400">From {fmtFull(tooltip.seg.from)}</p>
