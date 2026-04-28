@@ -78,6 +78,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
   const [gateways, setGateways]   = useState<string[]>([]);
   const [saving, setSaving]       = useState(false);
   const [resultMap, setResultMap] = useState<Record<string, RowResult>>({});
+  const [prepayMap, setPrepayMap] = useState<Record<string, boolean>>({});
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
@@ -90,9 +91,14 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
   useEffect(() => {
     if (!isOpen || selectedCrew.length === 0) return;
     const initial: Record<string, CrewDraft> = {};
-    selectedCrew.forEach((u) => { initial[u.userId] = initDraft(u); });
+    const initialPrepay: Record<string, boolean> = {};
+    selectedCrew.forEach((u) => {
+      initial[u.userId] = initDraft(u);
+      initialPrepay[u.userId] = u.userId.startsWith("crewpay-");
+    });
     /* eslint-disable react-hooks/set-state-in-effect */
     setDrafts(initial);
+    setPrepayMap(initialPrepay);
     setActiveId(selectedCrew[0].userId);
     setResultMap({});
     setAlertState(null);
@@ -135,6 +141,15 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
 
+  const handleTogglePrepay = (userId: string) =>
+    setPrepayMap((prev) => ({ ...prev, [userId]: !prev[userId] }));
+
+  const getApiUserId = (userId: string) => {
+    const isPrepay = prepayMap[userId] ?? false;
+    if (isPrepay) return userId.startsWith("crewpay-") ? userId : `crewpay-${userId}`;
+    return userId.startsWith("crewpay-") ? userId.slice("crewpay-".length) : userId;
+  };
+
   const handleTimeRangeChange = (id: string, value: string) => {
     setDrafts((prev) => ({
       ...prev,
@@ -166,13 +181,14 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
 
     const payloads = selectedCrew.map((u) => ({
       userId: u.userId,
+      apiUserId: getApiUserId(u.userId),
       payload: buildPayload(drafts[u.userId] ?? initDraft(u)),
     }));
 
     console.log("[ModifyCrew] payloads:", JSON.stringify(payloads, null, 2));
 
     const results = await Promise.allSettled(
-      payloads.map(({ userId, payload }) => updateCrewData(imo, userId, payload)),
+      payloads.map(({ apiUserId, payload }) => updateCrewData(imo, apiUserId, payload)),
     );
 
     const newResultMap: Record<string, RowResult> = {};
@@ -205,7 +221,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
     setResultMap((prev) => ({ ...prev, [userId]: "retrying" }));
 
     try {
-      await updateCrewData(imo, userId, buildPayload(draft));
+      await updateCrewData(imo, getApiUserId(userId), buildPayload(draft));
       setResultMap((prev) => {
         const next = { ...prev, [userId]: "success" as RowResult };
         if (checkAllSucceeded(next)) {
@@ -327,8 +343,26 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                       {u.userId}
                     </span>
 
-                    {/* 카드 상태 배지 + 재시도 버튼 */}
+                    {/* 카드 상태 배지 + Prepay 토글 + 재시도 버튼 */}
                     <div className="flex items-center gap-2">
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <span className={`text-xs font-bold transition-colors ${prepayMap[u.userId] ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
+                          Prepay
+                        </span>
+                        <div className="relative h-5 w-5">
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+                            checked={prepayMap[u.userId] ?? false}
+                            onChange={() => handleTogglePrepay(u.userId)}
+                          />
+                          {(prepayMap[u.userId] ?? false) && (
+                            <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                      </label>
                       {result === "success" && (
                         <span className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-500/15 dark:text-green-400">
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

@@ -18,6 +18,7 @@ interface CrewEntry {
   maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER";
   description: string;
   terminalType: string;
+  isPrepay: boolean;
 }
 
 interface EntryErrors {
@@ -48,6 +49,7 @@ const createEmptyEntry = (): CrewEntry => ({
   maxTotalOctetsTimeRange: "MONTHLY",
   description: "",
   terminalType: "",
+  isPrepay: false,
 });
 
 const selectClass =
@@ -99,6 +101,9 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
     ));
     setErrors((prev) => ({ ...prev, [index]: { ...prev[index], maxTotalOctetsTimeRange: undefined } }));
   };
+
+  const handleTogglePrepay = (index: number) =>
+    setEntries((prev) => prev.map((e, i) => i === index ? { ...e, isPrepay: !e.isPrepay } : e));
 
   const handleAdd = () => setEntries((prev) => [...prev, createEmptyEntry()]);
 
@@ -161,7 +166,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
 
     const payloads: AddCrewRequest[] = entries.map((entry) => {
       const payload: AddCrewRequest = {
-        userId:                  entry.userId.trim(),
+        userId:                  entry.isPrepay ? `crewpay-${entry.userId.trim()}` : entry.userId.trim(),
         maxTotalOctets:          entry.maxTotalOctets.trim(),
         maxTotalOctetsTimeRange: entry.maxTotalOctetsTimeRange,
         description:             entry.description.trim() || null,
@@ -242,14 +247,34 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                   <span className="text-sm font-black text-gray-900 dark:text-gray-200">
                     Crew #{index + 1}
                   </span>
-                  {entries.length > 1 && (
-                    <button
-                      onClick={() => handleRemove(index)}
-                      className="rounded-full p-1 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <span className={`text-xs font-bold transition-colors ${entry.isPrepay ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
+                        Prepay
+                      </span>
+                      <div className="relative h-5 w-5">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+                          checked={entry.isPrepay}
+                          onChange={() => handleTogglePrepay(index)}
+                        />
+                        {entry.isPrepay && (
+                          <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </label>
+                    {entries.length > 1 && (
+                      <button
+                        onClick={() => handleRemove(index)}
+                        className="rounded-full p-1 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
