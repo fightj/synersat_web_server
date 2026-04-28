@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   EarthIcon,
   VesselIcon,
@@ -22,7 +22,14 @@ type NavItem = {
 const navItems: NavItem[] = [
   { icon: <EarthIcon />, name: "Dashboard", path: "/" },
   { icon: <VesselIcon />, name: "Vessels", path: "/vessels" },
-  { icon: <UserCircleIcon />, name: "Crew Account", path: "/crew_account" },
+  {
+    icon: <UserCircleIcon />,
+    name: "Crew Account",
+    subItems: [
+      { name: "Crew Account", path: "/crew_account" },
+      { name: "Prepay", path: "/crew_account?mode=prepay" },
+    ],
+  },
   {
     icon: <FirewallIcon />,
     name: "FireWall",
@@ -66,8 +73,17 @@ function DropdownItem({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const hasSub = !!item.subItems?.length;
-  const isActive = item.path === pathname;
+
+  const isActive = (() => {
+    if (hasSub || !item.path) return false;
+    const [p, q] = item.path.split("?");
+    if (p !== pathname) return false;
+    if (!q) return !searchParams.get("mode");
+    const itemParams = new URLSearchParams(q);
+    return [...itemParams.entries()].every(([k, v]) => searchParams.get(k) === v);
+  })();
 
   return (
     <li>
@@ -124,12 +140,13 @@ function NavIconButton({ item }: { item: NavItem }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const hasSub = !!item.subItems?.length;
+  const stripQuery = (p: string) => p.split("?")[0];
   const isActive = item.path
-    ? item.path === pathname
+    ? stripQuery(item.path) === pathname
     : item.subItems?.some((s) =>
         s.subItems
-          ? s.subItems.some((ss) => ss.path === pathname)
-          : s.path === pathname,
+          ? s.subItems.some((ss) => stripQuery(ss.path ?? "") === pathname)
+          : stripQuery(s.path ?? "") === pathname,
       );
 
   // 외부 클릭 시 닫기
@@ -208,7 +225,7 @@ function NavIconButton({ item }: { item: NavItem }) {
 
       {/* 드롭다운 */}
       {hasSub && open && (
-        <div className="absolute top-full left-0 z-200 mt-2 min-w-[220px] rounded-xl bg-blue-700/90 p-2 shadow-2xl ring-1 ring-white/10 dark:bg-blue-900">
+        <div className="absolute top-full left-0 z-200 mt-3 min-w-[220px] rounded-xl bg-blue-700/90 p-2 shadow-2xl ring-1 ring-white/10 dark:bg-blue-900">
           <div className="mb-1.5 border-b border-white/10 px-2 pb-1.5 text-[10px] font-bold tracking-wider text-white/60 uppercase">
             {item.name}
           </div>

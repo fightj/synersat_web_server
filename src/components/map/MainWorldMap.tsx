@@ -543,7 +543,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
             className="beam-selector-scroll overflow-x-auto rounded-xl border border-white/15 bg-gray-950/70 shadow-2xl backdrop-blur-md"
             style={{ maxWidth: "calc(100vw - 490px)", minWidth: 160, scrollbarWidth: "thin", scrollbarColor: "#4b5563 transparent" }}
           >
-            <div className="flex items-center gap-1.5 p-2 pb-2.5">
+            <div className="flex items-center gap-1.5 p-2 pb-2.5 pr-5">
               {beamList.map((beam) => {
                 const isActive = activeBeam === beam.id;
                 return (

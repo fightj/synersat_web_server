@@ -110,6 +110,7 @@ interface CrewTableProps {
   onOpenSuspension: (userId: string) => void;
   onOpenTopUp: (user: CrewEntry) => void;
   onRetry?: () => void;
+  formatUserId?: (id: string) => string;
 }
 
 export default function CrewTable({
@@ -124,6 +125,7 @@ export default function CrewTable({
   onOpenSuspension,
   onOpenTopUp,
   onRetry,
+  formatUserId,
 }: CrewTableProps) {
   return (
     <div className="max-w-full overflow-x-auto">
@@ -202,7 +204,7 @@ export default function CrewTable({
                     </div>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-bold text-gray-800 dark:text-white/90">
-                    {u.userId}
+                    {formatUserId ? formatUserId(u.userId) : u.userId}
                   </TableCell>
                   <TableCell className="w-[130px] px-3 py-4">
                     <StatusBadge updateType={u.updateType} />

@@ -263,7 +263,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                       className={`${inputClass} ${entryErrors.userId ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
                       placeholder="Enter user ID"
                       value={entry.userId}
-                      onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9]/g, ""))}
+                      onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))}
                       onBlur={() => {
                         if (!entry.userId.trim())
                           setErrors((prev) => ({ ...prev, [index]: { ...prev[index], userId: "User ID is required." } }));

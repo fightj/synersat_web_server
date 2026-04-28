@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
@@ -22,6 +22,8 @@ export default function CrewComponentCard() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ?? null;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode") ?? "normal";
   const lastEvent = useCommandEventStore((s) => s.lastEvent);
   const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent);
 
@@ -112,7 +114,18 @@ export default function CrewComponentCard() {
     clearLastEvent();
   }, [lastEvent, imo, pathname, silentRefetch, clearLastEvent]);
 
-  const allIds = useMemo(() => crew.filter((u) => u.updateType == null).map((u) => u.userId), [crew]);
+  const filteredCrew = useMemo(
+    () =>
+      mode === "prepay"
+        ? crew.filter((u) => u.userId.startsWith("crewpay-"))
+        : crew.filter((u) => !u.userId.startsWith("crewpay-")),
+    [crew, mode],
+  );
+
+  // 탭 전환 시 선택 초기화
+  useEffect(() => { setSelected(new Set()); }, [mode]);
+
+  const allIds = useMemo(() => filteredCrew.filter((u) => u.updateType == null).map((u) => u.userId), [filteredCrew]);
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
   const noneSelected = selected.size === 0;
 
@@ -131,7 +144,7 @@ export default function CrewComponentCard() {
   };
 
   const onAction = async (action: ActionType) => {
-    const selectedUsers = crew.filter((u) => selected.has(u.userId));
+    const selectedUsers = filteredCrew.filter((u) => selected.has(u.userId));
     if (action === "CHECK_PW") {
       setCheckPwEntries(selectedUsers.map((u) => ({ username: u.userId, password: u.password })));
       setCheckPwOpen(true);
@@ -144,9 +157,9 @@ export default function CrewComponentCard() {
   };
 
   const handleExportCSV = () => {
-    if (crew.length === 0) return;
+    if (filteredCrew.length === 0) return;
     const headers = ["ID", "Description", "Type", "Update Period", "Usage (MB)"];
-    const rows = crew.map((u) => [
+    const rows = filteredCrew.map((u) => [
       u.userId,
       u.description ?? "",
       u.terminalType ?? "",
@@ -171,21 +184,21 @@ export default function CrewComponentCard() {
     <div className="space-y-6">
       <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
 
-      <PageBreadcrumb pageTitle="Manage Crew Account" />
+      <PageBreadcrumb pageTitle={mode === "prepay" ? "Manage Prepay" : "Manage Crew Account"} />
 
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
         <CrewToolbar
           vesselName={selectedVessel?.name}
           noneSelected={noneSelected}
           isLoading={isLoading}
-          crewCount={crew.length}
+          crewCount={filteredCrew.length}
           onAction={onAction}
           onExportCSV={handleExportCSV}
           onAddVoucher={() => setAddCrewOpen(true)}
           onModifyVoucher={() => setModifyCrewOpen(true)}
         />
         <CrewTable
-          crew={crew}
+          crew={filteredCrew}
           isLoading={isLoading}
           hasVessel={!!imo}
           fetchError={fetchError}
@@ -196,6 +209,7 @@ export default function CrewComponentCard() {
           onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
           onOpenTopUp={(u) => setTopUpTarget(u)}
           onRetry={fetchCrewData}
+          formatUserId={mode === "prepay" ? (id) => id.replace(/^crewpay-/, "") : undefined}
         />
       </div>
 
@@ -228,7 +242,7 @@ export default function CrewComponentCard() {
           isOpen={modifyCrewOpen}
           onClose={() => setModifyCrewOpen(false)}
           onSaved={() => { setModifyCrewOpen(false); fetchCrewData(true); }}
-          selectedCrew={crew.filter((u) => selected.has(u.userId))}
+          selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
         />
       )}
