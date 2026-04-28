@@ -32,6 +32,7 @@ interface AddCrewModalProps {
   onClose: () => void;
   onSaved?: () => void;
   imo: number;
+  defaultPrepay?: boolean;
 }
 
 const TIME_RANGE_OPTIONS = [
@@ -62,7 +63,7 @@ const labelClass = "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 bloc
 
 const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
-export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewModalProps) {
+export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPrepay = false }: AddCrewModalProps) {
   const [entries, setEntries] = useState<CrewEntry[]>([createEmptyEntry()]);
   const [errors, setErrors] = useState<Record<number, EntryErrors>>({});
   const [saving, setSaving] = useState(false);
@@ -75,7 +76,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
 
   useEffect(() => {
     if (!isOpen) return;
-    setEntries([createEmptyEntry()]);
+    setEntries([{ ...createEmptyEntry(), isPrepay: defaultPrepay }]);
     setErrors({});
     setAlertState(null);
     getGateways(imo)
@@ -105,7 +106,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
   const handleTogglePrepay = (index: number) =>
     setEntries((prev) => prev.map((e, i) => i === index ? { ...e, isPrepay: !e.isPrepay } : e));
 
-  const handleAdd = () => setEntries((prev) => [...prev, createEmptyEntry()]);
+  const handleAdd = () => setEntries((prev) => [...prev, { ...createEmptyEntry(), isPrepay: defaultPrepay }]);
 
   const handleRemove = (index: number) => {
     setEntries((prev) => prev.filter((_, i) => i !== index));
@@ -240,7 +241,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
             return (
               <div
                 key={index}
-                className="relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.02]"
+                className="relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/2"
               >
                 {/* Card header */}
                 <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-white/5">
@@ -288,7 +289,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                       className={`${inputClass} ${entryErrors.userId ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
                       placeholder="Enter user ID"
                       value={entry.userId}
-                      onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))}
+                      onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9-]/g, "").replace(/crewpay-/gi, ""))}
                       onBlur={() => {
                         if (!entry.userId.trim())
                           setErrors((prev) => ({ ...prev, [index]: { ...prev[index], userId: "User ID is required." } }));

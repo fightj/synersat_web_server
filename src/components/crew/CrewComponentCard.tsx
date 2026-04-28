@@ -116,9 +116,10 @@ export default function CrewComponentCard() {
 
   const filteredCrew = useMemo(
     () =>
-      mode === "prepay"
+      (mode === "prepay"
         ? crew.filter((u) => u.userId.startsWith("crewpay-"))
-        : crew.filter((u) => !u.userId.startsWith("crewpay-")),
+        : crew.filter((u) => !u.userId.startsWith("crewpay-"))
+      ).filter((u) => u.userId !== "synersat"),
     [crew, mode],
   );
 
@@ -253,6 +254,7 @@ export default function CrewComponentCard() {
           onClose={() => setAddCrewOpen(false)}
           onSaved={() => { setAddCrewOpen(false); fetchCrewData(true); }}
           imo={imo}
+          defaultPrepay={mode === "prepay"}
         />
       )}
     </div>
