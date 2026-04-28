@@ -62,11 +62,13 @@ const BeamThumb = memo(function BeamThumb({ points, size = 32 }: { points: [numb
 export default function WorldMap({ vessels }: MainWorldMapProps) {
   const router = useRouter();
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const searchTrigger = useVesselStore((s) => s.searchTrigger);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
   const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
   const isMountedRef = useRef(false);
   const prevSelectedImoRef = useRef<number | null>(null);
+  const prevSearchTriggerRef = useRef<number>(0);
   const vesselsRef = useRef(vessels);
   const pingMarkerRef = useRef<any>(null);
   const gpsAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,11 +221,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     if (!isMountedRef.current) {
       isMountedRef.current = true;
       prevSelectedImoRef.current = selectedVessel?.imo ?? null;
+      prevSearchTriggerRef.current = searchTrigger;
       return;
     }
     const newImo = selectedVessel?.imo ?? null;
-    if (newImo === prevSelectedImoRef.current) return;
+    const imoChanged = newImo !== prevSelectedImoRef.current;
+    const triggerChanged = searchTrigger !== prevSearchTriggerRef.current;
+    if (!imoChanged && !triggerChanged) return;
     prevSelectedImoRef.current = newImo;
+    prevSearchTriggerRef.current = searchTrigger;
 
     // 이전 선박의 ping/팝업 초기화
     setClickedVessel(null);
@@ -267,7 +273,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       gpsAlertTimerRef.current = setTimeout(() => setGpsAlert(false), 30000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVessel, mapReady]);
+  }, [selectedVessel, searchTrigger, mapReady]);
 
   const handleListViewDetail = async (imo: number) => {
     try {

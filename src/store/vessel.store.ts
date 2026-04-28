@@ -12,6 +12,7 @@ type VesselStore = {
   error: string | null;
 
   selectedVessel: SelectedVessel | null;
+  searchTrigger: number;
   setSelectedVessel: (v: SelectedVessel | null) => void;
   clearSelectedVessel: () => void;
 
@@ -27,7 +28,8 @@ export const useVesselStore = create<VesselStore>()(
       error: null,
 
       selectedVessel: null,
-      setSelectedVessel: (v) => set({ selectedVessel: v }),
+      searchTrigger: 0,
+      setSelectedVessel: (v) => set((state) => ({ selectedVessel: v, searchTrigger: state.searchTrigger + 1 })),
       clearSelectedVessel: () => set({ selectedVessel: null }),
 
       fetchVessels: async () => {
