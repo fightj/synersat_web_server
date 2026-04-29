@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type { Vessel } from "@/types/vessel";
+import { ArrowPathIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 
 interface GrafanaDashModalProps {
   vessel: Vessel | null;
@@ -11,7 +12,11 @@ interface GrafanaDashModalProps {
 const BASE_URL =
   "https://fleet-dashboard.synersatfleet.net/d/datausagehistory-detail/fleet-data-usage-history-cached";
 
+const GRAFANA_LOGIN_URL = "https://fleet-dashboard.synersatfleet.net/login";
+
 export default function GrafanaDashModal({ vessel, onClose }: GrafanaDashModalProps) {
+  const [iframeKey, setIframeKey] = useState(0);
+
   const iframeUrl = useMemo(() => {
     if (!vessel) return null;
     const params = new URLSearchParams({
@@ -38,17 +43,39 @@ export default function GrafanaDashModal({ vessel, onClose }: GrafanaDashModalPr
         className="flex flex-col overflow-hidden rounded-2xl shadow-2xl"
         style={{ width: "90vw", height: "90vh" }}
       >
-        <div className="flex shrink-0 items-center justify-between bg-gray-900 px-4 py-2">
-          <span className="truncate text-xs text-gray-400">{iframeUrl}</span>
-          <button
-            onClick={onClose}
-            className="ml-4 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-500"
-          >
-            ✕
-          </button>
+        {/* Header */}
+        <div className="flex shrink-0 items-center gap-2 bg-gray-900 px-4 py-2">
+          <span className="min-w-0 flex-1 truncate text-xs text-gray-400">{iframeUrl}</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={GRAFANA_LOGIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-md bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-300 transition-colors hover:bg-orange-500/30"
+            >
+              <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
+              Login to Grafana
+            </a>
+            <button
+              onClick={() => setIframeKey((k) => k + 1)}
+              title="Reload"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            >
+              <ArrowPathIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-500"
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        {/* iframe */}
         {iframeUrl && (
           <iframe
+            key={iframeKey}
             src={iframeUrl}
             className="h-full w-full border-0 bg-white"
             title="Grafana Dashboard"
