@@ -6,7 +6,8 @@ import { useToastStore } from "@/store/toast.store";
 import { useCommandEventStore } from "@/store/command-event.store";
 import { useNotificationStore } from "@/store/notification.store";
 
-const RECONNECT_DELAY = 5000;
+const BASE_RECONNECT_DELAY = 5000;
+const MAX_RECONNECT_DELAY = 60000;
 
 export function useSSE() {
   const disconnectRef = useRef<(() => void) | null>(null);
@@ -14,6 +15,10 @@ export function useSSE() {
   const initTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isManualDisconnect = useRef(false);
   const connectRef = useRef<(() => void) | null>(null);
+  const retryCountRef = useRef(0);
+
+  const getReconnectDelay = () =>
+    Math.min(BASE_RECONNECT_DELAY * 2 ** retryCountRef.current, MAX_RECONNECT_DELAY);
 
   const connect = useCallback(() => {
     disconnectRef.current = connectSSE({
@@ -38,6 +43,7 @@ export function useSSE() {
           });
           useNotificationStore.getState().setHasNew(true);
         }
+        retryCountRef.current = 0; // 메시지 수신 성공 시 재시도 횟수 초기화
       },
 
       // ✅ VESSEL_DISCONNECTED 처리
@@ -52,6 +58,7 @@ export function useSSE() {
           lastConnectAt: data.lastConnectAt,
         });
         useNotificationStore.getState().setHasNew(true);
+        retryCountRef.current = 0; // 메시지 수신 성공 시 재시도 횟수 초기화
       },
 
       onError: (error) => {
@@ -61,11 +68,13 @@ export function useSSE() {
       onDisconnect: () => {
         console.log("[SSE] 연결 끊김 감지");
         if (!isManualDisconnect.current) {
-          console.log(`[SSE] ${RECONNECT_DELAY / 1000}초 후 재연결 시도...`);
+          const delay = getReconnectDelay();
+          retryCountRef.current += 1;
+          console.log(`[SSE] ${delay / 1000}초 후 재연결 시도... (${retryCountRef.current}회차)`);
           reconnectTimerRef.current = setTimeout(() => {
             console.log("[SSE] 재연결 시도");
             connectRef.current?.();
-          }, RECONNECT_DELAY);
+          }, delay);
         }
       },
     });
