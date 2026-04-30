@@ -49,8 +49,19 @@ export const useVesselStore = create<VesselStore>()(
           const fresh = await getVessels();
 
           if (hasCached) {
-            // 기존 데이터와 비교 후 달라졌을 때만 업데이트
-            const isDifferent = JSON.stringify(fresh) !== JSON.stringify(get().vessels);
+            // 자주 바뀌는 실시간 필드는 제외하고 비교
+            const toComparable = (vessels: Vessel[]) =>
+              vessels.map((v) => ({
+                ...v,
+                imo: undefined,
+                status: v.status
+                  ? { ...v.status, lastConnectedAt: undefined, satSignal: undefined, satId: undefined }
+                  : v.status,
+              }));
+
+            const isDifferent =
+              JSON.stringify(toComparable(fresh)) !== JSON.stringify(toComparable(get().vessels));
+
             if (isDifferent) {
               set({ vessels: fresh, vesselDataUpdated: true });
 

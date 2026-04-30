@@ -25,7 +25,6 @@ interface VesselPoint {
   imo: number;
   color: string;
   connected: boolean;
-  timestamp: any;
   antennaDisplayName: string | null | undefined;
   satType: string | null | undefined;
   vesselSpeed: number | null | undefined;
@@ -108,7 +107,6 @@ export function useVesselMarkers({
           imo: v.imo,
           color: v.connected === false ? "#ef4444" : getServiceColor(v.antennaDisplayName),
           connected: v.connected !== false,
-          timestamp: v.timestamp,
           antennaDisplayName: v.antennaDisplayName,
           satType: v.satType,
           vesselSpeed: v.vesselSpeed,

@@ -86,7 +86,6 @@ export interface DataUsageDetail {
   dataUsage: number;
   interfaceName: string;
   antennaName: string;
-  antennaColor: string;
   antennaDisplayName: string;
 }
 
@@ -105,7 +104,6 @@ export interface RouteCoordinate {
     timeStamp: string | null;
     antennaServiceName: string | null;
     antennaServiceDisplayName: string | null;
-    antennaServiceColor: string | null;
     satType: string | null;
     antennaStatus: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
     transmitEnabled: boolean | null;
@@ -133,11 +131,8 @@ export interface DashboardVesselPosition {
   vesselHeading: number | null;
   satSignalStrength: number | null;
   satId: number | null;
-  timestamp: string;
-  currentRouteInterface: string | null;
   antennaName: string | null;
   antennaDisplayName: string | null;
-  antennaColor: string | null;
   satType: string | null;
   connected: boolean;
   discard?: boolean | null;

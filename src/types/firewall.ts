@@ -1,7 +1,6 @@
 // ─── 실제 NAT 룰 데이터 ───────────────────────────────────────────────────────
 export interface DeviceNatRule {
   vesselImo: number | null;
-  apply: boolean | null;
   description: string;
   disabled: boolean;
   destinationIp: string;
@@ -11,11 +10,7 @@ export interface DeviceNatRule {
   sourceIp: string;
   sourcePort: string | null;
   interfaceName: string;
-  natreflection: string | null;
-  nordr: boolean | null;
-  nosync: boolean | null;
   protocol: string;
-  top: boolean | null;
 }
 
 // ─── API 응답 래퍼 ────────────────────────────────────────────────────────────

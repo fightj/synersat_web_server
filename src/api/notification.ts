@@ -25,11 +25,9 @@ export type NotificationContent =
 
 export interface NotificationItem {
   id: number;
-  acct: string | null;
   targetUserId: string;
   readUserId: string | null;
   kind: "COMMAND_NOTIFICATION" | "VESSEL_DISCONNECTED" | string;
-  title: string;
   content: NotificationContent;
   createdAt: string;
   readAt: string | null;
