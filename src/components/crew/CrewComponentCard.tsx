@@ -13,10 +13,11 @@ import SuspensionSetupModal from "./SuspensionSetupModal";
 import AddCrewModal from "./AddCrewModal";
 import ModifyCrewModal from "./ModifyCrewModal";
 import CheckPwModal from "./CheckPwModal";
+import CheckUsageModal from "./CheckUsageModal";
 import TopUpModal from "./TopUpModal";
 import RefreshBanner from "@/components/common/RefreshBanner";
 
-type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
+type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
 
 export default function CrewComponentCard() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
@@ -40,6 +41,7 @@ export default function CrewComponentCard() {
   const [checkPwOpen, setCheckPwOpen] = useState(false);
   const [checkPwEntries, setCheckPwEntries] = useState<{ username: string; password: string | undefined }[]>([]);
   const [topUpTarget, setTopUpTarget] = useState<CrewEntry | null>(null);
+  const [checkUsageOpen, setCheckUsageOpen] = useState(false);
   const [refreshBanner, setRefreshBanner] = useState(false);
 
   const processRaw = useCallback((result: any): CrewEntry[] => {
@@ -151,6 +153,10 @@ export default function CrewComponentCard() {
       setCheckPwOpen(true);
       return;
     }
+    if (action === "CHECK_USAGE") {
+      setCheckUsageOpen(true);
+      return;
+    }
     if (confirm(`${action} action for ${selected.size} users. Are you sure?`)) {
       console.log(`Executing ${action} for:`, selectedUsers.map((u) => u.userId));
       alert(`${action} has been requested.`);
@@ -231,6 +237,15 @@ export default function CrewComponentCard() {
         onClose={() => setCheckPwOpen(false)}
         entries={checkPwEntries}
       />
+
+      {imo && (
+        <CheckUsageModal
+          isOpen={checkUsageOpen}
+          onClose={() => setCheckUsageOpen(false)}
+          selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
+          imo={imo}
+        />
+      )}
 
       <SuspensionSetupModal
         isOpen={suspensionModal.open}

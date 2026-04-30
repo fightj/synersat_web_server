@@ -80,6 +80,30 @@ export async function updateCrewTopUp(imo: number, crewId: string, payload: Crew
   }
 }
 
+export async function getCrewOctetUsages(
+  imo: number,
+  crewIds: string[],
+  startAt: string,
+  endAt: string,
+): Promise<any> {
+  try {
+    const params = new URLSearchParams();
+    crewIds.forEach((id) => params.append("crewIds", id));
+    params.set("startAt", startAt);
+    params.set("endAt", endAt);
+
+    const res = await fetch(
+      `${BASE_URL}/vessels/${imo}/crews/octets/usages?${params.toString()}`,
+      withTestUser({ ...fetchOptions, method: "GET" }),
+    );
+    if (!res.ok) throw new Error("Fail to fetch crew octet usages");
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching crew octet usages:", error);
+    throw error;
+  }
+}
+
 export async function getGateways(imo: number): Promise<string[]> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/gateways`, withTestUser(

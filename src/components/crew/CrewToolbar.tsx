@@ -4,7 +4,7 @@ import Image from "next/image";
 import { CsvIcon, UpdateIcon, CheckIcon } from "@/icons";
 import Button from "@/components/ui/button/Button";
 
-type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE";
+type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
 
 interface CrewToolbarProps {
   vesselName: string | undefined;
@@ -24,6 +24,12 @@ const DeleteIcon = () => (
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+const UsageIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 20V10M12 20V4M6 20v-6" />
   </svg>
 );
 
@@ -63,38 +69,37 @@ export default function CrewToolbar({
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<UpdateIcon />}
-          onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}
-          className="ring-blue-400! text-blue-600! hover:bg-blue-50! dark:ring-blue-600! dark:text-blue-400! dark:hover:bg-blue-500/10!">
+          onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}>
           Reset PW
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<UpdateIcon />}
-          onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}
-          className="ring-blue-400! text-blue-600! hover:bg-blue-50! dark:ring-blue-600! dark:text-blue-400! dark:hover:bg-blue-500/10!">
+          onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}>
           Reset Data
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<CheckIcon />}
-          onClick={() => onAction("CHECK_PW")} disabled={noneSelected || isLoading}
-          className="ring-blue-400! text-blue-600! hover:bg-blue-50! dark:ring-blue-600! dark:text-blue-400! dark:hover:bg-blue-500/10!">
+          onClick={() => onAction("CHECK_PW")} disabled={noneSelected || isLoading}>
           Check PW
         </Button>
 
+        <Button size="sm" variant="outline" startIcon={<UsageIcon />}
+          onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
+          Check Usage
+        </Button>
+
         <Button size="sm" variant="outline" startIcon={<EditIcon />}
-          onClick={onModifyVoucher} disabled={noneSelected || isLoading}
-          className="ring-amber-400! text-amber-600! hover:bg-amber-50! dark:ring-amber-600! dark:text-amber-400! dark:hover:bg-amber-500/10!">
+          onClick={onModifyVoucher} disabled={noneSelected || isLoading}>
           Modify Voucher
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<PlusIcon />}
-          onClick={onAddVoucher} disabled={isLoading}
-          className="ring-emerald-400! text-emerald-600! hover:bg-emerald-50! dark:ring-emerald-600! dark:text-emerald-400! dark:hover:bg-emerald-500/10!">
+          onClick={onAddVoucher} disabled={isLoading}>
           Add Voucher
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<DeleteIcon />}
-          onClick={() => onAction("DELETE")} disabled={noneSelected || isLoading}
-          className="ring-red-400! text-red-600! hover:bg-red-50! dark:ring-red-600! dark:text-red-400! dark:hover:bg-red-500/10!">
+          onClick={() => onAction("DELETE")} disabled={noneSelected || isLoading}>
           Delete
         </Button>
       </div>

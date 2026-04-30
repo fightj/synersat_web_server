@@ -1,0 +1,228 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import { Modal } from "@/components/ui/modal";
+import TimeSetting from "@/components/vessel/TimeSetting";
+import { getCrewOctetUsages } from "@/api/crew-account";
+import type { CrewEntry } from "@/types/crew_account";
+import Loading from "@/components/common/Loading";
+
+interface SessionUsage {
+  startAt: string;
+  endAt: string;
+  sessionTime: number;
+  inputOctets: number;
+  outputOctets: number;
+  totalOctets: number;
+}
+
+interface CrewUsageData {
+  crewId: string;
+  usages: SessionUsage[];
+  totalOctets: number;
+  totalInputOctets: number;
+  totalOutputOctets: number;
+}
+
+interface CheckUsageModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedCrew: CrewEntry[];
+  imo: number;
+}
+
+// bits → MB
+const toMB = (bits: number) => (bits / 8 / 1024 / 1024).toFixed(3);
+
+const formatDuration = (seconds: number) => {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+};
+
+const formatTime = (iso: string | null | undefined) => (iso ? iso.replace("T", " ") : "-");
+
+export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: CheckUsageModalProps) {
+  const [usageMap, setUsageMap] = useState<Record<string, CrewUsageData>>({});
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [pendingRange, setPendingRange] = useState<{ startAt: string; endAt: string } | null>(null);
+
+  const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
+    setPendingRange({ startAt, endAt });
+  }, []);
+
+  const handleApply = useCallback(async () => {
+    if (!pendingRange) return;
+    setLoading(true);
+    setHasApplied(true);
+    try {
+      const crewIds = selectedCrew.map((c) => c.userId);
+      const res = await getCrewOctetUsages(imo, crewIds, pendingRange.startAt, pendingRange.endAt);
+      const dataUsages: CrewUsageData[] = res?.dataUsages ?? [];
+      const map: Record<string, CrewUsageData> = {};
+      dataUsages.forEach((d) => { map[d.crewId] = d; });
+      setUsageMap(map);
+      if (!selectedUserId && dataUsages.length > 0) {
+        setSelectedUserId(dataUsages[0].crewId);
+      }
+    } catch {
+      setUsageMap({});
+    } finally {
+      setLoading(false);
+    }
+  }, [imo, selectedCrew, selectedUserId, pendingRange]);
+
+  const handleClose = () => {
+    setUsageMap({});
+    setSelectedUserId(null);
+    setHasApplied(false);
+    setPendingRange(null);
+    onClose();
+  };
+
+  const selectedData = selectedUserId ? usageMap[selectedUserId] : null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1400px] overflow-hidden p-0">
+      <div className="flex h-[85vh] flex-col">
+        {/* Header */}
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-100 px-5 py-3 dark:border-white/10">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check Usage</h3>
+            <p className="text-xs text-gray-400">{selectedCrew.length} user{selectedCrew.length > 1 ? "s" : ""} selected</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+            <button
+              onClick={handleApply}
+              disabled={!pendingRange || loading}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Apply
+            </button>
+            <button
+              onClick={handleClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path fillRule="evenodd" clipRule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body: always two-panel layout */}
+        <div className="flex min-h-0 flex-1">
+          {/* Left: user list (always visible) */}
+          <div className="flex w-[300px] shrink-0 flex-col border-r border-gray-100 dark:border-white/10">
+            <div className="border-b border-gray-100 px-4 py-2.5 dark:border-white/10">
+              <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Users</p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {selectedCrew.length === 0 ? (
+                <p className="px-4 py-6 text-center text-xs text-gray-400">No users selected.</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/2">
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">ID</th>
+                      <th className="px-2 py-2 text-right font-bold text-gray-500">↓ In</th>
+                      <th className="px-2 py-2 text-right font-bold text-gray-500">↑ Out</th>
+                      <th className="px-2 py-2 text-right font-bold text-gray-500">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                    {selectedCrew.map((crew) => {
+                      const data = usageMap[crew.userId];
+                      const isSelected = selectedUserId === crew.userId;
+                      return (
+                        <tr
+                          key={crew.userId}
+                          onClick={() => setSelectedUserId(crew.userId)}
+                          className={`cursor-pointer transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10" : "hover:bg-gray-50 dark:hover:bg-white/3"}`}
+                        >
+                          <td className={`max-w-[100px] truncate px-3 py-2.5 font-semibold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200"}`}>
+                            {crew.userId}
+                          </td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 dark:text-gray-400">
+                            {data ? toMB(data.totalInputOctets) : "-"}
+                          </td>
+                          <td className="px-2 py-2.5 text-right text-gray-500 dark:text-gray-400">
+                            {data ? toMB(data.totalOutputOctets) : "-"}
+                          </td>
+                          <td className={`px-2 py-2.5 text-right font-bold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}>
+                            {data ? `${toMB(data.totalOctets)} MB` : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+          {/* Right: session details */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="border-b border-gray-100 px-4 py-2.5 dark:border-white/10">
+              <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                Sessions{selectedUserId ? ` — ${selectedUserId}` : ""}
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {!hasApplied ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-gray-300 dark:text-gray-600">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4M12 16h.01" />
+                  </svg>
+                  <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Set a time range and click Apply to load data.</p>
+                </div>
+              ) : loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loading message="Fetching usage data..." />
+                </div>
+              ) : !selectedData ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-sm text-gray-400">Select a user to view sessions.</p>
+                </div>
+              ) : selectedData.usages.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-sm text-gray-400">No session data in this period.</p>
+                </div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/2">
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">Start</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">End</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">Duration</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In (MB)</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out (MB)</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">Total (MB)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                    {selectedData.usages.map((s, i) => (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-white/3">
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.startAt)}</td>
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.endAt)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-500">{formatDuration(s.sessionTime)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(s.inputOctets)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(s.outputOctets)}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-gray-800 dark:text-gray-200">{toMB(s.totalOctets)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}

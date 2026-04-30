@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
@@ -27,7 +27,14 @@ export default function VesselComponentCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<typeof STAT_CATEGORIES[number]["key"] | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const vessels = useVesselStore((s) => s.vessels);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const stats = useMemo(() => {
     const name = (v: (typeof vessels)[0]) =>
@@ -98,6 +105,18 @@ export default function VesselComponentCard() {
         <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} />
       </div>
       <VesselFormModal isOpen={isOpen} onClose={closeModal} mode="add" />
+
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed right-6 bottom-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg ring-1 ring-gray-200 transition-all hover:bg-gray-50 hover:shadow-xl dark:bg-gray-800 dark:ring-white/10 dark:hover:bg-gray-700"
+          aria-label="Scroll to top"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
+            <path d="M18 15l-6-6-6 6" />
+          </svg>
+        </button>
+      )}
     </>
   );
 }
