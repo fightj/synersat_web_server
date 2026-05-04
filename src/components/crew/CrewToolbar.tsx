@@ -68,38 +68,41 @@ export default function CrewToolbar({
           Export CSV
         </Button>
 
-        <Button size="sm" variant="outline" startIcon={<UpdateIcon />}
+        <Button size="sm" variant="outline" 
           onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}>
           Reset PW
         </Button>
 
-        <Button size="sm" variant="outline" startIcon={<UpdateIcon />}
+        <Button size="sm" variant="outline" 
           onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}>
           Reset Data
         </Button>
 
-        <Button size="sm" variant="outline" startIcon={<CheckIcon />}
+        <Button size="sm" variant="outline" 
           onClick={() => onAction("CHECK_PW")} disabled={noneSelected || isLoading}>
           Check PW
         </Button>
 
-        <Button size="sm" variant="outline" startIcon={<UsageIcon />}
+        <Button size="sm" variant="outline" 
           onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
           Check Usage
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<EditIcon />}
-          onClick={onModifyVoucher} disabled={noneSelected || isLoading}>
+          onClick={onModifyVoucher} disabled={noneSelected || isLoading}
+          className=" text-amber-700! ring-amber-300! hover:bg-amber-50! dark:text-amber-400! dark:ring-amber-700! dark:hover:bg-amber-900/30!">
           Modify Voucher
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<PlusIcon />}
-          onClick={onAddVoucher} disabled={isLoading}>
+          onClick={onAddVoucher} disabled={isLoading}
+          className=" text-emerald-700! ring-emerald-300! hover:bg-emerald-50!  dark:text-emerald-400! dark:ring-emerald-700! dark:hover:bg-emerald-900/30!">
           Add Voucher
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<DeleteIcon />}
-          onClick={() => onAction("DELETE")} disabled={noneSelected || isLoading}>
+          onClick={() => onAction("DELETE")} disabled={noneSelected || isLoading}
+          className=" text-red-700! ring-red-300! hover:bg-red-50!  dark:text-red-400! dark:ring-red-700! dark:hover:bg-red-900/30!">
           Delete
         </Button>
       </div>

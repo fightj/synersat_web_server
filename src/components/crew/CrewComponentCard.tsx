@@ -244,6 +244,7 @@ export default function CrewComponentCard() {
           onClose={() => setCheckUsageOpen(false)}
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
+          vesselName={selectedVessel?.name ?? "vessel"}
         />
       )}
 

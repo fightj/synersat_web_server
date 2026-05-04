@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import JSZip from "jszip";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
 import { getCrewOctetUsages } from "@/api/crew-account";
@@ -29,6 +30,7 @@ interface CheckUsageModalProps {
   onClose: () => void;
   selectedCrew: CrewEntry[];
   imo: number;
+  vesselName: string;
 }
 
 // bits → MB
@@ -43,12 +45,22 @@ const formatDuration = (seconds: number) => {
 
 const formatTime = (iso: string | null | undefined) => (iso ? iso.replace("T", " ") : "-");
 
-export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: CheckUsageModalProps) {
+const getDefault24hRange = () => {
+  const end = new Date();
+  const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+  return {
+    startAt: start.toISOString().slice(0, 19),
+    endAt: end.toISOString().slice(0, 19),
+  };
+};
+
+export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName }: CheckUsageModalProps) {
   const [usageMap, setUsageMap] = useState<Record<string, CrewUsageData>>({});
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
-  const [pendingRange, setPendingRange] = useState<{ startAt: string; endAt: string } | null>(null);
+  const [pendingRange, setPendingRange] = useState(getDefault24hRange);
+  const [appliedRange, setAppliedRange] = useState<{ startAt: string; endAt: string } | null>(null);
 
   const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
     setPendingRange({ startAt, endAt });
@@ -58,6 +70,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
     if (!pendingRange) return;
     setLoading(true);
     setHasApplied(true);
+    setAppliedRange(pendingRange);
     try {
       const crewIds = selectedCrew.map((c) => c.userId);
       const res = await getCrewOctetUsages(imo, crewIds, pendingRange.startAt, pendingRange.endAt);
@@ -75,11 +88,48 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
     }
   }, [imo, selectedCrew, selectedUserId, pendingRange]);
 
+  const handleDownloadZip = useCallback(async () => {
+    const zip = new JSZip();
+    const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
+    const BOM = "﻿";
+    selectedCrew.forEach((crew) => {
+      const data = usageMap[crew.userId];
+      const rows: string[] = [];
+      // Summary section
+      rows.push(`Time Range,="${appliedRange?.startAt ?? ""}",="${appliedRange?.endAt ?? ""}"`);
+      rows.push(`Username,${crew.userId}`);
+      rows.push(`Total Download (MB),${data ? toMB(data.totalInputOctets) : "0"}`);
+      rows.push(`Total Upload (MB),${data ? toMB(data.totalOutputOctets) : "0"}`);
+      rows.push(`Total Usage (MB),${data ? toMB(data.totalOctets) : "0"}`);
+      rows.push("");
+      // Session section
+      rows.push("Start,End,Duration,Download (MB),Upload (MB),Total (MB)");
+      (data?.usages ?? []).forEach((s) => {
+        rows.push([
+          `="${formatTime(s.startAt)}"`,
+          `="${formatTime(s.endAt)}"`,
+          formatDuration(s.sessionTime),
+          toMB(s.inputOctets),
+          toMB(s.outputOctets),
+          toMB(s.totalOctets),
+        ].join(","));
+      });
+      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.csv`, BOM + rows.join("\n"));
+    });
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `usage_${new Date().toISOString().slice(0, 10)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [selectedCrew, usageMap, vesselName, appliedRange]);
+
   const handleClose = () => {
     setUsageMap({});
     setSelectedUserId(null);
     setHasApplied(false);
-    setPendingRange(null);
+    setPendingRange(getDefault24hRange());
     onClose();
   };
 
@@ -89,16 +139,29 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
     <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1400px] overflow-hidden p-0">
       <div className="flex h-[85vh] flex-col">
         {/* Header */}
-        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-100 px-5 py-3 dark:border-white/10">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-100 px-6 py-4 dark:border-white/10">
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check Usage</h3>
             <p className="text-xs text-gray-400">{selectedCrew.length} user{selectedCrew.length > 1 ? "s" : ""} selected</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {hasApplied && Object.keys(usageMap).length > 0 && (
+              <button
+                onClick={handleDownloadZip}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download CSV
+              </button>
+            )}
             <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
             <button
               onClick={handleApply}
-              disabled={!pendingRange || loading}
+              disabled={loading}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apply
@@ -117,8 +180,8 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
         {/* Body: always two-panel layout */}
         <div className="flex min-h-0 flex-1">
           {/* Left: user list (always visible) */}
-          <div className="flex w-[300px] shrink-0 flex-col border-r border-gray-100 dark:border-white/10">
-            <div className="border-b border-gray-100 px-4 py-2.5 dark:border-white/10">
+          <div className="flex w-[500px] shrink-0 flex-col border-r border-gray-100 dark:border-white/10">
+            <div className="border-b border-gray-100 px-5 py-3 dark:border-white/10">
               <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Users</p>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -127,11 +190,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
               ) : (
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/2">
-                      <th className="px-3 py-2 text-left font-bold text-gray-500">ID</th>
-                      <th className="px-2 py-2 text-right font-bold text-gray-500">↓ In</th>
-                      <th className="px-2 py-2 text-right font-bold text-gray-500">↑ Out</th>
-                      <th className="px-2 py-2 text-right font-bold text-gray-500">Total</th>
+                    <tr className="border-b border-gray-100 bg-gray-100 dark:border-white/5 dark:bg-white/2">
+                      <th className="px-4 py-2 text-left font-bold text-gray-500">ID</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -144,16 +207,16 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
                           onClick={() => setSelectedUserId(crew.userId)}
                           className={`cursor-pointer transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10" : "hover:bg-gray-50 dark:hover:bg-white/3"}`}
                         >
-                          <td className={`max-w-[100px] truncate px-3 py-2.5 font-semibold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200"}`}>
+                          <td className={`px-4 py-3 font-semibold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200"}`}>
                             {crew.userId}
                           </td>
-                          <td className="px-2 py-2.5 text-right text-gray-500 dark:text-gray-400">
+                          <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
                             {data ? toMB(data.totalInputOctets) : "-"}
                           </td>
-                          <td className="px-2 py-2.5 text-right text-gray-500 dark:text-gray-400">
+                          <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
                             {data ? toMB(data.totalOutputOctets) : "-"}
                           </td>
-                          <td className={`px-2 py-2.5 text-right font-bold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}>
+                          <td className={`px-3 py-3 text-right font-bold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}>
                             {data ? `${toMB(data.totalOctets)} MB` : "-"}
                           </td>
                         </tr>
@@ -167,9 +230,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
 
           {/* Right: session details */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="border-b border-gray-100 px-4 py-2.5 dark:border-white/10">
+            <div className="border-b border-gray-100 px-5 py-3 dark:border-white/10">
               <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
-                Sessions{selectedUserId ? ` — ${selectedUserId}` : ""}
+                Sessions{selectedUserId ? (
+                  <> — <span className="text-black dark:text-white">{selectedUserId}</span></>
+                ) : ""}
               </p>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -196,7 +261,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
               ) : (
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 z-10">
-                    <tr className="border-b border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/2">
+                    <tr className="border-b border-gray-100 bg-gray-100 dark:border-white/5 dark:bg-white/2">
                       <th className="px-3 py-2 text-left font-bold text-gray-500">Start</th>
                       <th className="px-3 py-2 text-left font-bold text-gray-500">End</th>
                       <th className="px-3 py-2 text-right font-bold text-gray-500">Duration</th>
@@ -206,7 +271,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo }: 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    {selectedData.usages.map((s, i) => (
+                    {[...selectedData.usages].sort((a, b) => (b.startAt ?? "").localeCompare(a.startAt ?? "")).map((s, i) => (
                       <tr key={i} className="hover:bg-gray-50 dark:hover:bg-white/3">
                         <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.startAt)}</td>
                         <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.endAt)}</td>
