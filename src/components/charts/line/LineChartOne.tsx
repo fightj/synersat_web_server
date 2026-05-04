@@ -201,16 +201,7 @@ export default function LineChartOne({
         height: 280,
         fontFamily: "Inter, sans-serif",
         toolbar: {
-          show: true,
-          tools: {
-            download: true,
-            selection: true,
-            zoom: false,
-            zoomin: false,
-            zoomout: false,
-            pan: false,
-            reset: false,
-          },
+          show: false,
           autoSelected: "selection",
         },
         selection: {
@@ -261,7 +252,13 @@ export default function LineChartOne({
         labels: {
           style: { colors: "#6B7280", fontSize: "12px", fontWeight: 700 },
           datetimeUTC: false,
-          format: isLongTerm ? "M/d" : "HH:mm",
+          datetimeFormatter: {
+            year: "yyyy",
+            month: "M/d",
+            day: "M/d",
+            hour: "HH:mm",
+            minute: "HH:mm",
+          },
         },
         tickAmount: isLongTerm ? Math.min(dayDiff, 8) : 6,
         axisBorder: { show: false },
@@ -365,7 +362,7 @@ export default function LineChartOne({
       )}
 
       {/* 차트 영역 — 항상 렌더링 */}
-      <div className="min-h-0 flex-1 [&_.apexcharts-toolbar]:hidden">
+      <div className="min-h-0 flex-1">
         <ReactApexChart
           options={options}
           series={series}

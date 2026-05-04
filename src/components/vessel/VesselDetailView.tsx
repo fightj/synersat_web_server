@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { AnimatedCounter } from "../ui/animated-counter";
 import Button from "../ui/button/Button";
 import GrafanaDashModal from "./GrafanaDashModal";
+import { Modal } from "@/components/ui/modal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -77,6 +78,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showGrafana, setShowGrafana] = useState(false);
+  const [chartExpanded, setChartExpanded] = useState(false);
   const router = useRouter();
 
   const handleDeleteVessel = async () => {
@@ -488,10 +490,20 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           {/* ── Data Usage History + 스캔 라인 ─────────────────────── */}
           <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
             <ScanLine isScanning={showScan} scanKey={scanKey} />
-            
-            <h4 className="mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
-              Data Usage History
-            </h4>
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="text-sm font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                Data Usage History
+              </h4>
+              <button
+                onClick={() => setChartExpanded(true)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-300"
+                title="Expand chart"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+              </button>
+            </div>
             <div className="h-[250px] w-full">
               <LineChartOne
                 coordinates={coordinates}
@@ -500,6 +512,30 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               />
             </div>
           </div>
+
+          {/* ── Chart Expand Modal ───────────────────────────────────── */}
+          <Modal isOpen={chartExpanded} onClose={() => setChartExpanded(false)} showCloseButton={false} className="w-[96vw] max-w-[1400px] overflow-hidden p-0">
+            <div className="flex flex-col" style={{ height: "85vh" }}>
+              <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-white/10">
+                <h3 className="text-base font-bold tracking-wider text-gray-600 uppercase dark:text-gray-300">Data Usage History</h3>
+                <button
+                  onClick={() => setChartExpanded(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 p-6">
+                <LineChartOne
+                  coordinates={coordinates}
+                  timeRange={timeRange}
+                  onTimeRangeChange={onTimeRangeChange}
+                />
+              </div>
+            </div>
+          </Modal>
         </>
       ) : (
         <VesselCommandOne imo={Number(vesselImo)} />
