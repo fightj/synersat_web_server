@@ -61,6 +61,10 @@ export function useSSE() {
         retryCountRef.current = 0; // 메시지 수신 성공 시 재시도 횟수 초기화
       },
 
+      onConnected: () => {
+        retryCountRef.current = 0; // 연결 성공 시 재시도 횟수 초기화
+      },
+
       onError: (error) => {
         console.error("[SSE] 오류:", error);
       },

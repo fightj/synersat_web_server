@@ -32,12 +32,13 @@ export interface SSEVesselDisconnectedEvent {
 export interface SSECallbacks {
   onCommandNotification?: (event: SSECommandEvent) => void;
   onVesselDisconnected?: (event: SSEVesselDisconnectedEvent) => void;
+  onConnected?: () => void;
   onError?: (error: Error) => void;
   onDisconnect?: () => void;
 }
 
 export function connectSSE(callbacks: SSECallbacks): () => void {
-  const { onCommandNotification, onVesselDisconnected, onError, onDisconnect } = callbacks;
+  const { onCommandNotification, onVesselDisconnected, onConnected, onError, onDisconnect } = callbacks;
   const url = `${BASE_URL}/sse`;
   const abortController = new AbortController();
 
@@ -58,6 +59,7 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
       }
 
       console.log("[SSE] 연결 성공");
+      onConnected?.();
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response body");
