@@ -228,5 +228,5 @@ export function useVesselMarkers({
     };
   }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
 
-  return { markersRef: { current: [...markerMapRef.current.values()] } };
+  return { markersRef: markerMapRef };
 }

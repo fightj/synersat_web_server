@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import useSWR from "swr";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import WorldMap from "@/components/map/WorldMap";
@@ -40,10 +40,6 @@ export default function VesselDetailPage() {
     live: boolean,
     rangeFn?: () => { start: Date; end: Date },
   ) => {
-    console.log("[TimeSetting] isLive:", live);
-    console.log("[TimeSetting] startAt (UTC):", start);
-    console.log("[TimeSetting] endAt   (UTC):", end);
-
     setIsLive(live);
     setLiveRangeFn(live && rangeFn ? () => rangeFn : null);
     setTimeRange({ startAt: start, endAt: end });
@@ -61,15 +57,6 @@ export default function VesselDetailPage() {
       startUTC = toUTCString(start);
       endUTC = toUTCString(end);
     }
-
-    // ✅ 실제 요청 시각 + 요청 파라미터 확인
-    console.log("========================================");
-    console.log("[SWR 요청 시각]", new Date().toISOString());
-    console.log("[isLive]", isLive);
-    console.log("[API 요청] imo:", imo);
-    console.log("[API 요청] startAt (UTC):", startUTC);
-    console.log("[API 요청] endAt   (UTC):", endUTC);
-    console.log("========================================");
 
     return await getVesselRoutes(imo, startUTC, endUTC);
   }, [imo, timeRange, isLive, liveRangeFn]);
@@ -90,22 +77,20 @@ export default function VesselDetailPage() {
     },
   );
 
-  // ✅ timeRange 변경 시 즉시 재요청
-  useEffect(() => {
-    mutate();
-  }, [timeRange]);
+  const chartDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!selectedVessel || !imo) {
     return <StatusPlaceholder title="Failed to load details" description="Please select a vessel" />;
   }
 
-  // ✅ 차트에서 range 변경 시 (UTC 그대로 사용)
+  // 차트 드래그 시 500ms 디바운스 후 요청 — SWR 키 변경으로 자동 재요청됨
   const handleChartRangeChange = (startISO: string, endISO: string) => {
-    console.log("[Chart Range] startAt (UTC):", startISO);
-    console.log("[Chart Range] endAt   (UTC):", endISO);
-    setIsLive(false);
-    setLiveRangeFn(null);
-    setTimeRange({ startAt: startISO, endAt: endISO });
+    if (chartDebounceRef.current) clearTimeout(chartDebounceRef.current);
+    chartDebounceRef.current = setTimeout(() => {
+      setIsLive(false);
+      setLiveRangeFn(null);
+      setTimeRange({ startAt: startISO, endAt: endISO });
+    }, 500);
   };
 
   return (
