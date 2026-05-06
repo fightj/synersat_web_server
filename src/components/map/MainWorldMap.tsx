@@ -120,6 +120,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setSelectedVessel,
     setClickedVessel,
     setPopupPos,
+    onDoubleClick: (imo) => handleListViewDetail(imo),
   });
 
   // ── 카테고리별 통계 ────────────────────────────────────────────────

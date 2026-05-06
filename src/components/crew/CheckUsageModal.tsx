@@ -38,9 +38,17 @@ const toMB = (bits: number) => (bits / 8 / 1024 / 1024).toFixed(3);
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  if (m === 0 && s === 0) return `${h}h`;
+  if (s === 0) return `${h}h ${m}m`;
+  return `${h}h ${m}m ${s}s`;
 };
 
 const formatTime = (iso: string | null | undefined) => (iso ? iso.replace("T", " ") : "-");

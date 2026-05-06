@@ -15,6 +15,7 @@ interface UseVesselMarkersOptions {
   setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string }) => void;
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
   setPopupPos: (pos: { x: number; y: number } | null) => void;
+  onDoubleClick?: (imo: number) => void;
 }
 
 interface VesselPoint {
@@ -64,6 +65,7 @@ export function useVesselMarkers({
   setSelectedVessel,
   setClickedVessel,
   setPopupPos,
+  onDoubleClick,
 }: UseVesselMarkersOptions) {
   // imo → marker 맵으로 변경: diff 기반 업데이트
   const markerMapRef = useRef<Map<number, any>>(new Map());
@@ -151,12 +153,18 @@ export function useVesselMarkers({
           const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
           setPopupPos({ x: pt.x, y: pt.y });
           setClickedVessel({ imo: v.imo, name: v.name, color: v.color });
-          map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.8, easeLinearity: 0.1 });
+          map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1, easeLinearity: 0.1 });
           getVesselDetail(v.imo)
             .then((detail) => {
               setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
             })
             .catch(() => {});
+        });
+
+        marker.on("dblclick", (e: any) => {
+          L.DomEvent.stop(e);
+          const v: VesselPoint = marker._vesselData;
+          onDoubleClick?.(v.imo);
         });
 
         marker.bindTooltip(buildTooltipHtml(vessel), {
