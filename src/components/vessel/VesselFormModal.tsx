@@ -13,6 +13,7 @@ import Loading from "../common/Loading";
 import { useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 import SelectWithIcon from "../form/SelectWithIcon";
+import posthog from "posthog-js";
 
 type Mode = "add" | "edit";
 
@@ -78,7 +79,17 @@ export default function VesselFormModal({
     const result = await form.handleSubmit();
     if (result && mode === "add") {
       setVesselResult(result);
+      posthog.capture("vessel_created", {
+        vessel_imo: result.imo,
+        vessel_id: result.id,
+        vessel_name: result.name,
+        account: result.acct,
+      });
     } else if (result && mode === "edit") {
+      posthog.capture("vessel_updated", {
+        vessel_imo: vesselData?.imo,
+        vessel_name: vesselData?.name,
+      });
       setTimeout(() => {
         onClose();
         window.location.reload();

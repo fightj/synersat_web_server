@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Alert from "@/components/ui/alert/Alert";
 import { updateCrewTopUp } from "@/api/crew-account";
+import posthog from "posthog-js";
 
 interface TopUpModalProps {
   isOpen: boolean;
@@ -168,9 +169,16 @@ export default function TopUpModal({
 
     try {
       await updateCrewTopUp(imo, username, payload as { maxTotalOctets: string; currentOctetUsage: string });
+      posthog.capture("crew_topup_applied", {
+        vessel_imo: imo,
+        crew_username: username,
+        limit_delta_mb: limitDelta || null,
+        usage_delta_mb: usageDelta || null,
+      });
       handleClose();
       onSaved?.();
-    } catch {
+    } catch (err) {
+      posthog.captureException(err);
       setAlertState({ variant: "error", title: "Failed", message: "Could not apply top-up. Please try again." });
     } finally {
       setSaving(false);

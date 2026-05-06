@@ -12,6 +12,7 @@ import type {
 import CommandFilterContainer from "@/components/commands/CommandFilterContainer";
 import CommandTable from "@/components/commands/CommandTable";
 import Pagination from "@/components/common/Pagenation";
+import posthog from "posthog-js";
 
 export default function CommandsPage() {
   const [data, setData] = useState<CommandApiResponse | null>(null);
@@ -69,6 +70,11 @@ export default function CommandsPage() {
       ...newFilters,
       pageIndex: 1,
     }));
+    posthog.capture("command_filter_applied", {
+      command_type: newFilters.commandType,
+      command_status: newFilters.commandStatus,
+      imo: newFilters.imo,
+    });
   };
 
   const handlePageChange = (newPageIndex: number) => {

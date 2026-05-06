@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import Loading from "../common/Loading";
+import posthog from "posthog-js";
 
 export default function AuthInitializer({
   children,
@@ -13,7 +14,15 @@ export default function AuthInitializer({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    fetchUser().finally(() => setReady(true));
+    fetchUser().finally(() => {
+      setReady(true);
+      const { user } = useAuthStore.getState();
+      if (user?.userAcct) {
+        posthog.identify(user.userAcct, {
+          username: user.userAcct,
+        });
+      }
+    });
   }, []);
 
   // 로딩 중

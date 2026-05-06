@@ -7,6 +7,7 @@ import { DeviceNatRow } from "@/types/firewall";
 import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
 import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
 import { usePathname } from "next/navigation";
+import posthog from "posthog-js";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
 export function usePortForward(ruleType: RuleType) {
@@ -139,14 +140,25 @@ export function usePortForward(ruleType: RuleType) {
         }),
       });
       if (!response.ok) throw new Error("Update failed");
+      posthog.capture("port_forward_rule_toggled", {
+        vessel_imo: imo,
+        rule_index: originalIndex,
+        rule_type: ruleType,
+        enabled: !currentEnabled,
+      });
       await fetchAllData(); // ✅ 성공 시 최신 데이터로 갱신
-    } catch {
+    } catch (err) {
+      posthog.capture("port_forward_rule_status_update_failed", {
+        vessel_imo: imo,
+        rule_index: originalIndex,
+        error: err instanceof Error ? err.message : "Update failed",
+      });
       alert("fail to set status.");
     } finally {
       setIsUpdating(false);
     }
   },
-  [vpnIp, fetchAllData],
+  [vpnIp, imo, ruleType, fetchAllData],
 );
 
   const handleEditClick = useCallback((rule: DeviceNatRow) => {
@@ -171,14 +183,21 @@ export function usePortForward(ruleType: RuleType) {
       rules.length, // ✅ filteredRules.length → rules.length (전체 14개)
     );
     console.log("Delete Rule, command id:", commandId);
+    posthog.capture("port_forward_rule_deleted", {
+      vessel_imo: imo,
+      rule_index: ruleToDelete,
+      rule_type: ruleType,
+      command_id: commandId,
+    });
     await fetchAllData();
   } catch (error: any) {
+    posthog.captureException(error);
     alert(error.message);
   } finally {
     setIsUpdating(false);
     setRuleToDelete(null);
   }
-}, [ruleToDelete, imo, rules.length, fetchAllData]); // ✅ 의존성도 수정
+}, [ruleToDelete, imo, ruleType, rules.length, fetchAllData]); // ✅ 의존성도 수정
 
   return {
     selectedVessel,

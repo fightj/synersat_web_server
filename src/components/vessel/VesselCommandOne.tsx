@@ -11,6 +11,7 @@ import type {
 import Loading from "../common/Loading";
 import { format } from "date-fns";
 import Pagination from "@/components/common/Pagenation";
+import posthog from "posthog-js";
 
 interface VesselCommandOneProps {
   imo: number;
@@ -85,10 +86,17 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
   const handleCancel = async (e: React.MouseEvent, commandId: number) => {
     e.stopPropagation();
     setCancellingId(commandId);
+    const cmd = commands.find((c) => c.commandId === commandId);
     try {
       await failCommand(commandId);
       setCancelledIds((prev) => new Set(prev).add(commandId));
+      posthog.capture("command_cancelled", {
+        command_id: commandId,
+        command_type: cmd?.commandType,
+        vessel_imo: imo,
+      });
     } catch (error) {
+      posthog.captureException(error);
       setErrorModal({ isOpen: true, message: error instanceof Error ? error.message : "Failed to cancel command" });
     } finally {
       setCancellingId(null);

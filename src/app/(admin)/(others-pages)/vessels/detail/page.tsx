@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import posthog from "posthog-js";
 import useSWR from "swr";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import WorldMap from "@/components/map/WorldMap";
@@ -19,6 +20,10 @@ const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 // 선박이 바뀌면 key가 바뀌어 이 컴포넌트가 리마운트 → 모든 상태 자동 초기화
 function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string | null }) {
   const [isLive, setIsLive] = useState(true);
+
+  useEffect(() => {
+    posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
+  }, [imo, vesselId]);
   const [liveRangeFn, setLiveRangeFn] = useState<
     (() => { start: Date; end: Date }) | null
   >(() => () => ({ start: subHours(new Date(), 24), end: new Date() }));
@@ -37,6 +42,12 @@ function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string 
     setIsLive(live);
     setLiveRangeFn(live && rangeFn ? () => rangeFn : null);
     setTimeRange({ startAt: start, endAt: end });
+    posthog.capture("vessel_time_range_applied", {
+      vessel_imo: imo,
+      start_at: start,
+      end_at: end,
+      is_live: live,
+    });
   };
 
   const fetcher = useCallback(async (): Promise<VesselRouteResponse> => {

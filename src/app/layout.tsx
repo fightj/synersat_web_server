@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 import { SidebarProvider } from "@/context/SidebarContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import AuthInitializer from "@/components/auth/AuthInitializer";
+import { PostHogProvider } from "./providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,11 +25,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} rounded-xl dark:bg-gray-900`}>
-        <ThemeProvider>
-          <SidebarProvider>
-            <AuthInitializer>{children}</AuthInitializer>
-          </SidebarProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider>
+            <SidebarProvider>
+              <AuthInitializer>{children}</AuthInitializer>
+            </SidebarProvider>
+          </ThemeProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
