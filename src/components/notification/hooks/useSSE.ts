@@ -25,7 +25,6 @@ export function useSSE() {
       // ✅ COMMAND_NOTIFICATION 처리
       onCommandNotification: (event) => {
         const { data, createdAt } = event;
-        console.log("[SSE] COMMAND 수신:", data, createdAt);
 
         if (data.commandStatus === "SUCCESS" || data.commandStatus === "FAILED") {
           useToastStore.getState().addToast({
@@ -49,7 +48,6 @@ export function useSSE() {
       // ✅ VESSEL_DISCONNECTED 처리
       onVesselDisconnected: (event) => {
         const { data, createdAt } = event;
-        console.log("[SSE] VESSEL_DISCONNECTED 수신:", data, createdAt);
 
         useToastStore.getState().addToast({
           type: "VESSEL_DISCONNECTED",
@@ -70,13 +68,10 @@ export function useSSE() {
       },
 
       onDisconnect: () => {
-        console.log("[SSE] 연결 끊김 감지");
         if (!isManualDisconnect.current) {
           const delay = getReconnectDelay();
           retryCountRef.current += 1;
-          console.log(`[SSE] ${delay / 1000}초 후 재연결 시도... (${retryCountRef.current}회차)`);
           reconnectTimerRef.current = setTimeout(() => {
-            console.log("[SSE] 재연결 시도");
             connectRef.current?.();
           }, delay);
         }

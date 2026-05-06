@@ -14,26 +14,20 @@ import type { VesselRouteResponse } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
 const THREE_MINUTES = 3 * 60 * 1000;
-
-// ✅ Date → UTC 문자열 변환
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 
-export default function VesselDetailPage() {
-  const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
-  const vesselId = selectedVessel?.id ? String(selectedVessel.id) : null
+// 선박이 바뀌면 key가 바뀌어 이 컴포넌트가 리마운트 → 모든 상태 자동 초기화
+function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string | null }) {
   const [isLive, setIsLive] = useState(true);
   const [liveRangeFn, setLiveRangeFn] = useState<
     (() => { start: Date; end: Date }) | null
   >(() => () => ({ start: subHours(new Date(), 24), end: new Date() }));
 
-  // ✅ timeRange는 항상 UTC 문자열
   const [timeRange, setTimeRange] = useState({
     startAt: toUTCString(subHours(new Date(), 24)),
     endAt: toUTCString(new Date()),
   });
 
-  // ✅ TimeSetting onApply
   const handleTimeApply = (
     start: string,
     end: string,
@@ -45,10 +39,7 @@ export default function VesselDetailPage() {
     setTimeRange({ startAt: start, endAt: end });
   };
 
-  // ✅ SWR fetcher - live면 매번 현재 시각 기준으로 재계산
   const fetcher = useCallback(async (): Promise<VesselRouteResponse> => {
-    if (!imo) return { coordinates: [], dataUsages: [] };
-
     let startUTC = timeRange.startAt;
     let endUTC = timeRange.endAt;
 
@@ -61,12 +52,8 @@ export default function VesselDetailPage() {
     return await getVesselRoutes(imo, startUTC, endUTC);
   }, [imo, timeRange, isLive, liveRangeFn]);
 
-  const {
-    data: routeData,
-    isLoading,
-    mutate,
-  } = useSWR<VesselRouteResponse>(
-    imo ? ["vesselRoutes", imo, timeRange.startAt, timeRange.endAt] : null,
+  const { data: routeData, isLoading } = useSWR<VesselRouteResponse>(
+    ["vesselRoutes", imo, timeRange.startAt, timeRange.endAt],
     fetcher,
     {
       fallbackData: { coordinates: [], dataUsages: [] },
@@ -79,11 +66,6 @@ export default function VesselDetailPage() {
 
   const chartDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!selectedVessel || !imo) {
-    return <StatusPlaceholder title="Failed to load details" description="Please select a vessel" />;
-  }
-
-  // 차트 드래그 시 500ms 디바운스 후 요청 — SWR 키 변경으로 자동 재요청됨
   const handleChartRangeChange = (startISO: string, endISO: string) => {
     if (chartDebounceRef.current) clearTimeout(chartDebounceRef.current);
     chartDebounceRef.current = setTimeout(() => {
@@ -101,29 +83,18 @@ export default function VesselDetailPage() {
           className="group flex items-center gap-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition-transform group-hover:-translate-x-1 dark:bg-white/5">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </span>
           <h1 className="text-xl font-bold tracking-tight">Vessels</h1>
         </Link>
 
-        <div className="flex flex-shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {isLive && (
             <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
               <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                Auto-updating
-              </span>
+              <span className="text-xs font-bold text-green-600 dark:text-green-400">Auto-updating</span>
             </div>
           )}
           <TimeSetting onApply={handleTimeApply} />
@@ -160,4 +131,16 @@ export default function VesselDetailPage() {
       </div>
     </div>
   );
+}
+
+export default function VesselDetailPage() {
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
+  const vesselId = selectedVessel?.id ? String(selectedVessel.id) : null;
+
+  if (!selectedVessel || !imo) {
+    return <StatusPlaceholder title="Failed to load details" description="Please select a vessel" />;
+  }
+
+  return <VesselDetailContent key={imo} imo={imo} vesselId={vesselId} />;
 }

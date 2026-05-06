@@ -58,7 +58,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
         throw new Error(`SSE connection failed: ${res.status} ${errorText}`);
       }
 
-      console.log("[SSE] 연결 성공");
       onConnected?.();
 
       const reader = res.body?.getReader();
@@ -72,7 +71,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log("[SSE] 서버에서 연결 종료");
           onDisconnect?.();
           break;
         }
@@ -95,12 +93,10 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
             const raw = line.slice(5).trim();
 
             if (currentEvent === "CONNECTED") {
-              console.log("[SSE] 서버 연결 확인:", raw);
               continue;
             }
 
             if (currentEvent === "HEART_BEAT") {
-              console.log("[SSE] HEART_BEAT 수신");
               continue;
             }
 
@@ -109,7 +105,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
               if (!raw) continue;
               try {
                 const parsed: SSECommandEvent = JSON.parse(raw);
-                console.log("[SSE] COMMAND_NOTIFICATION 수신:", parsed);
                 onCommandNotification?.(parsed);
               } catch (e) {
                 console.warn("[SSE] JSON 파싱 실패:", raw);
@@ -122,7 +117,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
               if (!raw) continue;
               try {
                 const parsed: SSEVesselDisconnectedEvent = JSON.parse(raw);
-                console.log("[SSE] VESSEL_DISCONNECTED 수신:", parsed);
                 onVesselDisconnected?.(parsed);
               } catch (e) {
                 console.warn("[SSE] JSON 파싱 실패:", raw);
@@ -138,7 +132,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
       }
     } catch (error: any) {
       if (error.name === "AbortError") {
-        console.log("[SSE] 연결 정상 종료");
         return;
       }
       console.error("[SSE] 연결 오류:", error);
@@ -150,7 +143,6 @@ export function connectSSE(callbacks: SSECallbacks): () => void {
   fetchSSE();
 
   return () => {
-    console.log("[SSE] 연결 해제");
     abortController.abort();
   };
 }
