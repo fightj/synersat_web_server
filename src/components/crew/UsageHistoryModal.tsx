@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import { Modal } from "@/components/ui/modal";
@@ -10,8 +10,6 @@ import { getWifiUsageHistory } from "@/api/crew-account";
 import type { CrewEntry } from "@/types/crew_account";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
-
-type Metric = "total_bytes" | "in_bytes" | "out_bytes";
 
 interface WifiRecord {
   time: number;
@@ -28,6 +26,11 @@ interface UsageHistoryModalProps {
 }
 
 const toMB = (bytes: number) => parseFloat((bytes / 1_000_000).toFixed(2));
+
+const formatMB = (mb: number) => {
+  if (mb >= 1000) return `${(mb / 1000).toFixed(2)} GB`;
+  return `${mb.toFixed(2)} MB`;
+};
 
 const getDefault24hRange = () => {
   const end = new Date();
@@ -62,24 +65,22 @@ function parseInfluxResponse(data: any): WifiRecord[] {
     .sort((a, b) => a.time - b.time);
 }
 
-const METRIC_LABELS: Record<Metric, string> = {
-  total_bytes: "Total",
-  in_bytes: "Download (In)",
-  out_bytes: "Upload (Out)",
-};
-
-const METRIC_COLORS: Record<Metric, string> = {
-  total_bytes: "#3b82f6",
-  in_bytes: "#10b981",
-  out_bytes: "#f59e0b",
-};
-
 export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageHistoryModalProps) {
   const [pendingRange, setPendingRange] = useState(getDefault24hRange);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [records, setRecords] = useState<WifiRecord[]>([]);
-  const [metric, setMetric] = useState<Metric>("total_bytes");
+  const [showIn, setShowIn] = useState(false);
+  const [showOut, setShowOut] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
     setPendingRange({ startAt, endAt });
@@ -103,64 +104,107 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
     setRecords([]);
     setHasApplied(false);
     setPendingRange(getDefault24hRange());
-    setMetric("total_bytes");
+    setShowIn(false);
+    setShowOut(false);
     onClose();
   };
 
-  const series = useMemo(() => [{
-    name: METRIC_LABELS[metric],
-    data: records.map((r) => ({ x: r.time, y: toMB(r[metric]) })),
-  }], [records, metric]);
+  const totalUsageMB = useMemo(
+    () => toMB(records.reduce((acc, r) => acc + r.total_bytes, 0)),
+    [records],
+  );
 
-  const options: ApexOptions = useMemo(() => ({
-    chart: {
-      type: "area",
-      height: "100%",
-      fontFamily: "Inter, sans-serif",
-      toolbar: { show: false },
-      animations: { enabled: false },
-      background: "transparent",
-      foreColor: "#9CA3AF",
-    },
-    colors: [METRIC_COLORS[metric]],
-    stroke: { curve: "smooth", width: 2 },
-    fill: {
-      type: "gradient",
-      gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05 },
-    },
-    dataLabels: { enabled: false },
-    markers: { size: 0, hover: { size: 3 } },
-    legend: { show: false },
-    xaxis: {
-      type: "datetime",
-      labels: {
-        style: { colors: "#6B7280", fontSize: "12px" },
-        datetimeUTC: false,
-        datetimeFormatter: { hour: "HH:mm", day: "M/d", month: "M/d" },
+  const series = useMemo(() => {
+    const result: { name: string; data: { x: number; y: number }[] }[] = [
+      { name: "Total", data: records.map((r) => ({ x: r.time, y: toMB(r.total_bytes) })) },
+    ];
+    if (showIn) result.push({ name: "Download (In)", data: records.map((r) => ({ x: r.time, y: toMB(r.in_bytes) })) });
+    if (showOut) result.push({ name: "Upload (Out)", data: records.map((r) => ({ x: r.time, y: toMB(r.out_bytes) })) });
+    return result;
+  }, [records, showIn, showOut]);
+
+  const options: ApexOptions = useMemo(() => {
+    const colors = ["#3b82f6"];
+    if (showIn) colors.push("#10b981");
+    if (showOut) colors.push("#f59e0b");
+
+    const spanMs = records.length > 1
+      ? records[records.length - 1].time - records[0].time
+      : 0;
+    const spanHours = spanMs / (1000 * 3600);
+
+    // x축 tick 밀도: 범위가 짧을수록 세밀하게
+    const tickAmount =
+      spanHours <= 2   ? Math.min(records.length, 8) :
+      spanHours <= 6   ? 8 :
+      spanHours <= 24  ? 10 :
+      spanHours <= 168 ? 7 :
+      10;
+
+    // 첫/마지막 포인트가 잘리지 않도록 양쪽에 약간의 여백 추가
+    const bufferMs = spanMs > 0 ? spanMs * 0.03 : 5 * 60 * 1000;
+
+    return {
+      chart: {
+        type: "area",
+        height: "100%",
+        fontFamily: "Inter, sans-serif",
+        toolbar: { show: false },
+        animations: { enabled: false },
+        background: "transparent",
+        foreColor: isDark ? "#9CA3AF" : "#6B7280",
       },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: {
-      labels: {
-        style: { colors: "#6B7280", fontSize: "12px" },
-        formatter: (val) => val >= 1 ? `${val.toFixed(1)} MB` : `${(val * 1000).toFixed(0)} KB`,
+      colors,
+      stroke: { curve: "smooth", width: 2 },
+      fill: {
+        type: "gradient",
+        gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.03 },
       },
-    },
-    tooltip: {
-      theme: "dark",
-      x: { format: "MM/dd HH:mm" },
-      y: { formatter: (val) => `${val.toFixed(2)} MB` },
-    },
-    grid: {
-      borderColor: "rgba(156, 163, 175, 0.1)",
-      strokeDashArray: 4,
-    },
-  }), [metric]);
+      dataLabels: { enabled: false },
+      markers: { size: 0, hover: { size: 3 } },
+      legend: { show: false },
+      xaxis: {
+        type: "datetime",
+        min: records.length > 0 ? records[0].time - bufferMs : undefined,
+        max: records.length > 0 ? records[records.length - 1].time + bufferMs : undefined,
+        tickAmount,
+        labels: {
+          style: { colors: isDark ? "#6B7280" : "#9CA3AF", fontSize: "11px" },
+          datetimeUTC: false,
+          datetimeFormatter: {
+            year: "yyyy",
+            month: "MM/dd",
+            day: "MM/dd",
+            hour: "HH:mm",
+            minute: "HH:mm",
+          },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: {
+          minWidth: 60,
+          style: { colors: isDark ? "#6B7280" : "#9CA3AF", fontSize: "12px" },
+          formatter: (val) => val >= 1 ? `${val.toFixed(1)} MB` : `${(val * 1000).toFixed(0)} KB`,
+        },
+      },
+      tooltip: {
+        theme: isDark ? "dark" : "light",
+        x: { format: "MM/dd HH:mm" },
+        y: { formatter: (val) => `${val.toFixed(2)} MB` },
+      },
+      grid: {
+        borderColor: isDark ? "rgba(156, 163, 175, 0.1)" : "rgba(0, 0, 0, 0.06)",
+        strokeDashArray: 4,
+        padding: { left: 8, right: 16 },
+      },
+    };
+  }, [showIn, showOut, isDark, records]);
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1200px] overflow-hidden p-0">
-      <div className="flex h-[80vh] flex-col">
+    <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[98vw] max-w-[1600px] overflow-hidden p-0">
+      <div className="flex h-[82vh] flex-col">
         {/* Header */}
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-100 px-6 py-4 dark:border-white/10">
           <div className="min-w-0 flex-1">
@@ -206,33 +250,57 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
               <p className="text-sm text-gray-400">No data in this period.</p>
             </div>
           ) : (
-            <div className="flex h-full flex-col gap-3">
-              {/* Metric toggle */}
-              <div className="flex shrink-0 items-center gap-2">
-                {(["total_bytes", "in_bytes", "out_bytes"] as Metric[]).map((m) => (
+            <div className="flex h-full flex-col gap-4">
+              {/* Stats row + toggle row */}
+              <div className="flex shrink-0 items-center justify-between">
+                {/* Total usage */}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatMB(totalUsageMB)}</span>
+                  <span className="text-sm text-gray-400">total used in period</span>
+                </div>
+
+                {/* Metric controls */}
+                <div className="flex items-center gap-2">
+                  {/* Total — always on */}
+                  <span className="flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                    <span className="inline-block h-2 w-2 rounded-full bg-white" />
+                    Total
+                  </span>
+
+                  {/* Download toggle */}
                   <button
-                    key={m}
-                    onClick={() => setMetric(m)}
+                    onClick={() => setShowIn((v) => !v)}
                     className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                      metric === m
+                      showIn
                         ? "text-white shadow-sm"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
                     }`}
-                    style={metric === m ? { backgroundColor: METRIC_COLORS[m] } : {}}
+                    style={showIn ? { backgroundColor: "#10b981" } : {}}
                   >
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: metric === m ? "white" : METRIC_COLORS[m] }}
-                    />
-                    {METRIC_LABELS[m]}
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: showIn ? "white" : "#10b981" }} />
+                    Download
                   </button>
-                ))}
+
+                  {/* Upload toggle */}
+                  <button
+                    onClick={() => setShowOut((v) => !v)}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                      showOut
+                        ? "text-white shadow-sm"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
+                    }`}
+                    style={showOut ? { backgroundColor: "#f59e0b" } : {}}
+                  >
+                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: showOut ? "white" : "#f59e0b" }} />
+                    Upload
+                  </button>
+                </div>
               </div>
 
               {/* Chart */}
               <div className="min-h-0 flex-1">
                 <ReactApexChart
-                  key={metric}
+                  key={`${showIn}-${showOut}-${isDark}`}
                   options={options}
                   series={series}
                   type="area"
