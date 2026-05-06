@@ -15,6 +15,7 @@ import ModifyCrewModal from "./ModifyCrewModal";
 import CheckPwModal from "./CheckPwModal";
 import CheckUsageModal from "./CheckUsageModal";
 import TopUpModal from "./TopUpModal";
+import UsageHistoryModal from "./UsageHistoryModal";
 import RefreshBanner from "@/components/common/RefreshBanner";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
@@ -42,6 +43,7 @@ export default function CrewComponentCard() {
   const [checkPwEntries, setCheckPwEntries] = useState<{ username: string; password: string | undefined }[]>([]);
   const [topUpTarget, setTopUpTarget] = useState<CrewEntry | null>(null);
   const [checkUsageOpen, setCheckUsageOpen] = useState(false);
+  const [usageHistoryTarget, setUsageHistoryTarget] = useState<CrewEntry | null>(null);
   const [refreshBanner, setRefreshBanner] = useState(false);
 
   const processRaw = useCallback((result: any): CrewEntry[] => {
@@ -215,6 +217,7 @@ export default function CrewComponentCard() {
           onToggleOne={toggleOne}
           onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
           onOpenTopUp={(u) => setTopUpTarget(u)}
+          onOpenUsageHistory={(u) => setUsageHistoryTarget(u)}
           onRetry={fetchCrewData}
           formatUserId={mode === "prepay" ? (id) => id.replace(/^crewpay-/, "") : undefined}
         />
@@ -245,6 +248,15 @@ export default function CrewComponentCard() {
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
           vesselName={selectedVessel?.name ?? "vessel"}
+        />
+      )}
+
+      {imo && (
+        <UsageHistoryModal
+          isOpen={!!usageHistoryTarget}
+          onClose={() => setUsageHistoryTarget(null)}
+          crew={usageHistoryTarget}
+          imo={imo}
         />
       )}
 

@@ -23,7 +23,7 @@ function getBadgeProps(type: string | undefined | null) {
   return { color: "light" as const, label: type };
 }
 
-const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage"];
+const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage", ""];
 
 function UsageBar({ current, max, onTopUp }: { current: string | null; max: string | null; onTopUp: () => void }) {
   const used  = parseFloat(current ?? "0") || 0;
@@ -109,6 +109,7 @@ interface CrewTableProps {
   onToggleOne: (id: string) => void;
   onOpenSuspension: (userId: string) => void;
   onOpenTopUp: (user: CrewEntry) => void;
+  onOpenUsageHistory: (user: CrewEntry) => void;
   onRetry?: () => void;
   formatUserId?: (id: string) => string;
 }
@@ -124,6 +125,7 @@ export default function CrewTable({
   onToggleOne,
   onOpenSuspension,
   onOpenTopUp,
+  onOpenUsageHistory,
   onRetry,
   formatUserId,
 }: CrewTableProps) {
@@ -152,25 +154,25 @@ export default function CrewTable({
         <TableBody className="relative divide-y divide-gray-100 dark:divide-white/5">
           {isLoading ? (
             <TableRow key="loading">
-              <TableCell colSpan={8} className="py-32 text-center">
+              <TableCell colSpan={9} className="py-32 text-center">
                 <Loading message="Fetching data..." />
               </TableCell>
             </TableRow>
           ) : !hasVessel ? (
             <TableRow key="no-vessel">
-              <TableCell colSpan={8} className="text-center">
+              <TableCell colSpan={9} className="text-center">
                 <StatusPlaceholder title="No vessel selected" description="Please select a vessel to view crew accounts." />
               </TableCell>
             </TableRow>
           ) : fetchError ? (
             <TableRow key="fetch-error">
-              <TableCell colSpan={8} className="text-center">
+              <TableCell colSpan={9} className="text-center">
                 <StatusPlaceholder title="Failed to fetch crew data" description={fetchError} onRetry={onRetry} />
               </TableCell>
             </TableRow>
           ) : crew.length === 0 ? (
             <TableRow key="empty">
-              <TableCell colSpan={8} className="py-24 text-center">
+              <TableCell colSpan={9} className="py-24 text-center">
                 <p className="text-sm font-medium opacity-30 dark:text-gray-400">
                   No crew accounts found.
                 </p>
@@ -234,6 +236,14 @@ export default function CrewTable({
                       max={u.maxTotalOctets}
                       onTopUp={() => onOpenTopUp(u)}
                     />
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => onOpenUsageHistory(u)}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:text-gray-400 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                    >
+                      Detail
+                    </button>
                   </TableCell>
                 </TableRow>
               );

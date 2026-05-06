@@ -104,6 +104,23 @@ export async function getCrewOctetUsages(
   }
 }
 
+export async function getWifiUsageHistory(
+  user: string,
+  vesselImo: number,
+  startAt: string,
+  endAt: string,
+): Promise<any> {
+  const params = new URLSearchParams({
+    user,
+    vessel_imo: String(vesselImo),
+    startAt,
+    endAt,
+  });
+  const res = await fetch(`/api/crew?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch wifi usage history');
+  return res.json();
+}
+
 export async function getGateways(imo: number): Promise<string[]> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/gateways`, withTestUser(
