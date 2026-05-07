@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 import { CloseLineIcon } from "@/icons";
 
@@ -75,6 +76,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 }
 
 export default function VesselSearch({ className = "" }: Props) {
+  const router = useRouter();
   const vessels = useVesselStore((s) => s.vessels);
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
@@ -217,13 +219,32 @@ export default function VesselSearch({ className = "" }: Props) {
                 <CloseLineIcon className="h-4 w-4" />
               </button>
             ) : (
-              selectedVessel?.vpnIp && (
-                <div className="pointer-events-none flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 dark:border-blue-500/20 dark:bg-blue-500/10">
-                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                    {selectedVessel.vpnIp}
-                  </span>
-                </div>
+              selectedVessel && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    router.push("/vessels/detail");
+                  }}
+                  className="group flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
+                  title="View vessel detail"
+                >
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-blue-400 transition-transform group-hover:translate-x-0.5"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
               )
             )}
             <span
@@ -274,11 +295,21 @@ export default function VesselSearch({ className = "" }: Props) {
                             IMO: {v.imo}
                           </span>
                         </div>
-                        {v.vpnIp && (
-                          <span className="rounded bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-400 dark:bg-white/5 dark:text-gray-500">
-                            {v.vpnIp}
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            selectVessel(v);
+                            router.push("/vessels/detail");
+                          }}
+                          className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
+                        >
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </button>
                       </button>
                     </li>
                   );

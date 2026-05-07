@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, memo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
@@ -72,6 +72,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const vesselsRef = useRef(vessels);
   const pingMarkerRef = useRef<any>(null);
   const gpsAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 마커 클릭에 의한 선택이면 selectedVessel effect의 팝업 초기화를 건너뜀
+  const fromMarkerClickRef = useRef(false);
+  const setSelectedVesselFromMarker = useCallback(
+    (v: { id: string; imo: number; name: string; vpnIp: string }) => {
+      fromMarkerClickRef.current = true;
+      setSelectedVessel(v);
+    },
+    [setSelectedVessel],
+  );
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
@@ -117,7 +126,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     showName,
     activeFilter,
     clickedLatLngRef,
-    setSelectedVessel,
+    setSelectedVessel: setSelectedVesselFromMarker,
     setClickedVessel,
     setPopupPos,
     onDoubleClick: (imo) => handleListViewDetail(imo),
@@ -231,6 +240,12 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     if (!imoChanged && !triggerChanged) return;
     prevSelectedImoRef.current = newImo;
     prevSearchTriggerRef.current = searchTrigger;
+
+    // 마커 클릭으로 선택된 경우 팝업·flyTo는 이미 처리됨 → 초기화 스킵
+    if (fromMarkerClickRef.current) {
+      fromMarkerClickRef.current = false;
+      return;
+    }
 
     // 이전 선박의 ping/팝업 초기화
     setClickedVessel(null);
