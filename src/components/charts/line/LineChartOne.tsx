@@ -46,7 +46,7 @@ export default function LineChartOne({
     return () => observer.disconnect();
   }, []);
 
-  const { allSeries, gapSeries, isLongTerm, dayDiff } = useMemo(() => {
+  const { allSeries, unavailSeries, gapSeries, isLongTerm, dayDiff } = useMemo(() => {
     const diff = timeRange
       ? differenceInDays(
           new Date(timeRange.endAt + "Z"),
@@ -64,7 +64,7 @@ export default function LineChartOne({
         rMin !== null && rMax !== null
           ? [{ name: "Offline", data: [{ x: rMin, y: 0 }, { x: rMax, y: 0 }], color: "#ef4444" }]
           : [];
-      return { allSeries: [], gapSeries: phantomGap, isLongTerm: longTerm, dayDiff: diff };
+      return { allSeries: [], unavailSeries: [], gapSeries: phantomGap, isLongTerm: longTerm, dayDiff: diff };
     }
 
     const GAP_THRESHOLD_MS = 10 * 60 * 1000;
@@ -77,9 +77,12 @@ export default function LineChartOne({
         new Date(b.timeStamp + "Z").getTime(),
     );
 
+    const unavailMap: Record<number, boolean> = {};
+
     sortedCoords.forEach((coord) => {
       const timeMs = new Date(coord.timeStamp + "Z").getTime();
       if (!timeMap[timeMs]) timeMap[timeMs] = {};
+      if (coord.status?.available === false) unavailMap[timeMs] = true;
       coord.dataUsages.forEach((usage) => {
         const name = usage.antennaName || "Unknown";
         antennaNames.add(name);
@@ -107,6 +110,55 @@ export default function LineChartOne({
       }
       return { name, data: points, color: getServiceColor(name) };
     });
+
+    // ── available=false 구간 하이라이트 시리즈 (메인 라인보다 넓게 뒤에 렌더) ──
+    // 단일 tick만 unavail이면 ApexCharts가 점(원)으로 렌더링하므로
+    // 양쪽 인접 tick까지 포함해 최소 3-point 세그먼트를 보장
+    const extendedUnavailSet = new Set<number>();
+    timeKeys.forEach((tk, i) => {
+      if (!unavailMap[Number(tk)]) return;
+      if (i > 0 && Number(tk) - Number(timeKeys[i - 1]) <= GAP_THRESHOLD_MS)
+        extendedUnavailSet.add(Number(timeKeys[i - 1]));
+      extendedUnavailSet.add(Number(tk));
+      if (i < timeKeys.length - 1 && Number(timeKeys[i + 1]) - Number(tk) <= GAP_THRESHOLD_MS)
+        extendedUnavailSet.add(Number(timeKeys[i + 1]));
+    });
+
+    type SeriesPoint = { x: number; y: number | null };
+    const builtUnavailSeries = antennaList
+      .map((name) => {
+        const points: SeriesPoint[] = [];
+        for (let i = 0; i < timeKeys.length; i++) {
+          const time = Number(timeKeys[i]);
+          const prevTime = i > 0 ? Number(timeKeys[i - 1]) : null;
+          if (prevTime !== null && time - prevTime > GAP_THRESHOLD_MS) {
+            points.push({ x: Math.round((prevTime + time) / 2), y: null });
+          }
+          points.push({
+            x: time,
+            y: extendedUnavailSet.has(time) && timeMap[time][name] !== undefined
+              ? timeMap[time][name]
+              : null,
+          });
+        }
+        if (!points.some((p) => p.y !== null)) return null;
+
+        // 고립 단일 포인트(앞뒤 null)는 원으로 그려지므로 1분 뒤 더미 포인트로 선분 강제
+        const finalPoints: SeriesPoint[] = [];
+        for (let j = 0; j < points.length; j++) {
+          finalPoints.push(points[j]);
+          if (
+            points[j].y !== null &&
+            (j === 0 || points[j - 1].y === null) &&
+            (j === points.length - 1 || points[j + 1].y === null)
+          ) {
+            finalPoints.push({ x: points[j].x + 60_000, y: points[j].y });
+          }
+        }
+
+        return { name: `__unavail__${name}`, data: finalPoints, color: "#ef4444" };
+      })
+      .filter((s): s is { name: string; data: SeriesPoint[]; color: string } => s !== null);
 
     // ── 갭 구간 수집 ─────────────────────────────────────────────
     const gapIntervals: { start: number; end: number }[] = [];
@@ -146,7 +198,7 @@ export default function LineChartOne({
         ? [{ name: "Offline", data: gapData, color: "#ef4444" }]
         : [];
 
-    return { allSeries: chartSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
+    return { allSeries: chartSeries, unavailSeries: builtUnavailSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
   }, [coordinates, timeRange]);
 
   // phantom series: x축 범위 강제용 (데이터 없을 때)
@@ -165,10 +217,19 @@ export default function LineChartOne({
     return selectedAntenna ? allSeries.filter((s) => s.name === selectedAntenna) : allSeries;
   }, [allSeries, phantomSeries, selectedAntenna, showOfflineOnly]);
 
-  // 선택 필터 + gap 시리즈 합산 — hover는 포함하지 않아 chart 재렌더 없음
+  // unavail 시리즈 필터 (selectedAntenna 연동)
+  const unavailSeriesForDisplay = useMemo(() => {
+    if (showOfflineOnly || allSeries.length === 0) return [];
+    if (selectedAntenna) {
+      return unavailSeries.filter((s) => s.name === `__unavail__${selectedAntenna}`);
+    }
+    return unavailSeries;
+  }, [unavailSeries, allSeries, selectedAntenna, showOfflineOnly]);
+
+  // unavail(뒤) → main → gap 순으로 렌더 — unavail이 먼저 그려져야 main이 위에 덮임
   const series = useMemo(
-    () => [...mainSeriesForDisplay, ...gapSeries],
-    [mainSeriesForDisplay, gapSeries],
+    () => [...unavailSeriesForDisplay, ...mainSeriesForDisplay, ...gapSeries],
+    [unavailSeriesForDisplay, mainSeriesForDisplay, gapSeries],
   );
 
   const handleLegendClick = useCallback((name: string) => {
@@ -182,15 +243,29 @@ export default function LineChartOne({
   }, []);
 
   const options: ApexOptions = useMemo(() => {
+    const unavailCount = unavailSeriesForDisplay.length;
     const mainCount = mainSeriesForDisplay.length || 1;
     const hasGap = gapSeries.length > 0;
 
-    // per-series 배열 구성
-    const strokeWidths = [...Array(mainCount).fill(2), ...(hasGap ? [1.5] : [])];
-    const fillTypes = [...Array(mainCount).fill("gradient"), ...(hasGap ? ["solid"] : [])];
-    const fillOpacities = [...Array(mainCount).fill(0.35), ...(hasGap ? [0] : [])];
+    // per-series 배열: unavail → main → gap 순서로 구성
     type CurveType = "smooth" | "straight" | "stepline" | "linestep" | "monotoneCubic";
+    const strokeWidths = [
+      ...Array(unavailCount).fill(5),      // unavail: 두꺼운 빨간 선 (main 뒤에서 테두리 역할)
+      ...Array(mainCount).fill(2),          // main
+      ...(hasGap ? [1.5] : []),
+    ];
+    const fillTypes = [
+      ...Array(unavailCount).fill("solid"), // unavail: 채움 없음
+      ...Array(mainCount).fill("gradient"),
+      ...(hasGap ? ["solid"] : []),
+    ];
+    const fillOpacities = [
+      ...Array(unavailCount).fill(0),       // unavail: 채움 투명
+      ...Array(mainCount).fill(0.35),
+      ...(hasGap ? [0] : []),
+    ];
     const strokeCurves: CurveType[] = [
+      ...Array<CurveType>(unavailCount).fill("smooth"),
       ...Array<CurveType>(mainCount).fill("smooth"),
       ...(hasGap ? (["straight"] as CurveType[]) : []),
     ];
@@ -283,15 +358,15 @@ export default function LineChartOne({
         shared: true,
         intersect: false,
         x: { show: true, format: "MM/dd HH:mm" },
-        // gap 시리즈는 툴팁에서 숨김
-        custom: undefined,
+        // unavail·gap 시리즈는 툴팁에서 숨김 — main 시리즈 인덱스만 표시
+        enabledOnSeries: Array.from({ length: mainCount + (hasGap ? 1 : 0) }, (_, i) => unavailCount + i),
       },
       grid: {
         borderColor: "rgba(156, 163, 175, 0.1)",
         strokeDashArray: 4,
       },
     };
-  }, [isDark, isLongTerm, dayDiff, allSeries, gapSeries, mainSeriesForDisplay, onTimeRangeChange, rangeMin, rangeMax]);
+  }, [isDark, isLongTerm, dayDiff, allSeries, gapSeries, mainSeriesForDisplay, unavailSeriesForDisplay, onTimeRangeChange, rangeMin, rangeMax]);
 
   return (
     <div className="relative flex h-full w-full flex-col">

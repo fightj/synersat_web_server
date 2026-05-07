@@ -13,7 +13,6 @@ import LineChartOne from "../charts/line/LineChartOne";
 import VesselCommandOne from "./VesselCommandOne";
 import VesselFormModal from "./VesselFormModal";
 import VesselDeleteAlert from "./VesselDeleteAlert";
-import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import { deleteVessel, antennaUpdate, vesselSmartboxUpdate, resetCore } from "@/api/vessel";
 import { useRouter } from "next/navigation";
