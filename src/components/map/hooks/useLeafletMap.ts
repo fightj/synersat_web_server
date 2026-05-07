@@ -51,6 +51,8 @@ export function useLeafletMap(
       tileLayerRef.current = L.tileLayer(initialStyle.url, {
         noWrap: false,
         keepBuffer: 4,
+        updateWhenZooming: false,
+        updateWhenIdle: false,
         subdomains: initialStyle.url.includes("{s}") ? "abc" : "",
       }).addTo(map);
 
@@ -138,6 +140,8 @@ export function useLeafletMap(
     tileLayerRef.current = L.tileLayer(style.url, {
       noWrap: false,
       keepBuffer: 4,
+      updateWhenZooming: false,
+      updateWhenIdle: false,
       subdomains: style.url.includes("{s}") ? "abc" : "",
     }).addTo(map);
     tileLayerRef.current.bringToBack();
