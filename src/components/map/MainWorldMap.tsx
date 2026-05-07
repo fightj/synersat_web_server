@@ -1,63 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
-import { getServiceColor } from "../common/AnntennaMapping";
 import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
-import { matchFilter, FilterKey, GX_COVERAGES, GxKey, GxBeam, loadBeams, hasBeams } from "./mapUtils";
+import { matchFilter, FilterKey } from "./mapUtils";
 import { useLeafletMap } from "./hooks/useLeafletMap";
 import { useVesselMarkers } from "./hooks/useVesselMarkers";
+import { useVesselSelectionZoom, type ClickedVessel } from "./hooks/useVesselSelectionZoom";
 import ViewDetailPopup from "./components/ViewDetailPopup";
 import GpsAlert from "./components/GpsAlert";
 import NoGpsPanel from "./components/NoGpsPanel";
 import MapBottomBar from "./components/MapBottomBar";
+import GxCoveragePanel from "./components/GxCoveragePanel";
 
 interface MainWorldMapProps {
   vessels?: DashboardVesselPosition[];
 }
-
-const BeamThumb = memo(function BeamThumb({ points, size = 32 }: { points: [number, number][]; size?: number }) {
-  const lngs = points.map((p) => p[1]);
-  const lats = points.map((p) => p[0]);
-  const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-  const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-
-  // Web Mercator 투영으로 lat/lng → OSM 타일 픽셀 좌표 변환
-  const zoom = 3;
-  const n = Math.pow(2, zoom); // 타일 수 = 8
-
-  const lngToWorldPx = (lng: number) => (lng + 180) / 360 * n * 256;
-  const latToWorldPy = (lat: number) => {
-    const r = lat * Math.PI / 180;
-    return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n * 256;
-  };
-
-  // 중심 좌표가 속한 타일
-  const tileX = Math.max(0, Math.min(n - 1, Math.floor(lngToWorldPx(centerLng) / 256)));
-  const tileY = Math.max(0, Math.min(n - 1, Math.floor(latToWorldPy(centerLat) / 256)));
-
-  // 타일 내부 픽셀 좌표 → SVG 좌표 (size px 기준)
-  const toSvgX = (lng: number) => (lngToWorldPx(lng) - tileX * 256) / 256 * size;
-  const toSvgY = (lat: number) => (latToWorldPy(lat) - tileY * 256) / 256 * size;
-
-  const d = points.map((p, i) =>
-    `${i === 0 ? "M" : "L"}${toSvgX(p[1]).toFixed(1)} ${toSvgY(p[0]).toFixed(1)}`
-  ).join(" ") + " Z";
-
-  const tileUrl = `https://a.tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <rect width={size} height={size} fill="#1e3a5f" />
-      <image href={tileUrl} x="0" y="0" width={size} height={size} preserveAspectRatio="none" />
-      <path d={d} fill="#f9731640" stroke="#f97316" strokeWidth="1.2" strokeLinejoin="round" />
-    </svg>
-  );
-});
 
 export default function WorldMap({ vessels }: MainWorldMapProps) {
   const router = useRouter();
@@ -66,43 +28,18 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
   const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
-  const isMountedRef = useRef(false);
-  const prevSelectedImoRef = useRef<number | null>(null);
-  const prevSearchTriggerRef = useRef<number>(0);
   const vesselsRef = useRef(vessels);
-  const pingMarkerRef = useRef<any>(null);
-  const gpsAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 마커 클릭에 의한 선택이면 selectedVessel effect의 팝업 초기화를 건너뜀
-  const fromMarkerClickRef = useRef(false);
-  const setSelectedVesselFromMarker = useCallback(
-    (v: { id: string; imo: number; name: string; vpnIp: string }) => {
-      fromMarkerClickRef.current = true;
-      setSelectedVessel(v);
-    },
-    [setSelectedVessel],
-  );
+  const prevVesselsLengthRef = useRef<number | null>(null);
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
-  const [gpsAlert, setGpsAlert] = useState(false);
-  const [showCoverage, setShowCoverage] = useState(false);
-  const [activeGx, setActiveGx] = useState<GxKey>("all");
-  const [activeBeam, setActiveBeam] = useState<string | null>(null);
-  const [hoveredBeam, setHoveredBeam] = useState<string | null>(null);
-  const [beamList, setBeamList] = useState<GxBeam[]>([]);
-  const beamScrollRef = useRef<HTMLDivElement>(null);
-  const gxLayerCacheRef = useRef<Map<string, any[]>>(new Map());
-  const gxCacheBuiltRef = useRef(false);
-  const beamLayersRef = useRef<any[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const prevVesselsLengthRef = useRef<number | null>(null);
-  const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
-  const [clickedVessel, setClickedVessel] = useState<{
-    imo: number; name: string; color: string;
-  } | null>(null);
+  const [clickedVessel, setClickedVessel] = useState<ClickedVessel | null>(null);
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const [gpsAlert, setGpsAlert] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
 
-  // ── Leaflet 지도 초기화 훅 ─────────────────────────────────────────
+  // ── Leaflet 지도 초기화 ───────────────────────────────────────────
   const {
     mapRef,
     mapInstanceRef,
@@ -117,7 +54,23 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     clickedLatLngRef,
   );
 
-  // ── 마커 업데이트 훅 ──────────────────────────────────────────────
+  // ── VesselSearch 선택 → 줌인 + ping 마커 ─────────────────────────
+  const { setSelectedVesselFromMarker } = useVesselSelectionZoom({
+    selectedVessel,
+    searchTrigger,
+    mapReady,
+    mapInstanceRef,
+    leafletRef,
+    clickedLatLngRef,
+    clickedVessel,
+    setSelectedVessel,
+    setClickedVessel,
+    setPopupPos,
+    setGpsAlert,
+    vesselsRef,
+  });
+
+  // ── 마커 업데이트 ─────────────────────────────────────────────────
   useVesselMarkers({
     vessels,
     mapInstanceRef,
@@ -132,7 +85,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     onDoubleClick: (imo) => handleListViewDetail(imo),
   });
 
-  // ── 카테고리별 통계 ────────────────────────────────────────────────
+  // ── 카테고리별 통계 ───────────────────────────────────────────────
   const stats = useMemo(() => {
     const list = vessels ?? [];
     const hasGps = (v: (typeof list)[0]) => v.latitude !== null && v.longitude !== null;
@@ -159,7 +112,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     };
   }, [vessels]);
 
-  // GPS 있는 + offline + discard≠true 카운트 (지도에 빨간 마커로 표시되는 선박)
   const offlineNoGpsDiscardFalseCount = useMemo(() => {
     return (vessels ?? []).filter(
       (v) => v.connected === false && v.discard !== true &&
@@ -187,109 +139,21 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     });
   }, [vessels]);
 
-  // ── vesselsRef 최신화 ──────────────────────────────────────────────
+  // ── vesselsRef 최신화 ─────────────────────────────────────────────
   useEffect(() => { vesselsRef.current = vessels; }, [vessels]);
 
-  // ── 데이터 갱신 감지 → 스캔 라인 트리거 ────────────────────────────
+  // ── 데이터 갱신 감지 → 스캔 라인 트리거 ─────────────────────────
   useEffect(() => {
     const len = vessels?.length ?? 0;
     if (prevVesselsLengthRef.current === null) {
       prevVesselsLengthRef.current = len;
       return;
     }
-    // 데이터가 실제로 도착(배열 참조 변경)했을 때 애니메이션 실행
-    setIsRefreshing(true);
     prevVesselsLengthRef.current = len;
-    const t = setTimeout(() => setIsRefreshing(false), 1400);
-    return () => clearTimeout(t);
+    const tStart = setTimeout(() => setIsRefreshing(true), 0);
+    const tEnd = setTimeout(() => setIsRefreshing(false), 1400);
+    return () => { clearTimeout(tStart); clearTimeout(tEnd); };
   }, [vessels]);
-
-  // ── ping 마커 ─────────────────────────────────────────────────────
-  useEffect(() => {
-    const L = leafletRef.current;
-    const map = mapInstanceRef.current;
-    if (pingMarkerRef.current) { pingMarkerRef.current.remove(); pingMarkerRef.current = null; }
-    if (!clickedVessel || !clickedLatLngRef.current || !L || !map) return;
-
-    const { lat, lng } = clickedLatLngRef.current;
-    const color = clickedVessel.color;
-    const pingIcon = L.divIcon({
-      className: "",
-      html: `<div style="position:relative;width:40px;height:40px;transform:translate(-50%,-50%)">
-        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.35;animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) infinite;"></span>
-        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.2;animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) 0.5s infinite;"></span>
-      </div>`,
-      iconSize: [40, 40],
-      iconAnchor: [0, 0],
-    });
-    pingMarkerRef.current = L.marker([lat, lng], { icon: pingIcon, zIndexOffset: 999, interactive: false }).addTo(map);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clickedVessel]);
-
-  // ── VesselSearch 선택 → 지도 줌인 ─────────────────────────────────
-  useEffect(() => {
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      prevSelectedImoRef.current = selectedVessel?.imo ?? null;
-      prevSearchTriggerRef.current = searchTrigger;
-      return;
-    }
-    const newImo = selectedVessel?.imo ?? null;
-    const imoChanged = newImo !== prevSelectedImoRef.current;
-    const triggerChanged = searchTrigger !== prevSearchTriggerRef.current;
-    if (!imoChanged && !triggerChanged) return;
-    prevSelectedImoRef.current = newImo;
-    prevSearchTriggerRef.current = searchTrigger;
-
-    // 마커 클릭으로 선택된 경우 팝업·flyTo는 이미 처리됨 → 초기화 스킵
-    if (fromMarkerClickRef.current) {
-      fromMarkerClickRef.current = false;
-      return;
-    }
-
-    // 이전 선박의 ping/팝업 초기화
-    setClickedVessel(null);
-    setPopupPos(null);
-    clickedLatLngRef.current = null;
-
-    // GPS 알림 타이머 초기화
-    if (gpsAlertTimerRef.current) clearTimeout(gpsAlertTimerRef.current);
-    setGpsAlert(false);
-
-    if (!newImo || !mapReady || !mapInstanceRef.current) return;
-
-    const found = vesselsRef.current?.find(
-      (v) =>
-        v.imo === newImo &&
-        v.latitude !== null &&
-        v.longitude !== null &&
-        !(v.connected === false && v.discard === true),
-    );
-    if (found) {
-      const lat = found.latitude!;
-      const map = mapInstanceRef.current;
-      const lng = map.getCenter().lng;
-      const candidates = [found.longitude! - 360, found.longitude!, found.longitude! + 360];
-      const closestLng = candidates.reduce((best, c) =>
-        Math.abs(c - lng) < Math.abs(best - lng) ? c : best,
-      );
-      map.flyTo([lat, closestLng], 7, { animate: true, duration: 1.8, easeLinearity: 0.1 });
-      map.once("moveend", () => {
-        clickedLatLngRef.current = { lat, lng: closestLng };
-        const pt = map.latLngToContainerPoint([lat, closestLng]);
-        setPopupPos({ x: pt.x, y: pt.y });
-        setClickedVessel({
-          imo: found.imo,
-          name: found.vesselName,
-          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName),
-        });
-      });
-    } else {
-      setGpsAlert(true);
-      gpsAlertTimerRef.current = setTimeout(() => setGpsAlert(false), 30000);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVessel, searchTrigger, mapReady]);
 
   const handleListViewDetail = async (imo: number) => {
     try {
@@ -312,151 +176,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setActiveListPanel((v) => (v === mode ? null : mode));
   };
 
-  // ── GX Coverage 레이어 캐시 빌드 (mapReady 시 1회) ──────────────────
-  useEffect(() => {
-    const L = leafletRef.current;
-    const map = mapInstanceRef.current;
-    if (!mapReady || !L || !map || gxCacheBuiltRef.current) return;
-
-    const makeSatelliteIcon = (label: string) => L.divIcon({
-      className: "",
-      html: `
-        <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="9" y="9" width="6" height="6" rx="1" fill="#e2e8f0" stroke="#94a3b8" stroke-width="0.8"/>
-            <rect x="2" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
-            <rect x="16" y="10" width="6" height="4" rx="0.5" fill="#38bdf8" stroke="#0ea5e9" stroke-width="0.6"/>
-            <line x1="12" y1="9" x2="12" y2="4" stroke="#ef4444" stroke-width="1.2"/>
-            <circle cx="12" cy="3.5" r="1.2" fill="#ef4444"/>
-            <line x1="8" y1="12" x2="9" y2="12" stroke="#64748b" stroke-width="0.8"/>
-            <line x1="15" y1="12" x2="16" y2="12" stroke="#64748b" stroke-width="0.8"/>
-          </svg>
-          <span style="margin-top:2px;font-size:9px;font-weight:800;color:#fff;text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);letter-spacing:0.05em;white-space:nowrap;">${label}</span>
-        </div>
-      `,
-      iconSize: [28, 42],
-      iconAnchor: [14, 21],
-    });
-
-    const LNG_OFFSETS = [-360, 0, 360];
-
-    GX_COVERAGES.filter((g) => g.points.length > 0).forEach((gx) => {
-      const layers: any[] = [];
-
-      LNG_OFFSETS.forEach((offset) => {
-        const shifted = gx.points.map(([lat, lng]) => [lat, lng + offset] as [number, number]);
-
-        if (gx.hideBoundaryMeridians) {
-          layers.push(L.polygon(shifted, { stroke: false, fillColor: gx.color, fillOpacity: gx.fillOpacity ?? 0.08 }));
-
-          const m0 = 0 + offset;
-          const m360 = 360 + offset;
-          const isBoundaryEdge = (p1: [number, number], p2: [number, number]) => {
-            const on = (lng: number) => Math.abs(lng - m0) < 0.01 || Math.abs(lng - m360) < 0.01;
-            return on(p1[1]) && on(p2[1]);
-          };
-          let seg: [number, number][] = [];
-          for (let i = 0; i < shifted.length - 1; i++) {
-            if (isBoundaryEdge(shifted[i], shifted[i + 1])) {
-              if (seg.length > 1) layers.push(L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }));
-              seg = [];
-            } else {
-              if (seg.length === 0) seg.push(shifted[i]);
-              seg.push(shifted[i + 1]);
-            }
-          }
-          if (seg.length > 1) layers.push(L.polyline(seg, { color: gx.color, weight: 1.5, opacity: 0.8, dashArray: "6 4" }));
-        } else {
-          layers.push(L.polygon(shifted, { color: gx.color, weight: 1.5, opacity: 0.8, fillColor: gx.color, fillOpacity: gx.fillOpacity ?? 0.08, dashArray: "6 4" }));
-        }
-      });
-
-      if (gx.key !== "oneweb") {
-        const [cLat, cLng] = gx.center;
-        layers.push(L.marker([cLat, cLng], { icon: makeSatelliteIcon(gx.label), interactive: false, zIndexOffset: 500 }));
-      }
-
-      gxLayerCacheRef.current.set(gx.key, layers);
-    });
-
-    gxCacheBuiltRef.current = true;
-
-    const cache = gxLayerCacheRef.current;
-    return () => {
-      cache.forEach((layers) => layers.forEach((l) => l.remove()));
-      cache.clear();
-      gxCacheBuiltRef.current = false;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady]);
-
-  // ── showCoverage / activeGx 변경 시 show/hide 토글 ──────────────────
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!mapReady || !map || !gxCacheBuiltRef.current) return;
-
-    gxLayerCacheRef.current.forEach((layers, key) => {
-      const shouldShow = showCoverage && (activeGx === "all" || activeGx === key);
-      layers.forEach((layer) => {
-        if (shouldShow) {
-          if (!map.hasLayer(layer)) layer.addTo(map);
-        } else {
-          layer.remove();
-        }
-      });
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showCoverage, activeGx, mapReady]);
-
-  // coverage ON + activeGx 변경 시 빔 데이터 lazy load
-  useEffect(() => {
-    if (!showCoverage || !hasBeams(activeGx)) {
-      setBeamList([]);
-      setActiveBeam(null);
-      return;
-    }
-    loadBeams(activeGx).then(setBeamList);
-    setActiveBeam(null);
-  }, [showCoverage, activeGx]);
-
-  // ── 개별 빔 폴리곤 렌더링 ─────────────────────────────────────────
-  useEffect(() => {
-    const L = leafletRef.current;
-    const map = mapInstanceRef.current;
-    beamLayersRef.current.forEach((l) => l.remove());
-    beamLayersRef.current = [];
-    const displayBeam = hoveredBeam ?? activeBeam;
-    if (!displayBeam || !L || !map || !mapReady) return;
-    const beam = beamList.find((b: GxBeam) => b.id === displayBeam);
-    if (!beam) return;
-    const LNG_OFFSETS = [-360, 0, 360];
-    LNG_OFFSETS.forEach((offset) => {
-      const shifted = beam.points.map(([lat, lng]) => [lat, lng + offset] as [number, number]);
-      const poly = L.polygon(shifted, {
-        stroke: false,
-        fillColor: "#f97316",
-        fillOpacity: 0.22,
-      }).addTo(map);
-      beamLayersRef.current.push(poly);
-    });
-    return () => {
-      beamLayersRef.current.forEach((l) => l.remove());
-      beamLayersRef.current = [];
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hoveredBeam, activeBeam, activeGx, mapReady]);
-
-  useEffect(() => {
-    const el = beamScrollRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [beamList]);
-
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -473,7 +192,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       {/* No GPS 알림 토스트 */}
       <GpsAlert show={gpsAlert} vesselName={selectedVessel?.name} onViewDetail={handleGpsAlertViewDetail} />
 
-      {/* No GPS 선박 목록 패널 */}
+      {/* No GPS / offline 선박 목록 패널 */}
       {activeListPanel && (
         <NoGpsPanel
           mode={activeListPanel}
@@ -484,118 +203,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       )}
 
       {/* GX Coverage 버튼 + 빔 셀렉터 */}
-      <div className="absolute left-3 bottom-[calc(10vh+12px)] z-1000 flex items-end gap-2">
-        {/* Coverage 버튼 + GX 서브메뉴 */}
-        <div className="relative">
-        {/* GX 선택 서브메뉴 — coverage ON 상태에서만 표시 */}
-        {showCoverage && (
-          <div className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/60 p-2 shadow-2xl backdrop-blur-sm">
-            {/* All */}
-            <button
-              onClick={() => { setActiveGx("all"); }}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                activeGx === "all"
-                  ? "bg-white/15 text-white"
-                  : "text-gray-300 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <span className="h-2 w-2 rounded-full bg-white/50" />
-              All
-            </button>
-            {GX_COVERAGES.map((gx) => (
-              <button
-                key={gx.key}
-                onClick={() => { setActiveGx(gx.key as GxKey); }}
-                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  activeGx === gx.key
-                    ? "bg-white/15 text-white"
-                    : gx.points.length === 0
-                    ? "cursor-not-allowed text-gray-600"
-                    : "text-gray-300 hover:bg-white/10 hover:text-white"
-                }`}
-                disabled={gx.points.length === 0}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: gx.color }} />
-                {gx.label}
-                {gx.points.length === 0 && (
-                  <span className="ml-1 text-[9px] text-gray-600">TBD</span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Coverage 버튼: 왼쪽=토글 ON/OFF, 오른쪽 chevron=GX 선택 */}
-        <div className={`flex h-9 items-center overflow-hidden rounded-lg shadow-lg backdrop-blur-sm transition-all ${
-          showCoverage
-            ? " bg-orange-500"
-            : "border border-white/10 bg-gray-800/80"
-        }`}>
-          {/* 메인 토글 */}
-          <button
-            onClick={() => { setShowCoverage((v) => !v); }}
-            title="GX Coverage"
-            className={`flex h-full items-center gap-1.5 px-3 transition-colors active:scale-95 ${
-              showCoverage
-                ? "text-gray-200 hover:bg-orange-300/20"
-                : "text-gray-300 hover:bg-gray-700/60 hover:text-white"
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-              <path d="M2 12h20" />
-            </svg>
-            <span className="text-xs font-bold">Coverage</span>
-            {showCoverage && (
-              <span className="rounded bg-orange-400 px-1 py-0.5 text-[10px] font-bold text-white uppercase">
-                {activeGx === "all" ? "All" : activeGx.toUpperCase()}
-              </span>
-            )}
-          </button>
-          {/* GX 선택 chevron — coverage ON 일 때만 */}
-
-        </div>
-        </div>{/* end .relative */}
-
-        {/* 빔 셀렉터 — GX 위성별 빔 목록 */}
-        {showCoverage && beamList.length > 0 && (
-          <div
-            ref={beamScrollRef}
-            className="beam-selector-scroll overflow-x-auto rounded-xl border border-white/15 bg-gray-950/70 shadow-2xl backdrop-blur-md"
-            style={{ maxWidth: "calc(100vw - 490px)", minWidth: 160, scrollbarWidth: "thin", scrollbarColor: "#4b5563 transparent" }}
-          >
-            <div className="flex items-center gap-1.5 p-2 pb-2.5 pr-5">
-              {beamList.map((beam) => {
-                const isActive = activeBeam === beam.id;
-                return (
-                  <button
-                    key={beam.id}
-                    onClick={() => setActiveBeam(isActive ? null : beam.id)}
-                    onMouseEnter={() => setHoveredBeam(beam.id)}
-                    onMouseLeave={() => setHoveredBeam(null)}
-                    className="flex shrink-0 flex-col items-center gap-0.5"
-                  >
-                    <div
-                      className={`overflow-hidden rounded-md transition-all duration-200 ${
-                        isActive
-                          ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-gray-900"
-                          : "opacity-50 hover:opacity-90"
-                      }`}
-                      style={{ width: 32, height: 32 }}
-                    >
-                      <BeamThumb points={beam.points} size={32} />
-                    </div>
-                    <span className={`text-[9px] font-bold ${isActive ? "text-orange-400" : "text-gray-400"}`}>
-                      {beam.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>{/* end flex row */}
+      <GxCoveragePanel
+        mapInstanceRef={mapInstanceRef}
+        leafletRef={leafletRef}
+        mapReady={mapReady}
+      />
 
       {/* 리셋 버튼 */}
       <button
