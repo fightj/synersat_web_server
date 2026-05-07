@@ -138,3 +138,18 @@ export async function getGateways(imo: number): Promise<string[]> {
     throw error
   }
 }
+
+export async function deleteCrewData(imo: number, crewId: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${crewId}`, withTestUser({
+      ...fetchOptions,
+      method: "DELETE",
+    }))
+    if (!res.ok) throw new Error("Fail to delete crew data")
+    return await res.json()
+  }
+  catch (error) {
+    console.error("Error deleting crew data", error)
+    throw error
+  }
+}

@@ -30,8 +30,16 @@ interface TimeSettingProps {
   ) => void;
 }
 
+type SubOption = { label: string; fn: () => { start: Date; end: Date } };
+type QuickRange = {
+  label: string;
+  fn: () => { start: Date; end: Date };
+  subOptions?: SubOption[];
+};
+
 export default function TimeSetting({ onApply }: TimeSettingProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeRange, setActiveRange] = useState("24h");
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -42,7 +50,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     end: new Date(),
   });
 
-  const quickRanges = [
+  const quickRanges: QuickRange[] = [
     {
       label: "12h",
       fn: () => ({ start: subHours(new Date(), 12), end: new Date() }),
@@ -61,6 +69,22 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         start: startOfWeek(new Date(), { weekStartsOn: 1 }),
         end: endOfWeek(new Date(), { weekStartsOn: 1 }),
       }),
+      subOptions: [
+        {
+          label: "This Week",
+          fn: () => ({
+            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+            end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+          }),
+        },
+        {
+          label: "This Week So Far",
+          fn: () => ({
+            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+            end: new Date(),
+          }),
+        },
+      ],
     },
     {
       label: "This Month",
@@ -68,12 +92,27 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         start: startOfMonth(new Date()),
         end: endOfMonth(new Date()),
       }),
+      subOptions: [
+        {
+          label: "This Month",
+          fn: () => ({
+            start: startOfMonth(new Date()),
+            end: endOfMonth(new Date()),
+          }),
+        },
+        {
+          label: "This Month So Far",
+          fn: () => ({
+            start: startOfMonth(new Date()),
+            end: new Date(),
+          }),
+        },
+      ],
     },
   ];
 
-  // ✅ 항상 UTC 기준으로 변환
   const toUTCString = (date: Date): string => {
-    return date.toISOString().slice(0, 19); // "2026-03-13T07:00:00" (UTC, Z 제거)
+    return date.toISOString().slice(0, 19);
   };
 
   useEffect(() => {
@@ -83,6 +122,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         !containerRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
+        setOpenSubMenu(null);
         setError(null);
       }
     };
@@ -120,12 +160,20 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     }
   };
 
-  // ✅ 캘린더 Apply - isLive: false (특정 날짜 범위)
   const handleApply = () => {
     if (range.start && range.end) {
       onApply(toUTCString(range.start), toUTCString(range.end), false);
       setIsOpen(false);
     }
+  };
+
+  const applySubOption = (sub: SubOption) => {
+    const { start, end } = sub.fn();
+    setRange({ start, end });
+    setActiveRange(sub.label);
+    setError(null);
+    setOpenSubMenu(null);
+    onApply(toUTCString(start), toUTCString(end), false);
   };
 
   const getDayStyles = (day: Date) => {
@@ -148,7 +196,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     <div className="relative inline-block" ref={containerRef}>
       <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/[0.03]">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => { setIsOpen(!isOpen); setOpenSubMenu(null); }}
           className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-white/5"
         >
           <div className="flex h-6 w-6 shrink-0 items-center justify-center">
@@ -163,32 +211,83 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10" />
 
         <div className="flex items-center gap-1 pr-1">
-          {quickRanges.map((r) => (
-            <button
-              key={r.label}
-              onClick={() => {
-                const { start, end } = r.fn();
-                setRange({ start, end });
-                setActiveRange(r.label);
-                setError(null);
-                // ✅ This Week, This Month는 고정 범위라 isLive: false
-                const live = !["This Week", "This Month"].includes(r.label);
-                onApply(
-                  toUTCString(start),
-                  toUTCString(end),
-                  live,
-                  live ? r.fn : undefined,
-                );
-              }}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-                activeRange === r.label
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
+          {quickRanges.map((r) => {
+            const isActive =
+              activeRange === r.label ||
+              activeRange === `${r.label} So Far`;
+            const isSubOpen = openSubMenu === r.label;
+
+            return (
+              <div key={r.label} className="relative">
+                <button
+                  onClick={() => {
+                    setError(null);
+                    if (r.subOptions) {
+                      setIsOpen(false);
+                      setOpenSubMenu(isSubOpen ? null : r.label);
+                      return;
+                    }
+                    setOpenSubMenu(null);
+                    const { start, end } = r.fn();
+                    setRange({ start, end });
+                    setActiveRange(r.label);
+                    const live = true;
+                    onApply(toUTCString(start), toUTCString(end), live, r.fn);
+                  }}
+                  className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {r.label}
+                  {r.subOptions && (
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-transform duration-150 ${isSubOpen ? "rotate-180" : ""}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  )}
+                </button>
+
+                {r.subOptions && isSubOpen && (
+                  <div className="absolute top-full left-0 z-[10000] mt-1.5 min-w-max overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
+                    {r.subOptions.map((sub, idx) => (
+                      <button
+                        key={sub.label}
+                        onClick={() => applySubOption(sub)}
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-bold transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
+                          activeRange === sub.label
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-700 dark:text-gray-300"
+                        } ${idx === 0 ? "" : "border-t border-gray-100 dark:border-white/5"}`}
+                      >
+                        {sub.label === r.label ? (
+                          <>
+                            <span>{sub.label}</span>
+                            <span className="text-[10px] font-normal text-gray-400">full</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{sub.label}</span>
+                            <span className="text-[10px] font-normal text-gray-400">~ today</span>
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -199,9 +298,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
               className="rounded-full p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
             >
-              <span className="text-xs font-bold text-gray-600 dark:text-white">
-                ◀
-              </span>
+              <span className="text-xs font-bold text-gray-600 dark:text-white">◀</span>
             </button>
             <span className="text-sm font-bold tracking-tight text-gray-800 dark:text-gray-100">
               {format(currentMonth, "MMMM yyyy")}
@@ -210,26 +307,19 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
               onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
               className="rounded-full p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
             >
-              <span className="text-xs font-bold text-gray-600 dark:text-white">
-                ▶
-              </span>
+              <span className="text-xs font-bold text-gray-600 dark:text-white">▶</span>
             </button>
           </div>
 
           <div className="grid grid-cols-7 gap-y-1 text-center text-[11px]">
             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-              <div
-                key={d}
-                className="pb-2 font-bold tracking-widest text-gray-400 uppercase"
-              >
+              <div key={d} className="pb-2 font-bold tracking-widest text-gray-400 uppercase">
                 {d}
               </div>
             ))}
-            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map(
-              (_, i) => (
-                <div key={i} />
-              ),
-            )}
+            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
+              <div key={i} />
+            ))}
             {daysInMonth.map((day) => (
               <button
                 key={day.toISOString()}
@@ -244,17 +334,14 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
           <div className="mt-5 flex items-center border-t border-gray-100 pt-4 dark:border-white/5">
             <div className="flex-1">
               {error && (
-                <p className="animate-pulse text-[11px] font-bold text-red-500">
-                  {error}
-                </p>
+                <p className="animate-pulse text-[11px] font-bold text-red-500">{error}</p>
               )}
               {!error && range.start && !range.end && (
                 <p className="text-[11px] text-gray-400">Select end date</p>
               )}
               {!error && range.start && range.end && (
                 <p className="text-[10px] text-gray-400">
-                  {Math.abs(differenceInDays(range.start, range.end))} days
-                  selected
+                  {Math.abs(differenceInDays(range.start, range.end))} days selected
                 </p>
               )}
             </div>
