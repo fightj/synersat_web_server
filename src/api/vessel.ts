@@ -162,6 +162,7 @@ export async function getVesselRoutes(
       imo: String(imo),
       startAt,
       endAt,
+      minutes: "30",
     });
 
     const res = await fetch(`${BASE_URL}/vessels/routes?${params.toString()}`, withTestUser({
