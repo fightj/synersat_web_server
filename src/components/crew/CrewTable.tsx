@@ -84,6 +84,11 @@ const CHANGE_TYPE_BADGE: Record<NonNullable<CrewUpdateType>, { label: string; cl
     className:
       "bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
   },
+  DELETE: {
+    label: "Pending (Delete)",
+    className:
+      "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
+  },
 };
 
 function StatusBadge({ updateType }: { updateType: CrewUpdateType }) {
@@ -190,7 +195,9 @@ export default function CrewTable({
                     isPending
                       ? u.updateType === "UPDATE"
                         ? "cursor-not-allowed bg-orange-50/60 opacity-60 dark:bg-orange-500/5"
-                        : "cursor-not-allowed bg-blue-50/60 opacity-60 dark:bg-blue-500/5"
+                        : u.updateType === "DELETE"
+                          ? "cursor-not-allowed bg-red-50/60 opacity-60 dark:bg-red-500/5"
+                          : "cursor-not-allowed bg-blue-50/60 opacity-60 dark:bg-blue-500/5"
                       : isChecked
                         ? "bg-blue-50/50 dark:bg-blue-500/5"
                         : "hover:bg-gray-50/80 dark:hover:bg-white/2"

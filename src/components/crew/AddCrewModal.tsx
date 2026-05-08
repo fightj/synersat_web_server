@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { addCrewData, getGateways } from "@/api/crew-account";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
@@ -68,6 +68,17 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
   const [errors, setErrors] = useState<Record<number, EntryErrors>>({});
   const [saving, setSaving] = useState(false);
   const [gateways, setGateways] = useState<string[]>([]);
+  const duplicateIndices = useMemo(() => {
+    const idCount: Record<string, number[]> = {};
+    entries.forEach((entry, i) => {
+      const id = entry.userId.trim();
+      if (!id) return;
+      if (!idCount[id]) idCount[id] = [];
+      idCount[id].push(i);
+    });
+    return new Set(Object.values(idCount).filter((arr) => arr.length > 1).flat());
+  }, [entries]);
+
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
@@ -286,7 +297,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
                     </Label>
                     <input
                       type="text"
-                      className={`${inputClass} ${entryErrors.userId ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      className={`${inputClass} ${entryErrors.userId || duplicateIndices.has(index) ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
                       placeholder="Enter user ID"
                       value={entry.userId}
                       onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9-]/g, "").replace(/crewpay-/gi, ""))}
@@ -295,7 +306,12 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
                           setErrors((prev) => ({ ...prev, [index]: { ...prev[index], userId: "User ID is required." } }));
                       }}
                     />
-                    {entryErrors.userId && <p className={errorClass}>{entryErrors.userId}</p>}
+                    {duplicateIndices.has(index) && (
+                      <p className={errorClass}>Duplicate User ID. Each crew must have a unique ID.</p>
+                    )}
+                    {!duplicateIndices.has(index) && entryErrors.userId && (
+                      <p className={errorClass}>{entryErrors.userId}</p>
+                    )}
                   </div>
 
                   {/* Password */}
@@ -434,8 +450,8 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
           </button>
           <button
             onClick={handleSaveAll}
-            disabled={saving}
-            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50"
+            disabled={saving || duplicateIndices.size > 0}
+            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : "Save All"}
           </button>

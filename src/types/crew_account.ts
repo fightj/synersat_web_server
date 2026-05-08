@@ -9,7 +9,7 @@ export interface CrewData {
   description: string | null
 }
 
-export type CrewUpdateType = "UPDATE" | "CREATE" | null;
+export type CrewUpdateType = "UPDATE" | "CREATE" | "DELETE" | null;
 
 export interface CrewRow {
   current: CrewData | null;

@@ -6,7 +6,8 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
 import type { CrewEntry } from "@/types/crew_account";
-import { getCrewData } from "@/api/crew-account";
+import { getCrewData, deleteCrewData } from "@/api/crew-account";
+import DeleteConfirmAlert from "@/components/common/DeleteConfirmAlert";
 import CrewToolbar from "./CrewToolbar";
 import CrewTable from "./CrewTable";
 import SuspensionSetupModal from "./SuspensionSetupModal";
@@ -45,6 +46,7 @@ export default function CrewComponentCard() {
   const [checkUsageOpen, setCheckUsageOpen] = useState(false);
   const [usageHistoryTarget, setUsageHistoryTarget] = useState<CrewEntry | null>(null);
   const [refreshBanner, setRefreshBanner] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   const processRaw = useCallback((result: any): CrewEntry[] => {
     const rawList: any[] = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
@@ -159,9 +161,25 @@ export default function CrewComponentCard() {
       setCheckUsageOpen(true);
       return;
     }
+    if (action === "DELETE") {
+      setIsDeleteAlertOpen(true);
+      return;
+    }
     if (confirm(`${action} action for ${selected.size} users. Are you sure?`)) {
       console.log(`Executing ${action} for:`, selectedUsers.map((u) => u.userId));
       alert(`${action} has been requested.`);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!imo) return;
+    setIsDeleteAlertOpen(false);
+    try {
+      await deleteCrewData(imo, Array.from(selected));
+      setSelected(new Set());
+      await fetchCrewData(true);
+    } catch (error) {
+      console.error("Error deleting crew:", error);
     }
   };
 
@@ -171,7 +189,7 @@ export default function CrewComponentCard() {
     const rows = filteredCrew.map((u) => [
       u.userId,
       u.description ?? "",
-      u.terminalType ?? "",
+      u.terminalType || "Auto",
       u.halfTimePeriod === "half"
         ? `Half-${u.maxTotalOctetsTimeRange}`
         : u.maxTotalOctetsTimeRange,
@@ -259,6 +277,14 @@ export default function CrewComponentCard() {
           imo={imo}
         />
       )}
+
+      <DeleteConfirmAlert
+        isOpen={isDeleteAlertOpen}
+        onCancel={() => setIsDeleteAlertOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Crew"
+        message={`Are you sure you want to delete ${selected.size} crew member${selected.size > 1 ? "s" : ""}? This action cannot be undone.`}
+      />
 
       <SuspensionSetupModal
         isOpen={suspensionModal.open}
