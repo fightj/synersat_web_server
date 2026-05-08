@@ -68,9 +68,11 @@ export function useVesselMarkers({
   onDoubleClick,
 }: UseVesselMarkersOptions) {
   // imo → marker 맵으로 변경: diff 기반 업데이트
+  const ICON_H = 28;
+  const ICON_W = 20;
+
   const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
-  const zoomHandlerRef = useRef<(() => void) | null>(null);
   // 현재 flyTo 중인 IMO — 같은 선박 재클릭 시 애니메이션 재시작 방지
   const flyingToImoRef = useRef<number | null>(null);
 
@@ -81,9 +83,8 @@ export function useVesselMarkers({
 
     showNameRef.current = showName;
 
-    const zoom = map.getZoom();
-    const h = Math.min(Math.max(zoom * 3, 14), 32) * 1.5 * 1.3;
-    const w = Math.round(h * (16 / 28) * 1.2);
+    const h = ICON_H;
+    const w = ICON_W;
 
     if (!vessels || vessels.length === 0) {
       markerMapRef.current.forEach((m) => m.remove());
@@ -214,26 +215,6 @@ export function useVesselMarkers({
       }
     });
 
-    // zoomend 핸들러: 이전 것 제거 후 재등록
-    if (zoomHandlerRef.current) {
-      map.off("zoomend", zoomHandlerRef.current);
-    }
-    const handleZoomEnd = () => {
-      const z = map.getZoom();
-      const zh = Math.min(Math.max(z * 3, 14), 32) * 1.5 * 1.3;
-      const zw = Math.round(zh * (16 / 28) * 1.2);
-      markerMapRef.current.forEach((m) => {
-        m.setIcon(
-          makeVesselIcon(L, zw, zh, m._vesselColor ?? "#94a3b8", m._vesselHeading ?? 0, m._vesselName ?? "", showNameRef.current),
-        );
-      });
-    };
-    zoomHandlerRef.current = handleZoomEnd;
-    map.on("zoomend", handleZoomEnd);
-
-    return () => {
-      map.off("zoomend", handleZoomEnd);
-    };
   }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
 
   return { markersRef: markerMapRef };
