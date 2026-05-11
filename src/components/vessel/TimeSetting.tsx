@@ -71,17 +71,17 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
       }),
       subOptions: [
         {
-          label: "This Week",
-          fn: () => ({
-            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-            end: endOfWeek(new Date(), { weekStartsOn: 1 }),
-          }),
-        },
-        {
           label: "This Week So Far",
           fn: () => ({
             start: startOfWeek(new Date(), { weekStartsOn: 1 }),
             end: new Date(),
+          }),
+        },
+        {
+          label: "This Week",
+          fn: () => ({
+            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+            end: endOfWeek(new Date(), { weekStartsOn: 1 }),
           }),
         },
       ],
@@ -94,17 +94,17 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
       }),
       subOptions: [
         {
-          label: "This Month",
-          fn: () => ({
-            start: startOfMonth(new Date()),
-            end: endOfMonth(new Date()),
-          }),
-        },
-        {
           label: "This Month So Far",
           fn: () => ({
             start: startOfMonth(new Date()),
             end: new Date(),
+          }),
+        },
+        {
+          label: "This Month",
+          fn: () => ({
+            start: startOfMonth(new Date()),
+            end: endOfMonth(new Date()),
           }),
         },
       ],

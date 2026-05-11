@@ -4,7 +4,7 @@ import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    const res = await fetch(`${BASE_URL}/v1/vessels`, withTestUser({
+    const res = await fetch(`${BASE_URL}/v1/vessels?minutes=30`, withTestUser({
       ...fetchOptions,
       method: "GET",
     }));
@@ -138,7 +138,7 @@ export async function getAccounts(): Promise<{ value: string; label: string }[]>
 
 export async function getVesselDetail(vesselImo: string | number): Promise<VesselDetail> {
   try {
-    const res = await fetch(`${BASE_URL}/v1/vessels/${vesselImo}`, withTestUser({
+    const res = await fetch(`${BASE_URL}/v1/vessels/${vesselImo}?minutes=30`, withTestUser({
       ...fetchOptions,
       method: "GET",
     }));
