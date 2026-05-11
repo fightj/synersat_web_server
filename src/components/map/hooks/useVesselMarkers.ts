@@ -139,12 +139,12 @@ export function useVesselMarkers({
           zIndexOffset: 1000,
         }).addTo(map);
 
-        marker._vesselColor   = vessel.color;
+        marker._vesselColor = vessel.color;
         marker._vesselHeading = vessel.heading;
-        marker._vesselName    = vessel.name;
+        marker._vesselName = vessel.name;
         marker._vesselBaseLng = vessel.lng;
-        marker._vesselImo     = vessel.imo;
-        marker._vesselData    = vessel;
+        marker._vesselImo = vessel.imo;
+        marker._vesselData = vessel;
 
         // 클릭 핸들러는 _vesselData를 참조 → 항상 최신 데이터 사용
         marker.on("click", (e: any) => {
@@ -159,7 +159,7 @@ export function useVesselMarkers({
           if (flyingToImoRef.current !== v.imo) {
             const thisImo = v.imo;
             flyingToImoRef.current = thisImo;
-            map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1, easeLinearity: 0.1 });
+            map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.7, easeLinearity: 0.1 });
             map.once("moveend", () => {
               if (flyingToImoRef.current === thisImo) flyingToImoRef.current = null;
             });
@@ -195,9 +195,9 @@ export function useVesselMarkers({
 
         if (prev.heading !== vessel.heading || prev.color !== vessel.color || prev.name !== vessel.name) {
           existing.setIcon(makeVesselIcon(L, w, h, vessel.color, vessel.heading, vessel.name, showName));
-          existing._vesselColor   = vessel.color;
+          existing._vesselColor = vessel.color;
           existing._vesselHeading = vessel.heading;
-          existing._vesselName    = vessel.name;
+          existing._vesselName = vessel.name;
         }
 
         if (
