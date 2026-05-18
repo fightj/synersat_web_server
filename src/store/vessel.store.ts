@@ -19,11 +19,19 @@ type VesselStore = {
   refreshVessels: () => Promise<void>;
 };
 
-function vesselSignature(vessels: Vessel[]): string {
-  return vessels
-    .map((v) => `${v.id}:${v.name}:${v.status?.available ?? ""}:${v.status?.antennaServiceDisplayName ?? ""}`)
-    .sort()
-    .join("|");
+function hasVesselDataChanged(fresh: Vessel[], cached: Vessel[]): boolean {
+  // 1. 선박 수 다르면 변경
+  if (fresh.length !== cached.length) return true;
+
+  // 2. 각 선박의 status 비교
+  return fresh.some((v) => {
+    const c = cached.find((c) => c.id === v.id);
+    if (!c) return true;
+    return (
+      c.status?.available !== v.status?.available ||
+      c.status?.antennaServiceDisplayName !== v.status?.antennaServiceDisplayName
+    );
+  });
 }
 
 export const useVesselStore = create<VesselStore>()(
@@ -44,6 +52,7 @@ export const useVesselStore = create<VesselStore>()(
         const cached = get().vessels;
         const hasCached = cached.length > 0;
 
+        // 캐시 없으면 로딩 표시, 있으면 로컬스토리지 데이터로 먼저 렌더링 후 백그라운드 갱신
         if (!hasCached) {
           set({ loading: true, error: null });
         }
@@ -51,8 +60,8 @@ export const useVesselStore = create<VesselStore>()(
         try {
           const fresh = await getVessels();
 
-          // 데이터가 실제로 변경된 경우에만 store 업데이트
-          if (vesselSignature(fresh) !== vesselSignature(cached)) {
+          // 선박 수 또는 status가 달라진 경우에만 업데이트
+          if (hasVesselDataChanged(fresh, cached)) {
             set({ vessels: fresh });
           }
 
