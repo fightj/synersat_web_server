@@ -2,7 +2,6 @@
 
 import AppHeader from "@/layout/AppHeader";
 import React from "react";
-import VesselBootstrap from "@/components/bootstrap/VesselBootstrap";
 import { useSSE } from "@/components/notification/hooks/useSSE";
 import CommandToast from "@/components/notification/NotificationToast";
 
@@ -15,7 +14,6 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen">
-      <VesselBootstrap />
       <AppHeader />
       <CommandToast />
 

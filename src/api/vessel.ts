@@ -1,4 +1,4 @@
-import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, DashboardVesselsResponse } from "@/types/vessel";
+import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, DashboardVesselsResponse, VesselsLiteList } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
@@ -46,6 +46,23 @@ export async function getVessels(): Promise<Vessel[]> {
   } catch (error) {
     console.error("Error fetching vessels:", error);
     throw error;
+  }
+}
+
+export async function getVesselsLite(): Promise<VesselsLiteList> {
+  try {
+    const res = await fetch(`${BASE_URL}/vessels/lite`, withTestUser({
+      ...fetchOptions,
+      method: "GET",
+
+    }))
+
+    if (!res.ok) throw new Error("Failed to fetch vessels Lite");
+    return await res.json()
+  }
+  catch (error) {
+    console.error("Error fetching vessels Lite:", error);
+    throw error
   }
 }
 

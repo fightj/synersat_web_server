@@ -158,3 +158,12 @@ export interface UpdateVesselPayload {
   fireWallPassword?: string;
   serialNumber?: string;
 }
+
+export interface GetVesselsLite {
+  imo: number
+  vesselId: string
+  name: string
+  vpnIp: string
+}
+
+export type VesselsLiteList = GetVesselsLite[]

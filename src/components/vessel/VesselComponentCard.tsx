@@ -29,6 +29,11 @@ export default function VesselComponentCard() {
   const [categoryFilter, setCategoryFilter] = useState<typeof STAT_CATEGORIES[number]["key"] | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const vessels = useVesselStore((s) => s.vessels);
+  const fetchVessels = useVesselStore((s) => s.fetchVessels);
+
+  useEffect(() => {
+    fetchVessels();
+  }, [fetchVessels]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 300);

@@ -19,6 +19,13 @@ type VesselStore = {
   refreshVessels: () => Promise<void>;
 };
 
+function vesselSignature(vessels: Vessel[]): string {
+  return vessels
+    .map((v) => `${v.id}:${v.name}:${v.status?.available ?? ""}:${v.status?.antennaServiceDisplayName ?? ""}`)
+    .sort()
+    .join("|");
+}
+
 export const useVesselStore = create<VesselStore>()(
   persist(
     (set, get) => ({
@@ -34,16 +41,20 @@ export const useVesselStore = create<VesselStore>()(
       fetchVessels: async () => {
         if (get().loading) return;
 
-        const hasCached = get().vessels.length > 0;
+        const cached = get().vessels;
+        const hasCached = cached.length > 0;
 
-        // 캐시 없으면 로딩 표시, 있으면 백그라운드에서 조용히 패치 후 바로 덮어씀
         if (!hasCached) {
           set({ loading: true, error: null });
         }
 
         try {
           const fresh = await getVessels();
-          set({ vessels: fresh });
+
+          // 데이터가 실제로 변경된 경우에만 store 업데이트
+          if (vesselSignature(fresh) !== vesselSignature(cached)) {
+            set({ vessels: fresh });
+          }
 
           const sel = get().selectedVessel;
           if (sel && !fresh.some((v) => String(v.id) === String(sel.id))) {

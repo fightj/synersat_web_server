@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
+import { getVesselsLite } from "@/api/vessel";
+import type { GetVesselsLite } from "@/types/vessel";
 import { CloseLineIcon } from "@/icons";
 
 type Props = { className?: string };
@@ -77,9 +79,15 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 export default function VesselSearch({ className = "" }: Props) {
   const router = useRouter();
-  const vessels = useVesselStore((s) => s.vessels);
+  const [liteVessels, setLiteVessels] = useState<GetVesselsLite[]>([]);
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
+  useEffect(() => {
+    getVesselsLite()
+      .then((data) => setLiteVessels(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,18 +97,15 @@ export default function VesselSearch({ className = "" }: Props) {
   const [open, setOpen] = useState(false);
 
   const allMatches = useMemo(() => {
-    const sortedVessels = [...vessels].sort((a, b) => {
-      const nameA = (a.name ?? "").toLowerCase();
-      const nameB = (b.name ?? "").toLowerCase();
-      return nameA.localeCompare(nameB, "en", { numeric: true });
-    });
-    const q = query.trim().toLowerCase();
-    if (!q) return sortedVessels;
-    return sortedVessels.filter(
-      (v) =>
-        (v.name ?? "").toLowerCase().includes(q) || (v.vpnIp ?? "").includes(q),
+    const sorted = [...liteVessels].sort((a, b) =>
+      a.name.localeCompare(b.name, "en", { numeric: true }),
     );
-  }, [vessels, query]);
+    const q = query.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter(
+      (v) => v.name.toLowerCase().includes(q) || v.vpnIp.includes(q),
+    );
+  }, [liteVessels, query]);
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -116,12 +121,12 @@ export default function VesselSearch({ className = "" }: Props) {
     [allMatches, visibleCount],
   );
 
-  const selectVessel = (v: any) => {
+  const selectVessel = (v: GetVesselsLite) => {
     setSelectedVessel({
-      id: String(v.id),
-      imo: Number(v.imo),
-      name: v.name ?? "",
-      vpnIp: v.vpnIp ?? "",
+      id: v.vesselId,
+      imo: v.imo,
+      name: v.name,
+      vpnIp: v.vpnIp,
     });
     setQuery("");
     setOpen(false);
@@ -272,9 +277,9 @@ export default function VesselSearch({ className = "" }: Props) {
                   const isActive = idx === activeIndex;
                   const isSelected =
                     !!selectedVessel &&
-                    String(v.id) === String(selectedVessel.id);
+                    v.vesselId === selectedVessel.id;
                   return (
-                    <li key={v.id ?? `${v.name}-${idx}`}>
+                    <li key={v.vesselId ?? `${v.name}-${idx}`}>
                       <button
                         id={`vessel-option-${idx}`}
                         type="button"
