@@ -127,6 +127,7 @@ export default function VesselSearch({ className = "" }: Props) {
       imo: v.imo,
       name: v.name,
       vpnIp: v.vpnIp,
+      prepaidEnabled: v.prepaidEnabled,
     });
     setQuery("");
     setOpen(false);

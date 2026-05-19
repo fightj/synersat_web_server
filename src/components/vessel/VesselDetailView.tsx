@@ -15,6 +15,7 @@ import VesselFormModal from "./VesselFormModal";
 import VesselDeleteAlert from "./VesselDeleteAlert";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import { deleteVessel, antennaUpdate, vesselSmartboxUpdate, resetCore } from "@/api/vessel";
+import { updatePrepayEnabled } from "@/api/crew-account";
 import { useRouter } from "next/navigation";
 import { AnimatedCounter } from "../ui/animated-counter";
 import Button from "../ui/button/Button";
@@ -78,6 +79,8 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showGrafana, setShowGrafana] = useState(false);
   const [chartExpanded, setChartExpanded] = useState(false);
+  const [prepaidEnabled, setPrepaidEnabled] = useState<boolean>(false);
+  const [prepaidLoading, setPrepaidLoading] = useState(false);
   const router = useRouter();
 
   const handleDeleteVessel = async () => {
@@ -123,6 +126,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         setError(null);
         const result = await getVesselDetail(vesselImo);
         setData(result);
+        setPrepaidEnabled(result.prepaidEnabled ?? false);
       } catch (err: any) {
         setError(err.message || "데이터 호출 중 오류가 발생했습니다.");
       } finally {
@@ -131,6 +135,20 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     };
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
+
+  const handlePrepaidToggle = async () => {
+    if (!data || prepaidLoading) return;
+    const next = !prepaidEnabled;
+    setPrepaidEnabled(next);
+    setPrepaidLoading(true);
+    try {
+      await updatePrepayEnabled(data.imo, next);
+    } catch {
+      setPrepaidEnabled(!next);
+    } finally {
+      setPrepaidLoading(false);
+    }
+  };
 
   // antennaDisplayName → 표기 라벨 매핑
   const DISPLAY_NAME_MAP: Record<string, string> = {
@@ -247,6 +265,29 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               );
             })()}
 
+            {/* Prepaid 토글 */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={prepaidEnabled}
+              onClick={handlePrepaidToggle}
+              disabled={prepaidLoading}
+              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                prepaidEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+              } ${prepaidLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+            >
+              <span
+                className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                  prepaidEnabled ? "translate-x-[58px]" : "translate-x-0.5"
+                }`}
+              />
+              <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${
+                prepaidEnabled ? "pr-5" : "pl-5"
+              }`}>
+                Prepaid
+              </span>
+            </button>
+
             {/* Grafana Dashboard 버튼 */}
             <button
               onClick={() => setShowGrafana(true)}
@@ -351,7 +392,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   <DetailItem label="FW PW" value={data.fireWallPassword} />
                 </div>
               </div>
-              <div className="py-3 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                     size="xs"
                     onClick={async () => {

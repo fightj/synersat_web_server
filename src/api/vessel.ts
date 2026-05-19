@@ -28,6 +28,7 @@ export async function getVessels(): Promise<Vessel[]> {
       acct: v.acct,
       fireWallPassword: v.fireWallPassword,
       serialNumber: v.serialNumber,
+      prepaidEnabled: v.prepaidEnabled,
       status: {
         available: v.status?.available,
         currentRoute: v.status?.currentRoute,

@@ -139,6 +139,19 @@ export async function getGateways(imo: number): Promise<string[]> {
   }
 }
 
+export async function updatePrepayEnabled(imo: number, prepayEnabled: boolean): Promise<void> {
+  const res = await fetch(`${BASE_URL}/vessels/${imo}/prepay`, withTestUser({
+    ...fetchOptions,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prepayEnabled }),
+  }));
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update prepay (${res.status}): ${errorText}`);
+  }
+}
+
 export async function deleteCrewData(imo: number, crewIds: string[]): Promise<void> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/crews`, withTestUser({

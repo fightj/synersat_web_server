@@ -113,6 +113,16 @@ const VesselRow = memo(
               {vessel.name || "-"}
             </td>
             <td className="px-3 py-4 text-start">
+              {vessel.prepaidEnabled === true ? (
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                  
+                  PrePaid
+                </span>
+              ) : (
+                <span className="text-[11px] text-gray-300 dark:text-gray-600">—</span>
+              )}
+            </td>
+            <td className="px-3 py-4 text-start">
               {badgeLabel && (
                 <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase ${badgeClass}`}>
                   {badgeLabel}
@@ -150,7 +160,7 @@ const VesselRow = memo(
           </tr>
 
           <tr>
-            <td colSpan={9} className="p-0">
+            <td colSpan={10} className="p-0">
               <div
                 className={`grid transition-all duration-300 ease-in-out ${
                   isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
@@ -302,14 +312,15 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         >
           {/* colgroup: table-layout:fixed에서 열 너비 고정 */}
           <colgroup>
-            <col style={{ width: "16%" }} />
-            <col style={{ width: "16%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "7%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "12%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "11%" }} />
             <col style={{ width: "6%" }} />
           </colgroup>
 
@@ -320,6 +331,9 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
               </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 <SortHeader label="Vessel Name" k="vesselName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+              </th>
+              <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                Prepaid
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 Status
@@ -339,7 +353,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingTop > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={9} style={{ height: paddingTop, padding: 0 }} />
+                <td colSpan={10} style={{ height: paddingTop, padding: 0 }} />
               </tr>
             </tbody>
           )}
@@ -365,7 +379,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingBottom > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={9} style={{ height: paddingBottom, padding: 0 }} />
+                <td colSpan={10} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
             </tbody>
           )}

@@ -28,6 +28,7 @@ export interface Vessel {
   acct: string;
   fireWallPassword?: string;
   serialNumber?: string;
+  prepaidEnabled?: boolean;
   status?: VesselStatus;
 }
 
@@ -66,6 +67,7 @@ export interface VesselDetail {
   fireWallPassword: string;
   acct: string;
   serialNumber: string;
+  prepaidEnabled?: boolean;
   status: {
     available: boolean;
     currentRoute: string;
@@ -164,6 +166,7 @@ export interface GetVesselsLite {
   vesselId: string
   name: string
   vpnIp: string
+  prepaidEnabled: boolean
 }
 
 export type VesselsLiteList = GetVesselsLite[]

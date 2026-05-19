@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -11,6 +11,7 @@ import {
   CommandSidebar,
   ChevronDownIcon,
 } from "../icons/index";
+import { useVesselStore } from "@/store/vessel.store";
 
 type NavItem = {
   name: string;
@@ -245,9 +246,21 @@ function NavIconButton({ item }: { item: NavItem }) {
 }
 
 export default function AppSidebar() {
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+
+  const computedNavItems = useMemo(() => {
+    if (selectedVessel?.prepaidEnabled === true) return navItems;
+    return navItems.map((item) => {
+      if (item.name === "Crew Account") {
+        return { ...item, subItems: item.subItems?.filter((sub) => sub.name !== "Prepay") };
+      }
+      return item;
+    });
+  }, [selectedVessel?.prepaidEnabled]);
+
   return (
     <nav className="flex items-center gap-1">
-      {navItems.map((item) => (
+      {computedNavItems.map((item) => (
         <NavIconButton key={item.name} item={item} />
       ))}
     </nav>
