@@ -12,7 +12,7 @@ interface UseVesselMarkersOptions {
   showName: boolean;
   activeFilter: FilterKey;
   clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>;
-  setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string }) => void;
+  setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string; prepaidEnabled?: boolean }) => void;
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
   setPopupPos: (pos: { x: number; y: number } | null) => void;
   onDoubleClick?: (imo: number) => void;
@@ -166,7 +166,7 @@ export function useVesselMarkers({
           }
           const stored = useVesselStore.getState().vessels.find((sv) => sv.imo === v.imo);
           if (stored) {
-            setSelectedVessel({ id: stored.id, imo: stored.imo, name: stored.name, vpnIp: stored.vpnIp });
+            setSelectedVessel({ id: stored.id, imo: stored.imo, name: stored.name, vpnIp: stored.vpnIp, prepaidEnabled: stored.prepaidEnabled });
           }
         });
 

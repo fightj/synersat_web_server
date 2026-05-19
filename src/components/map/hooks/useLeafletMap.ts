@@ -51,7 +51,6 @@ export function useLeafletMap(
       tileLayerRef.current = L.tileLayer(initialStyle.url, {
         noWrap: false,
         keepBuffer: 4,
-        updateWhenZooming: false,
         updateWhenIdle: false,
         subdomains: initialStyle.url.includes("{s}") ? "abc" : "",
       }).addTo(map);

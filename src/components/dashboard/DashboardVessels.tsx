@@ -25,12 +25,14 @@ export default function DashboardVessels() {
     name?: string;
     vpnIp?: string;
     imo: number;
+    prepaidEnabled?: boolean;
   }) => {
     setSelectedVessel({
       id: v.id,
       name: v.name ?? "",
       vpnIp: v.vpnIp ?? "",
       imo: v.imo,
+      prepaidEnabled: v.prepaidEnabled,
     });
   };
 

@@ -229,6 +229,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         imo: vessel.imo,
         name: vessel.name || "",
         vpnIp: vessel.vpnIp || "",
+        prepaidEnabled: vessel.prepaidEnabled,
       });
       router.push("/vessels/detail");
     },

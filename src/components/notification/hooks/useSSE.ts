@@ -5,6 +5,8 @@ import { connectSSE } from "@/api/sse";
 import { useToastStore } from "@/store/toast.store";
 import { useCommandEventStore } from "@/store/command-event.store";
 import { useNotificationStore } from "@/store/notification.store";
+import { useVesselStore } from "@/store/vessel.store";
+import { getVesselsLite } from "@/api/vessel";
 
 const BASE_RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_DELAY = 60000;
@@ -41,6 +43,18 @@ export function useSSE() {
             timestamp: Date.now(),
           });
           useNotificationStore.getState().setHasNew(true);
+
+          if (data.commandType === "MODIFY_PREPAY_UI_COMMAND" && data.commandStatus === "SUCCESS") {
+            const { selectedVessel, setSelectedVessel } = useVesselStore.getState();
+            if (selectedVessel && selectedVessel.imo === data.imo) {
+              getVesselsLite().then((list) => {
+                const found = list.find((v) => v.imo === data.imo);
+                if (found) {
+                  setSelectedVessel({ ...selectedVessel, prepaidEnabled: found.prepaidEnabled });
+                }
+              }).catch(() => {});
+            }
+          }
         }
         retryCountRef.current = 0; // 메시지 수신 성공 시 재시도 횟수 초기화
       },

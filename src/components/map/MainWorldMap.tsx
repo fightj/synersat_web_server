@@ -158,7 +158,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const handleListViewDetail = async (imo: number) => {
     try {
       const detail = await getVesselDetail(imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
       router.push("/vessels/detail");
     } catch {}
   };
@@ -167,7 +167,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     if (!selectedVessel) return;
     try {
       const detail = await getVesselDetail(selectedVessel.imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip });
+      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
       router.push("/vessels/detail");
     } catch {}
   };

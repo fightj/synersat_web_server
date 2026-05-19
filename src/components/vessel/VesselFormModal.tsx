@@ -437,6 +437,7 @@ export default function VesselFormModal({
                     imo: vesselResult.imo,
                     name: vesselResult.name,
                     vpnIp: vesselResult.vpnIp,
+                    prepaidEnabled: vesselResult.prepaidEnabled,
                   });
                   onClose();
                   router.push("/vessels/detail");
