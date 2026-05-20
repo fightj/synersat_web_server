@@ -88,29 +88,35 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   // ── 카테고리별 통계 ───────────────────────────────────────────────
   const stats = useMemo(() => {
     const list = vessels ?? [];
-    const hasGps = (v: (typeof list)[0]) => v.latitude !== null && v.longitude !== null;
-    const gps = list.filter(hasGps);
-    return {
-      all:       list.length,
-      starlink:  gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "starlink")).length,
-      nexuswave: gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "nexuswave")).length,
-      oneweb:    gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "oneweb")).length,
-      vsat:      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "vsat")).length,
-      fbb:       gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "fbb")).length,
-      "4g":      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "4g")).length,
-      iridium:   gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "iridium")).length,
-      none:      gps.filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, "none")).length,
-      offline: (() => {
-        const seen = new Set<number>();
-        return gps.filter((v) => {
-          if (v.connected !== false || v.discard === true) return false;
-          if (seen.has(v.imo)) return false;
-          seen.add(v.imo);
-          return true;
-        }).length;
-      })(),
+    const counts = {
+      all: list.length,
+      starlink: 0, nexuswave: 0, oneweb: 0, vsat: 0,
+      fbb: 0, "4g": 0, iridium: 0, none: 0, offline: 0,
     };
+    const seenOffline = new Set<number>();
+
+    for (const v of list) {
+      if (v.latitude === null || v.longitude === null) continue;
+      const connected = v.connected !== false;
+      const name = v.antennaDisplayName;
+
+      if (matchFilter(name, connected, "starlink"))  counts.starlink++;
+      else if (matchFilter(name, connected, "nexuswave")) counts.nexuswave++;
+      else if (matchFilter(name, connected, "oneweb"))    counts.oneweb++;
+      else if (matchFilter(name, connected, "vsat"))      counts.vsat++;
+      else if (matchFilter(name, connected, "fbb"))       counts.fbb++;
+      else if (matchFilter(name, connected, "4g"))        counts["4g"]++;
+      else if (matchFilter(name, connected, "iridium"))   counts.iridium++;
+      else if (matchFilter(name, connected, "none"))      counts.none++;
+
+      if (!connected && v.discard !== true && !seenOffline.has(v.imo)) {
+        seenOffline.add(v.imo);
+        counts.offline++;
+      }
+   }
+    return counts;
   }, [vessels]);
+
 
   const offlineNoGpsDiscardFalseCount = useMemo(() => {
     return (vessels ?? []).filter(
