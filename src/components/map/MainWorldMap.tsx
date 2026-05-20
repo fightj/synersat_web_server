@@ -121,7 +121,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const offlineNoGpsDiscardFalseCount = useMemo(() => {
     return (vessels ?? []).filter(
       (v) => v.connected === false && v.discard !== true &&
-        v.latitude !== null && v.longitude !== null,
+        v.latitude !== null,
     ).length;
   }, [vessels]);
 

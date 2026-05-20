@@ -392,7 +392,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   <DetailItem label="FW PW" value={data.fireWallPassword} />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-4">
                 <Button
                     size="xs"
                     onClick={async () => {
@@ -448,7 +448,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
                 <div
                   className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]"
-                  style={{ backgroundColor: item.color, borderRadius: "50%" }}
+                  
                 />
                 <div className="relative">
                   <div className="mb-4 flex items-center justify-between">
