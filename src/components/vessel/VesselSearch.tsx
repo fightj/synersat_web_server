@@ -301,8 +301,9 @@ export default function VesselSearch({ className = "" }: Props) {
                             IMO: {v.imo}
                           </span>
                         </div>
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={-1}
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -315,7 +316,7 @@ export default function VesselSearch({ className = "" }: Props) {
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
-                        </button>
+                        </div>
                       </button>
                     </li>
                   );

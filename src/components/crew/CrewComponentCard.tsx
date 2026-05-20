@@ -218,6 +218,7 @@ export default function CrewComponentCard() {
           vesselName={selectedVessel?.name}
           noneSelected={noneSelected}
           isLoading={isLoading}
+          isError={!!fetchError}
           crewCount={filteredCrew.length}
           onAction={onAction}
           onExportCSV={handleExportCSV}

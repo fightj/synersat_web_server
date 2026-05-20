@@ -10,6 +10,7 @@ interface CrewToolbarProps {
   vesselName: string | undefined;
   noneSelected: boolean;
   isLoading: boolean;
+  isError: boolean;
   crewCount: number;
   onAction: (action: ActionType) => void;
   onExportCSV: () => void;
@@ -44,6 +45,7 @@ export default function CrewToolbar({
   vesselName,
   noneSelected,
   isLoading,
+  isError,
   crewCount,
   onAction,
   onExportCSV,
@@ -95,7 +97,7 @@ export default function CrewToolbar({
         </Button>
 
         <Button size="sm" variant="outline" startIcon={<PlusIcon />}
-          onClick={onAddVoucher} disabled={isLoading}
+          onClick={onAddVoucher} disabled={isLoading || isError}
           className=" text-emerald-700! ring-emerald-300! hover:bg-emerald-50!  dark:text-emerald-400! dark:ring-emerald-700! dark:hover:bg-emerald-900/30!">
           Add Voucher
         </Button>
