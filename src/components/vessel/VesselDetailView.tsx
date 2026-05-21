@@ -237,7 +237,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* 선박명 + 상태 뱃지 */}
-          <div className="flex flex-row items-center gap-3">
+          <div className="flex flex-row flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               {data.logo === "sktelink" && (
                 <SktelinkIcon className="h-6 w-auto" />

@@ -194,7 +194,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
 
   return (
     <div className="relative inline-block" ref={containerRef}>
-      <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/[0.03]">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/3">
         <button
           onClick={() => { setIsOpen(!isOpen); setOpenSubMenu(null); }}
           className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-white/5"
@@ -207,8 +207,6 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
             {range.end ? format(range.end, "yyyy.MM.dd") : "End"}
           </span>
         </button>
-
-        <div className="h-4 w-[1px] bg-gray-200 dark:bg-white/10" />
 
         <div className="flex items-center gap-1 pr-1">
           {quickRanges.map((r) => {
@@ -292,7 +290,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
       </div>
 
       {isOpen && (
-        <div className="animate-in fade-in zoom-in absolute top-full left-0 z-[9999] mt-3 w-[320px] origin-top-left rounded-xl border border-gray-200 bg-white p-5 shadow-2xl duration-200 dark:border-white/10 dark:bg-[#1e1e1e]">
+        <div className="animate-in fade-in zoom-in absolute top-full right-0 z-9999 mt-3 w-[320px] origin-top-right rounded-xl border border-gray-200 bg-white p-5 shadow-2xl duration-200 dark:border-white/10 dark:bg-[#1e1e1e]">
           <div className="mb-4 flex items-center justify-between px-1">
             <button
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}

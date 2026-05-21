@@ -147,12 +147,12 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1400px] overflow-hidden p-0">
       <div className="flex h-[85vh] flex-col">
         {/* Header */}
-        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-gray-100 px-6 py-4 dark:border-white/10">
+        <div className="relative flex flex-wrap items-center gap-3 border-b border-gray-100 px-6 py-4 pr-14 dark:border-white/10">
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check Usage</h3>
             <p className="text-xs text-gray-400">{selectedCrew.length} user{selectedCrew.length > 1 ? "s" : ""} selected</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="mr-2 flex flex-wrap items-center gap-2">
             {hasApplied && Object.keys(usageMap).length > 0 && (
               <button
                 onClick={handleDownloadZip}
@@ -174,15 +174,15 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
             >
               Apply
             </button>
-            <button
-              onClick={handleClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path fillRule="evenodd" clipRule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" />
-              </svg>
-            </button>
           </div>
+          <button
+            onClick={handleClose}
+            className="absolute right-4 top-4 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path fillRule="evenodd" clipRule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" />
+            </svg>
+          </button>
         </div>
 
         {/* Body: always two-panel layout */}
