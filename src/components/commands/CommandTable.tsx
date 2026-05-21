@@ -126,44 +126,62 @@ export default function CommandTable({
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <Table className="min-w-[1000px]">
+        <Table className="min-w-[1300px]">
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
             <TableRow className="bg-blue-50/50 dark:bg-slate-800/50">
               <TableCell
                 isHeader
-                className="text-theme-xs w-[22%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[6%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+              >
+                ID
+              </TableCell>
+              <TableCell
+                isHeader
+                className="text-theme-xs w-[17%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
               >
                 Vessel Name
               </TableCell>
               <TableCell
                 isHeader
-                className="text-theme-xs w-[25%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[20%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
               >
                 Type
               </TableCell>
               <TableCell
                 isHeader
-                className="text-theme-xs w-[13%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[11%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
               >
                 Status
               </TableCell>
               <TableCell
                 isHeader
-                className="text-theme-xs w-[10%] px-5 py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[6%] px-5 py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
               >
                 Try
               </TableCell>
               <TableCell
                 isHeader
-                className="text-theme-xs w-[10%] px-5 py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[6%] px-5 py-3 text-center font-semibold text-gray-500 dark:text-gray-400"
               >
                 Fail
               </TableCell>
               <TableCell
                 isHeader
-                className="text-theme-xs w-[20%] px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+                className="text-theme-xs w-[13%] pl-2 pr-1 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
               >
                 Created At
+              </TableCell>
+              <TableCell
+                isHeader
+                className="text-theme-xs w-[13%] pl-2 pr-1 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+              >
+                Start At
+              </TableCell>
+              <TableCell
+                isHeader
+                className="text-theme-xs w-[13%] pl-2 pr-1 py-3 text-start font-semibold text-gray-500 dark:text-gray-400"
+              >
+                End At
               </TableCell>
             </TableRow>
           </TableHeader>
@@ -180,6 +198,9 @@ export default function CommandTable({
                   onDoubleClick={() => handleRowDoubleClick(command.commandId)}
                   className="group cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
                 >
+                  <TableCell className="text-theme-sm px-5 py-4 text-start font-mono text-gray-400 dark:text-gray-500">
+                    {command.commandId}
+                  </TableCell>
                   <TableCell className="px-5 py-4 text-start">
                     <div className="flex items-center gap-2.5">
                       <span
@@ -231,8 +252,14 @@ export default function CommandTable({
                       {command.failedTryCount}
                     </span>
                   </TableCell>
-                  <TableCell className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-                    {format(toKST(command.createdAt), "yyyy-MM-dd HH:mm:ss")}
+                  <TableCell className="text-theme-sm pl-2 pr-1 py-4 text-start text-gray-500 dark:text-gray-400">
+                    {format(toKST(command.createdAt), "yyyy-MM-dd HH:mm")}
+                  </TableCell>
+                  <TableCell className="text-theme-sm pl-2 pr-1 py-4 text-start text-gray-500 dark:text-gray-400">
+                    {command.startAt ? format(toKST(command.startAt), "yyyy-MM-dd HH:mm") : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                  </TableCell>
+                  <TableCell className="text-theme-sm pl-2 pr-1 py-4 text-start text-gray-500 dark:text-gray-400">
+                    {command.endAt ? format(toKST(command.endAt), "yyyy-MM-dd HH:mm") : <span className="text-gray-300 dark:text-gray-600">—</span>}
                   </TableCell>
                 </TableRow>
               );
