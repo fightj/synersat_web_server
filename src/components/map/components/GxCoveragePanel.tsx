@@ -8,12 +8,14 @@ interface GxCoveragePanelProps {
   mapInstanceRef: RefObject<any>;
   leafletRef: RefObject<any>;
   mapReady: boolean;
+  bottomOffset?: number;
 }
 
 export default memo(function GxCoveragePanel({
   mapInstanceRef,
   leafletRef,
   mapReady,
+  bottomOffset,
 }: GxCoveragePanelProps) {
   const [showCoverage, setShowCoverage] = useState(false);
   const [activeGx, setActiveGx] = useState<GxKey>("all");
@@ -172,7 +174,10 @@ export default memo(function GxCoveragePanel({
   }, [beamList]);
 
   return (
-    <div className="absolute left-3 bottom-[calc(10vh+12px)] z-1000 flex items-end gap-2">
+    <div
+      className="absolute left-3 z-1000 flex items-end gap-2"
+      style={{ bottom: bottomOffset !== undefined ? bottomOffset + 12 : "calc(10vh + 12px)" }}
+    >
       {/* Coverage 버튼 + GX 서브메뉴 */}
       <div className="relative">
         {/* GX 선택 서브메뉴 — coverage ON 상태에서만 표시 */}

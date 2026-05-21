@@ -38,6 +38,16 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [gpsAlert, setGpsAlert] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const [bottomBarH, setBottomBarH] = useState(0);
+
+  useEffect(() => {
+    const el = bottomBarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setBottomBarH(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // ── Leaflet 지도 초기화 ───────────────────────────────────────────
   const {
@@ -213,13 +223,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         mapInstanceRef={mapInstanceRef}
         leafletRef={leafletRef}
         mapReady={mapReady}
+        bottomOffset={bottomBarH || undefined}
       />
 
       {/* 리셋 버튼 */}
       <button
         onClick={handleResetView}
         title="Reset view"
-        className="absolute right-3 bottom-[calc(10vh+12px)] z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+        className="absolute right-3 z-1000 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+        style={{ bottom: bottomBarH ? bottomBarH + 12 : "calc(10vh + 12px)" }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
@@ -227,6 +239,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       </button>
 
       {/* 하단 컨트롤 바 */}
+      <div ref={bottomBarRef}>
       <MapBottomBar
         stats={stats}
         activeFilter={activeFilter}
@@ -240,6 +253,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         isRefreshing={isRefreshing}
         onListPanelToggle={handleListPanelToggle}
       />
+      </div>
     </div>
   );
 }
