@@ -103,11 +103,20 @@ const VesselRow = memo(
               !isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
             }`}
           >
+            <td className="pl-5 pr-1 py-4 text-start">
+              {vessel.manager === "sktelink" ? (
+                <SktelinkIcon className="h-[17px] w-auto" />
+              ) : vessel.manager === "synersat" ? (
+                <>
+                  <Image src="/images/logo/logo_black.png" alt="Synersat" width={28} height={28} className="h-[27px] w-auto dark:hidden" />
+                  <Image src="/images/logo/logo_intro.png" alt="Synersat" width={28} height={28} className="hidden h-[27px] w-auto dark:block" />
+                </>
+              ) : (
+                <span className="text-theme-sm text-gray-400 dark:text-gray-500">-</span>
+              )}
+            </td>
             <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-              <div className="flex items-center gap-2">
-                {vessel.manager === "sktelink" && <SktelinkIcon className="h-4 w-auto" />}
-                {vessel.acct || "-"}
-              </div>
+              {vessel.acct || "-"}
             </td>
             <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
               {vessel.name || "-"}
@@ -160,7 +169,7 @@ const VesselRow = memo(
           </tr>
 
           <tr>
-            <td colSpan={10} className="p-0">
+            <td colSpan={11} className="p-0">
               <div
                 className={`grid transition-all duration-300 ease-in-out ${
                   isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
@@ -313,20 +322,24 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         >
           {/* colgroup: table-layout:fixed에서 열 너비 고정 */}
           <colgroup>
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "15%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} />
             <col style={{ width: "7%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "11%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "10%" }} />
             <col style={{ width: "6%" }} />
           </colgroup>
 
           <thead className="border-b border-gray-100 bg-blue-50/50 dark:border-white/[0.05] dark:bg-slate-800/50">
             <tr>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                Manager
+              </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 <SortHeader label="Company" k="company" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </th>
@@ -354,7 +367,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingTop > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={10} style={{ height: paddingTop, padding: 0 }} />
+                <td colSpan={11} style={{ height: paddingTop, padding: 0 }} />
               </tr>
             </tbody>
           )}
@@ -380,7 +393,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingBottom > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={10} style={{ height: paddingBottom, padding: 0 }} />
+                <td colSpan={11} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
             </tbody>
           )}
