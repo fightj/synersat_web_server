@@ -6,6 +6,7 @@ import { ApexOptions } from "apexcharts";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
 import Loading from "@/components/common/Loading";
+import StatusPlaceholder from "@/components/common/StatusPlaceholder";
 import { getWifiUsageHistory } from "@/api/crew-account";
 import type { CrewEntry } from "@/types/crew_account";
 
@@ -69,6 +70,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
   const [pendingRange, setPendingRange] = useState(getDefault24hRange);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [records, setRecords] = useState<WifiRecord[]>([]);
   const [showIn, setShowIn] = useState(false);
   const [showOut, setShowOut] = useState(false);
@@ -90,11 +92,13 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
     if (!crew) return;
     setLoading(true);
     setHasApplied(true);
+    setFetchError(false);
     try {
       const data = await getWifiUsageHistory(crew.userId, imo, pendingRange.startAt, pendingRange.endAt);
       setRecords(parseInfluxResponse(data));
     } catch {
       setRecords([]);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -103,6 +107,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
   const handleClose = () => {
     setRecords([]);
     setHasApplied(false);
+    setFetchError(false);
     setPendingRange(getDefault24hRange());
     setShowIn(false);
     setShowOut(false);
@@ -244,6 +249,14 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
           ) : loading ? (
             <div className="flex h-full items-center justify-center">
               <Loading message="Fetching usage data..." />
+            </div>
+          ) : fetchError ? (
+            <div className="flex h-full items-center justify-center">
+              <StatusPlaceholder
+                title="Failed to load usage data."
+                description="The vessel network may be unstable. Please try again."
+                onRetry={handleApply}
+              />
             </div>
           ) : records.length === 0 ? (
             <div className="flex h-full items-center justify-center">

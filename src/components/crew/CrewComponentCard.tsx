@@ -107,7 +107,7 @@ export default function CrewComponentCard() {
     if (imo) fetchCrewData();
     else { setCrew([]); setFetchError(null); }
     setSelected(new Set());
-  }, [imo]);
+  }, [imo, fetchCrewData]);
 
   // SSE 이벤트 감지 → 자동 갱신
   useEffect(() => {
@@ -237,7 +237,7 @@ export default function CrewComponentCard() {
           onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
           onOpenTopUp={(u) => setTopUpTarget(u)}
           onOpenUsageHistory={(u) => setUsageHistoryTarget(u)}
-          onRetry={fetchCrewData}
+          onRetry={() => fetchCrewData()}
           formatUserId={mode === "prepay" ? (id) => id.replace(/^crewpay-/, "") : undefined}
         />
       </div>
