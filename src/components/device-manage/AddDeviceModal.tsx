@@ -7,7 +7,6 @@ import Label from "@/components/form/Label";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 import Alert from "@/components/ui/alert/Alert";
-import Button from "../ui/button/Button";
 
 interface DeviceEntry {
   deviceCategory: string;
@@ -109,7 +108,6 @@ export default function AddDeviceModal({
   const [entries, setEntries] = useState<DeviceEntry[]>([createEmptyEntry()]);
   const [errors, setErrors] = useState<Record<number, EntryErrors>>({});
   const [saving, setSaving] = useState(false);
-  const [isSSL, setIsSSL] = useState(false)
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
@@ -132,9 +130,13 @@ export default function AddDeviceModal({
     }));
   };
 
-  const handleToggleSSL = () => {
-    setIsSSL(!isSSL)
-  }
+  const handleToggleSSL = (index: number) => {
+    setEntries((prev) =>
+      prev.map((entry, i) =>
+        i === index ? { ...entry, isSSL: !entry.isSSL } : entry,
+      ),
+    );
+  };
 
   const handleBlur = (
     index: number,
@@ -239,6 +241,7 @@ export default function AddDeviceModal({
       deviceId: entry.deviceId,
       devicePassword: entry.devicePassword,
       deviceForwardPort: Number(entry.deviceForwardPort) || 0,
+      isSSL: entry.isSSL,
     }));
 
     console.log("========================================");
@@ -446,7 +449,7 @@ export default function AddDeviceModal({
                             maxLength={3}
                             className={`${inputClass} text-center ${entryErrors.ip ? "border-red-400" : ""}`}
                             placeholder="0"
-                            value={entry[`ip${num}` as keyof DeviceEntry]}
+                            value={entry[`ip${num}` as keyof DeviceEntry] as string}
                             onChange={(e) => {
                               const raw = e.target.value.replace(/\D/g, "");
                               if (raw !== "" && Number(raw) > 255) return;
@@ -502,16 +505,17 @@ export default function AddDeviceModal({
                       />
                     )}
                     <label className="flex cursor-pointer items-center gap-2 mt-2">
-                      <span className={`text-xs font-bold transition-colors ${isSSL ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
+                      <span className={`text-xs font-bold transition-colors ${entry.isSSL ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
                         SSL
                       </span>
                       <div className="relative h-5 w-5">
                         <input
                           type="checkbox"
+                          checked={entry.isSSL}
                           className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
-                          onChange={() => handleToggleSSL()}
+                          onChange={() => handleToggleSSL(index)}
                         />
-                        {isSSL && (
+                        {entry.isSSL && (
                           <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
                             <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
