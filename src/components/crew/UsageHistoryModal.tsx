@@ -88,13 +88,14 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
     setPendingRange({ startAt, endAt });
   }, []);
 
-  const handleApply = useCallback(async () => {
+  const handleApply = useCallback(async (range?: { startAt: string; endAt: string }) => {
     if (!crew) return;
+    const target = range ?? pendingRange;
     setLoading(true);
     setHasApplied(true);
     setFetchError(false);
     try {
-      const data = await getWifiUsageHistory(crew.userId, imo, pendingRange.startAt, pendingRange.endAt);
+      const data = await getWifiUsageHistory(crew.userId, imo, target.startAt, target.endAt);
       setRecords(parseInfluxResponse(data));
     } catch {
       setRecords([]);
@@ -103,6 +104,15 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
       setLoading(false);
     }
   }, [crew, imo, pendingRange]);
+
+  useEffect(() => {
+    if (isOpen && crew) {
+      const defaultRange = getDefault24hRange();
+      setPendingRange(defaultRange);
+      handleApply(defaultRange);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, crew]);
 
   const handleClose = () => {
     setRecords([]);
@@ -133,6 +143,10 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
     if (showIn) colors.push("#10b981");
     if (showOut) colors.push("#f59e0b");
 
+    const dashArray = [0, ...(showIn ? [6] : []), ...(showOut ? [6] : [])];
+    const fillTypes = ["gradient", ...(showIn ? ["solid"] : []), ...(showOut ? ["solid"] : [])];
+    const fillOpacity = [1, ...(showIn ? [0.08] : []), ...(showOut ? [0.08] : [])];
+
     const spanMs = records.length > 1
       ? records[records.length - 1].time - records[0].time
       : 0;
@@ -160,9 +174,10 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
         foreColor: isDark ? "#9CA3AF" : "#6B7280",
       },
       colors,
-      stroke: { curve: "smooth", width: 2 },
+      stroke: { curve: "smooth", width: 2, dashArray },
       fill: {
-        type: "gradient",
+        type: fillTypes as any,
+        opacity: fillOpacity,
         gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.03 },
       },
       dataLabels: { enabled: false },
@@ -219,7 +234,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
           <div className="mr-2 flex flex-wrap items-center gap-2">
             <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
             <button
-              onClick={handleApply}
+              onClick={() => handleApply()}
               disabled={loading}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
