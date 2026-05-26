@@ -56,7 +56,7 @@ function parseInfluxResponse(data: any): WifiRecord[] {
   const totalIdx = cols.indexOf("total_bytes");
 
   return values
-    .filter((row) => row[rangeIdx] === null)
+    .filter((row) => rangeIdx === -1 || row[rangeIdx] === null)
     .map((row) => ({
       time: new Date(row[timeIdx]).getTime(),
       in_bytes: Number(row[inIdx]) || 0,

@@ -7,6 +7,7 @@ import Label from "@/components/form/Label";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 import Alert from "@/components/ui/alert/Alert";
+import Button from "../ui/button/Button";
 
 interface DeviceEntry {
   deviceCategory: string;
@@ -17,6 +18,7 @@ interface DeviceEntry {
   ip3: string;
   ip4: string;
   devicePort: string;
+  isSSL: boolean;
   deviceForwardPort: string;
   deviceId: string;
   devicePassword: string;
@@ -80,6 +82,7 @@ const createEmptyEntry = (): DeviceEntry => ({
   ip3: "",
   ip4: "",
   devicePort: "80",
+  isSSL:false,
   customPort: "",
   deviceForwardPort: "",
   deviceId: "",
@@ -106,12 +109,13 @@ export default function AddDeviceModal({
   const [entries, setEntries] = useState<DeviceEntry[]>([createEmptyEntry()]);
   const [errors, setErrors] = useState<Record<number, EntryErrors>>({});
   const [saving, setSaving] = useState(false);
+  const [isSSL, setIsSSL] = useState(false)
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
     message: string;
   } | null>(null);
-
+  
   const handleChange = (
     index: number,
     field: keyof DeviceEntry,
@@ -127,6 +131,10 @@ export default function AddDeviceModal({
       [index]: { ...prev[index], [field]: undefined },
     }));
   };
+
+  const handleToggleSSL = () => {
+    setIsSSL(!isSSL)
+  }
 
   const handleBlur = (
     index: number,
@@ -476,6 +484,7 @@ export default function AddDeviceModal({
                           {opt.label}
                         </option>
                       ))}
+                      
                     </NativeSelectWithIcon>
                     {entry.devicePort === "custom" && (
                       <input
@@ -492,6 +501,23 @@ export default function AddDeviceModal({
                         }
                       />
                     )}
+                    <label className="flex cursor-pointer items-center gap-2 mt-2">
+                      <span className={`text-xs font-bold transition-colors ${isSSL ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
+                        SSL
+                      </span>
+                      <div className="relative h-5 w-5">
+                        <input
+                          type="checkbox"
+                          className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+                          onChange={() => handleToggleSSL()}
+                        />
+                        {isSSL && (
+                          <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </label>
                   </div>
 
                   {/* Forward Port */}
