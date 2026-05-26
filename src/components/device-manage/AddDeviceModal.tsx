@@ -18,6 +18,7 @@ interface DeviceEntry {
   ip4: string;
   devicePort: string;
   isSSL: boolean;
+  isApplyYaml: boolean;
   deviceForwardPort: string;
   deviceId: string;
   devicePassword: string;
@@ -81,7 +82,8 @@ const createEmptyEntry = (): DeviceEntry => ({
   ip3: "",
   ip4: "",
   devicePort: "80",
-  isSSL:false,
+  isSSL: false,
+  isApplyYaml: false,
   customPort: "",
   deviceForwardPort: "8010",
   deviceId: "",
@@ -134,6 +136,14 @@ export default function AddDeviceModal({
     setEntries((prev) =>
       prev.map((entry, i) =>
         i === index ? { ...entry, isSSL: !entry.isSSL } : entry,
+      ),
+    );
+  };
+
+  const handleToggleYaml = (index: number) => {
+    setEntries((prev) =>
+      prev.map((entry, i) =>
+        i === index ? { ...entry, isApplyYaml: !entry.isApplyYaml } : entry,
       ),
     );
   };
@@ -242,6 +252,7 @@ export default function AddDeviceModal({
       devicePassword: entry.devicePassword,
       deviceForwardPort: Number(entry.deviceForwardPort) || 0,
       isSSL: entry.isSSL,
+      isApplyYaml: entry.isApplyYaml,
     }));
 
     console.log("========================================");
@@ -345,14 +356,35 @@ export default function AddDeviceModal({
                   <span className="text-sm font-black text-gray-900 dark:text-gray-200">
                     Device #{index + 1}
                   </span>
+                  <div className="flex flex-row">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <span className={`text-xs font-bold transition-colors ${entry.isApplyYaml ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
+                        APPLY YAML
+                      </span>
+                      <div className="relative h-5 w-5">
+                        <input
+                          type="checkbox"
+                          checked={entry.isApplyYaml}
+                          className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+                          onChange={() => handleToggleYaml(index)}
+                        />
+                        {entry.isApplyYaml && (
+                          <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </label>
                   {entries.length > 1 && (
                     <button
                       onClick={() => handleRemove(index)}
-                      className="rounded-full p-1 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                      className="ml-3 rounded-full p-1 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                     >
                       <XMarkIcon className="h-4 w-4" />
                     </button>
                   )}
+                  </div>
+                  
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
