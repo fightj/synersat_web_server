@@ -12,6 +12,7 @@ interface CrewToolbarProps {
   isLoading: boolean;
   isError: boolean;
   crewCount: number;
+  mode: string;
   onAction: (action: ActionType) => void;
   onExportCSV: () => void;
   onAddVoucher?: () => void;
@@ -47,6 +48,7 @@ export default function CrewToolbar({
   isLoading,
   isError,
   crewCount,
+  mode,
   onAction,
   onExportCSV,
   onAddVoucher,
@@ -69,11 +71,12 @@ export default function CrewToolbar({
           onClick={onExportCSV} disabled={crewCount === 0 || isLoading}>
           Export CSV
         </Button>
-
-        <Button size="sm" variant="outline" 
+        {mode === "normal" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" 
           onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}>
           Reset PW
-        </Button>
+          </Button>
 
         <Button size="sm" variant="outline" 
           onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}>
@@ -107,6 +110,10 @@ export default function CrewToolbar({
           className=" text-red-700! ring-red-300! hover:bg-red-50!  dark:text-red-400! dark:ring-red-700! dark:hover:bg-red-900/30!">
           Delete
         </Button>
+          </div>
+          
+        )}
+        
       </div>
     </div>
   );

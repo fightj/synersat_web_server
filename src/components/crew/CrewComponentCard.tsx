@@ -220,6 +220,7 @@ export default function CrewComponentCard() {
           isLoading={isLoading}
           isError={!!fetchError}
           crewCount={filteredCrew.length}
+          mode = {mode}
           onAction={onAction}
           onExportCSV={handleExportCSV}
           onAddVoucher={() => setAddCrewOpen(true)}
