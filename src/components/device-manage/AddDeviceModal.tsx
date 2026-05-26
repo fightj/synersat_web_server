@@ -83,7 +83,7 @@ const createEmptyEntry = (): DeviceEntry => ({
   devicePort: "80",
   isSSL:false,
   customPort: "",
-  deviceForwardPort: "",
+  deviceForwardPort: "8010",
   deviceId: "",
   devicePassword: "",
 });
@@ -527,19 +527,30 @@ export default function AddDeviceModal({
                   {/* Forward Port */}
                   <div>
                     <Label className={labelClass}>Forward Port</Label>
-                    <input
-                      type="text"
-                      className={inputClass}
-                      placeholder="e.g. 8010"
-                      value={entry.deviceForwardPort}
-                      onChange={(e) =>
-                        handleChange(
-                          index,
-                          "deviceForwardPort",
-                          e.target.value.replace(/\D/g, ""),
-                        )
-                      }
-                    />
+                    <div className="flex h-10 w-full overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+                      <span className="flex items-center border-r border-gray-300 bg-gray-100 px-3 text-sm font-medium text-gray-400 select-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500">
+                        801
+                      </span>
+                      <input
+                        type="text"
+                        className="min-w-0 flex-1 bg-transparent px-3 text-sm text-gray-900 focus:outline-none dark:text-white"
+                        placeholder="0"
+                        value={entry.deviceForwardPort.length === 4 ? entry.deviceForwardPort[3] : ""}
+                        onChange={() => {}}
+                        onKeyDown={(e) => {
+                          if (/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                            handleChange(index, "deviceForwardPort", `801${e.key}`);
+                          } else if (e.key === "Backspace" || e.key === "Delete") {
+                            e.preventDefault();
+                            handleChange(index, "deviceForwardPort", "8010");
+                          }
+                        }}
+                      />
+                    </div>
+                    <span className="mt-1 block text-[11px] text-gray-400 dark:text-gray-500">
+                      Accepts values from 8010 to 8019.
+                    </span>
                   </div>
 
                   {/* Admin ID */}
