@@ -195,7 +195,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
-      <div ref={mapRef} className="relative w-full" style={{ height: "90vh" }} />
+      <div ref={mapRef} className="relative w-full" style={{ height: "90vh" }}>
+        <div className="pointer-events-none absolute bottom-1 right-2 z-1000 text-[10px] text-gray-500 dark:text-gray-400">
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">OpenStreetMap</a> contributors, © <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">Leaflet</a>
+        </div>
+      </div>
 
       {/* 선박 클릭 팝업 */}
       {clickedVessel && popupPos && (

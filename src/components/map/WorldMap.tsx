@@ -277,6 +277,9 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
     <div className="relative h-[550px] w-full overflow-hidden rounded-xl border border-gray-200 bg-[#aad3df] shadow-inner dark:border-white/10 dark:bg-[#121212]">
       {/* 4. 지도 레이어 */}
       <div ref={mapRef} className="absolute inset-0 z-0" />
+      <div className="pointer-events-none absolute bottom-1 right-2 z-1000 text-[10px] text-gray-500 dark:text-gray-400">
+        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">OpenStreetMap</a> contributors, © <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">Leaflet</a>
+      </div>
 
       {/* 5. 데이터가 없을 때만 지도 위에 씌우는 블러 막 */}
       {!hasValidGps && (
