@@ -6,6 +6,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import { getVesselsLite } from "@/api/vessel";
 import type { GetVesselsLite } from "@/types/vessel";
 import { CloseLineIcon } from "@/icons";
+import { useRecentVesselsStore } from "@/store/recent-vessels.store";
 
 type Props = { className?: string };
 
@@ -82,6 +83,8 @@ export default function VesselSearch({ className = "" }: Props) {
   const [liteVessels, setLiteVessels] = useState<GetVesselsLite[]>([]);
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+  const addRecent = useRecentVesselsStore((s) => s.addRecent);
+  const recents = useRecentVesselsStore((s) => s.recents);
 
   useEffect(() => {
     getVesselsLite()
@@ -129,6 +132,7 @@ export default function VesselSearch({ className = "" }: Props) {
       vpnIp: v.vpnIp,
       prepaidEnabled: v.prepaidEnabled,
     });
+    addRecent({imo: v.imo, name: v.name})
     setQuery("");
     setOpen(false);
     inputRef.current?.blur(); // 선택 시 포커스 해제
@@ -262,43 +266,100 @@ export default function VesselSearch({ className = "" }: Props) {
         </div>
 
         {open && (
-          <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <div
-            ref={dropdownRef}
-            onScroll={onDropdownScroll}
-            className="max-h-[360px] overflow-y-auto p-1"
-          >
-            {allMatches.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
-                No matches found
+          <div className="flex flex-row absolute top-[calc(100%+6px)] w-[480px] left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            {/* 왼쪽: 검색 결과 */}
+            <div
+              ref={dropdownRef}
+              onScroll={onDropdownScroll}
+              className="flex-1 max-h-[360px] overflow-y-auto p-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700"
+            >
+              {allMatches.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-gray-500">
+                  No matches found
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-0.5">
+                  {visibleMatches.map((v, idx) => {
+                    const isActive = idx === activeIndex;
+                    const isSelected =
+                      !!selectedVessel &&
+                      v.vesselId === selectedVessel.id;
+                    return (
+                      <li key={v.vesselId ?? `${v.name}-${idx}`}>
+                        <button
+                          id={`vessel-option-${idx}`}
+                          type="button"
+                          onMouseEnter={() => setActiveIndex(idx)}
+                          onClick={() => selectVessel(v)}
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
+                            isActive ? "bg-gray-100 dark:bg-white/10" : ""
+                          } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-semibold">
+                              <HighlightedText
+                                text={v.name || "-"}
+                                query={query}
+                              />
+                            </span>
+                            <span className="text-[10px] opacity-60">
+                              IMO: {v.imo}
+                            </span>
+                          </div>
+                          <div
+                            role="button"
+                            tabIndex={-1}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              selectVessel(v);
+                              router.push("/vessels/detail");
+                            }}
+                            className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
+                          >
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* 오른쪽: 최근 검색 */}
+            <div className="w-48 shrink-0 border-l border-gray-100 dark:border-white/10 flex flex-col">
+              <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Recent</span>
               </div>
-            ) : (
-              <ul className="flex flex-col gap-0.5">
-                {visibleMatches.map((v, idx) => {
-                  const isActive = idx === activeIndex;
-                  const isSelected =
-                    !!selectedVessel &&
-                    v.vesselId === selectedVessel.id;
-                  return (
-                    <li key={v.vesselId ?? `${v.name}-${idx}`}>
+              {recents.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center px-3 pb-6">
+                  <span className="text-[11px] text-gray-400 dark:text-gray-600">No recent searches</span>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-0.5 p-1">
+                  {recents.map((r) => (
+                    <li key={r.imo}>
                       <button
-                        id={`vessel-option-${idx}`}
                         type="button"
-                        onMouseEnter={() => setActiveIndex(idx)}
-                        onClick={() => selectVessel(v)}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
-                          isActive ? "bg-gray-100 dark:bg-white/10" : ""
-                        } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
+                        onClick={() => {
+                          const found = liteVessels.find((v) => v.imo === r.imo);
+                          if (found) selectVessel(found);
+                        }}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                       >
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-semibold">
-                            <HighlightedText
-                              text={v.name || "-"}
-                              query={query}
-                            />
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="truncate text-[13px] font-semibold text-gray-700 dark:text-white">
+                            {r.name}
                           </span>
-                          <span className="text-[10px] opacity-60">
-                            IMO: {v.imo}
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                            IMO: {r.imo}
                           </span>
                         </div>
                         <div
@@ -307,23 +368,24 @@ export default function VesselSearch({ className = "" }: Props) {
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
-                            selectVessel(v);
+                            const found = liteVessels.find((v) => v.imo === r.imo);
+                            if (found) selectVessel(found);
                             router.push("/vessels/detail");
                           }}
-                          className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
+                          className="group ml-1 flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                         >
                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
                         </div>
+                        
                       </button>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </form>
