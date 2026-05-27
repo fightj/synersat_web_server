@@ -159,7 +159,7 @@ export function useVesselMarkers({
           if (flyingToImoRef.current !== v.imo) {
             const thisImo = v.imo;
             flyingToImoRef.current = thisImo;
-            map.flyTo([latlng.lat, latlng.lng], 7, { animate: true, duration: 1.7, easeLinearity: 0.1 });
+            map.flyTo([latlng.lat, latlng.lng], 4, { animate: true, duration: 1, easeLinearity: 0.1 });
             map.once("moveend", () => {
               if (flyingToImoRef.current === thisImo) flyingToImoRef.current = null;
             });

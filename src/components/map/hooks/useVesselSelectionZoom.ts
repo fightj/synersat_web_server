@@ -130,7 +130,7 @@ export function useVesselSelectionZoom({
       const closestLng = candidates.reduce((best, c) =>
         Math.abs(c - lng) < Math.abs(best - lng) ? c : best,
       );
-      map.flyTo([lat, closestLng], 7, { animate: true, duration: 1.8, easeLinearity: 0.1 });
+      map.flyTo([lat, closestLng], 4, { animate: true, duration: 1, easeLinearity: 0.1 });
       map.once("moveend", () => {
         (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
         const pt = map.latLngToContainerPoint([lat, closestLng]);
