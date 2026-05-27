@@ -74,15 +74,14 @@ export function useVesselSelectionZoom({
     const color = clickedVessel.color;
     const pingIcon = L.divIcon({
       className: "",
-      html: `<div style="position:relative;width:40px;height:40px;transform:translate(-50%,-50%)">
-        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.35;animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) infinite;"></span>
-        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.2;animation:vessel-ping 1.4s cubic-bezier(0,0,0.2,1) 0.5s infinite;"></span>
+      html: `<div style="position:relative;width:28px;height:28px;transform:translate(-50%,-50%)">
+        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.25;animation:vessel-ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
       </div>`,
       iconSize: [40, 40],
       iconAnchor: [0, 0],
     });
     pingMarkerRef.current = L.marker([lat, lng], { icon: pingIcon, zIndexOffset: 999, interactive: false }).addTo(map);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clickedVessel]);
 
   // ── VesselSearch 선택 → 지도 줌인 ───────────────────────────────────
@@ -146,7 +145,7 @@ export function useVesselSelectionZoom({
       setGpsAlert(true);
       gpsAlertTimerRef.current = setTimeout(() => setGpsAlert(false), 30000);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVessel, searchTrigger, mapReady]);
 
   return { setSelectedVesselFromMarker };
