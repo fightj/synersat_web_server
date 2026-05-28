@@ -15,8 +15,6 @@ interface DeviceManageProps {
   imo: number;
 }
 
-type LayoutMode = "grouped" | "flat";
-
 const CATEGORY_COLORS: Record<
   string,
   { border: string; text: string; dot: string; badge: string }
@@ -60,7 +58,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
   const [devices, setDevices] = useState<DeviceCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [layout, setLayout] = useState<LayoutMode>("grouped");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchDevices = async () => {
@@ -85,7 +82,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
     fetchDevices();
   };
 
-  // ✅ 모달 저장 후 목록 새로고침
   const handleModalClose = () => {
     setIsModalOpen(false);
   };
@@ -126,29 +122,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
           Add Device
         </button>
 
-        {/* 레이아웃 토글 */}
-        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
-          <button
-            onClick={() => setLayout("grouped")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all ${
-              layout === "grouped"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
-            }`}
-          >
-            Group
-          </button>
-          <button
-            onClick={() => setLayout("flat")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-all ${
-              layout === "flat"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
-            }`}
-          >
-            All
-          </button>
-        </div>
       </div>
 
       {/* 디바이스 없을 때 */}
@@ -156,8 +129,7 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
         <div className="py-20 text-center text-gray-400">No devices found.</div>
       )}
 
-      {/* ✅ Grouped 모드 */}
-      {layout === "grouped" && devices.length > 0 && (
+      { devices.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {Object.entries(grouped).map(([category, items]) => {
             const style = getCategoryStyle(category);
@@ -185,16 +157,6 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
-
-      {/* ✅ Flat 모드 */}
-      {layout === "flat" && devices.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {devices.map((device, idx) => {
-            const style = getCategoryStyle(device.deviceCategory);
-            return <DeviceCard key={idx} device={device} style={style} />;
           })}
         </div>
       )}
@@ -248,7 +210,7 @@ function DeviceCard({
           label="Fwd Port"
           value={
             device.deviceForwardPort === 0
-              ? "—"
+              ? "ㅣ"
               : String(device.deviceForwardPort)
           }
         />

@@ -440,7 +440,7 @@ export default function NotificationPanel({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-4 py-3"
+          className="custom-scrollbar flex-1 overflow-y-auto px-4 py-3"
         >
           {isLoading ? (
             <div className="flex h-full items-center justify-center">

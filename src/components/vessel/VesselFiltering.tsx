@@ -161,7 +161,7 @@ export default function VesselFiltering({
 
       {open && matches.length > 0 && (
         <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
-          <ul ref={scrollContainerRef} className="max-h-[240px] overflow-auto">
+          <ul ref={scrollContainerRef} className="custom-scrollbar max-h-60 overflow-auto">
             {matches.map((v, idx) => (
               <li key={v.id}>
                 <button
