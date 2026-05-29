@@ -10,7 +10,7 @@ import type { DeviceCredential } from "@/types/device";
 import Loading from "@/components/common/Loading";
 import StatusPlaceholder from "@/components/common/StatusPlaceholder";
 import AddDeviceModal from "./AddDeviceModal";
-
+import Button from "../ui/button/Button";
 interface DeviceManageProps {
   imo: number;
 }
@@ -54,6 +54,7 @@ const CATEGORY_COLORS: Record<
 const getCategoryStyle = (category: string) =>
   CATEGORY_COLORS[category.toLowerCase()] ?? CATEGORY_COLORS["vlan"];
 
+// 컴포넌트 시작 점
 export default function DeviceManage({ imo }: DeviceManageProps) {
   const [devices, setDevices] = useState<DeviceCredential[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +130,7 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
         <div className="py-20 text-center text-gray-400">No devices found.</div>
       )}
 
-      { devices.length > 0 && (
+      {devices.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {Object.entries(grouped).map(([category, items]) => {
             const style = getCategoryStyle(category);
@@ -175,13 +176,43 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
 function DeviceCard({
   device,
   style,
+  // onSaved,
 }: {
   device: DeviceCredential;
   style: { border: string; text: string; dot: string; badge: string };
+  // onSaved: () => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(device);
+  const [saving, setSaving] = useState(false)
+
+  const handleDoubleClick = () => {
+    setDraft(device);
+    setIsEditing(true);
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      //API 생성 이후에 수정 예정
+      // await updateDeviceCredential(draft);
+      // onSaved();
+      console.log("세이브 함수 호출")
+      setIsEditing(false);
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setDraft(device)
+  }
+
   return (
     <div
-      className="relative flex flex-col gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all hover:shadow-md dark:border-white/10 dark:bg-white/2"
+      onDoubleClick={!isEditing ? handleDoubleClick : undefined}
+      className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all dark:border-white/10 dark:bg-white/2 ${isEditing ? "shadow-md" : "hover:shadow-md"}`}
     >
       <div className="flex items-center justify-between">
         <span className={`rounded-lg px-2.5 py-1 text-xs font-bold uppercase text-white ${style.dot}`}>
@@ -194,27 +225,75 @@ function DeviceCard({
           </div>
         )}
       </div>
-
       <div>
         <p className="text-xs font-medium text-gray-400 capitalize">
           {device.deviceModel}
         </p>
       </div>
-
       <hr className="border-gray-100 dark:border-white/5" />
+      {/* 편집 모드일 때는 input, 아닐 때는 텍스트 */}
+      {isEditing ? (
+        <>
+          <EditRow label="IP" value={draft.deviceIp} autoFocus onCancel={handleCancel} onChange={(v) => setDraft({ ...draft, deviceIp: v })}></EditRow>
+          <EditRow label="PORT" value={draft.devicePort} onCancel={handleCancel} onChange={(v) => setDraft({ ...draft, devicePort: Number(v) })}></EditRow>
+          <EditRow label="FWD PORT" value={draft.deviceForwardPort} onCancel={handleCancel} onChange={(v) => setDraft({ ...draft, deviceForwardPort: Number(v) })}></EditRow>
 
-      <div className="space-y-1.5">
-        <InfoRow label="IP" value={device.deviceIp} />
-        <InfoRow label="Port" value={String(device.devicePort)} />
-        <InfoRow
-          label="Fwd Port"
-          value={
-            device.deviceForwardPort === 0
-              ? "ㅣ"
-              : String(device.deviceForwardPort)
-          }
-        />
-      </div>
+          <label className="flex cursor-pointer items-center justify-end gap-2">
+            <span className={`text-xs font-bold transition-colors `}>
+              APPLY YAML
+            </span>
+            <div className="relative h-5 w-5">
+              <input
+                type="checkbox"
+                // checked={entry.isApplyYaml}
+                className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+              // onChange={() => handleToggleYaml(index)}
+              />
+              {(
+                <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </label>
+          <label className="flex cursor-pointer items-center justify-end gap-2">
+            <span className={`text-xs font-bold transition-colors `}>
+              SSL
+            </span>
+            <div className="relative h-5 w-5">
+              <input
+                type="checkbox"
+                // checked={entry.isApplyYaml}
+                className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
+              // onChange={() => handleToggleYaml(index)}
+              />
+              {(
+                <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </label>
+          <div className="flex justify-end gap-1">
+            <Button size="xs" onClick={handleSave} disabled={saving}>Save</Button>
+            <Button size="xs" variant="outline" onClick={handleCancel}>Cancel</Button>
+          </div>
+        </>
+
+      ) : (
+        <div className="space-y-1.5">
+          <InfoRow label="IP" value={device.deviceIp} />
+          <InfoRow label="Port" value={String(device.devicePort)} />
+          <InfoRow
+            label="Fwd Port"
+            value={
+              device.deviceForwardPort === 0
+                ? ""
+                : String(device.deviceForwardPort)
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -230,4 +309,25 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       </span>
     </div>
   );
+}
+
+function EditRow({ label, value, onChange, onCancel, autoFocus }: { label: string; value: string | number; onChange: (v: string) => void; onCancel: () => void; autoFocus?: boolean; }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="shrink-0 text-[10px] font-medium tracking-wider text-gray-400 uppercase dark:text-gray-500">
+        {label}
+      </span>
+
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-1/2 rounded border px-1 text-xs font-mono"
+        autoFocus={autoFocus}
+        onKeyDown={(e) => {
+
+          if (e.key === "Escape") onCancel();
+        }}
+      />
+    </div>
+  )
 }
