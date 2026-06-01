@@ -66,6 +66,7 @@ export interface VesselDetail {
   fireWallId: string;
   fireWallPassword: string;
   acct: string;
+  betaVersionEnabled: boolean;
   serialNumber: string;
   prepaidEnabled?: boolean;
   status: {

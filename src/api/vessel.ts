@@ -330,3 +330,24 @@ export async function getDashboardVessels(acct?: string): Promise<DashboardVesse
 
   return await res.json();
 }
+
+//------------------- Beta Version update api -----------
+export async function patchBetaVersion(vesselImo: number, enabled: boolean): Promise<void> {
+  const payload = {
+    "imo": vesselImo,
+    "enabled": enabled
+  }
+
+  const res = await fetch(`${BASE_URL}/vessels/updates/versions/beta/enabled`, withTestUser({
+    ...fetchOptions,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }));
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update BetaVersionEnabled (${res.status}): ${errorText}`);
+  }
+
+}

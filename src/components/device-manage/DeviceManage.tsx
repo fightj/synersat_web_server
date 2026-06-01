@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircleIcon,
   PlusIcon,
@@ -276,7 +276,7 @@ function DeviceCard({
           </label>
           <div className="flex justify-end gap-1">
             <Button size="xs" onClick={handleSave} disabled={saving}>Save</Button>
-            <Button size="xs" variant="outline" onClick={handleCancel}>Cancel</Button>
+            <Button size="xs" variant="outline" onClick={handleCancel} disabled={saving}>Cancel</Button>
           </div>
         </>
 
@@ -324,7 +324,6 @@ function EditRow({ label, value, onChange, onCancel, autoFocus }: { label: strin
         className="w-1/2 rounded border px-1 text-xs font-mono"
         autoFocus={autoFocus}
         onKeyDown={(e) => {
-
           if (e.key === "Escape") onCancel();
         }}
       />
