@@ -21,6 +21,9 @@ import Button from "../ui/button/Button";
 import GrafanaDashModal from "./GrafanaDashModal";
 import { Modal } from "@/components/ui/modal";
 import Image from "next/image";
+import { Terminal } from 'lucide-react';
+import { getAuth } from "@/api/auth"
+import ErrorAlertModal from "../ui/ErrorAlertModal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -84,6 +87,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [betaVersionEnabled, setBetaVersionEnabled] = useState<boolean>(false);
   const [betaVersionLoading, setBetaVersionLoading] = useState(false);
   const router = useRouter();
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
 
   const handleDeleteVessel = async () => {
     if (!data) return;
@@ -248,6 +252,24 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   // 데이터가 있을 때만 스캔 라인 표시
   const showScan = isScanning && usageStats.length > 0;
 
+  const handleOpenTerminal = async () => {
+    try {
+      const result = await getAuth();
+
+      if (!result) {
+        setErrorModal({ isOpen: true, message: "Failed to retrieve authentication information." })
+        return
+      }
+      if (result.userAcct !== "synersat") {
+        setErrorModal({ isOpen: true, message: "Only synersat users can access this." })
+        return
+      }
+      window.open(`/terminal?vpnIp=${data.vpn_ip}`, '_blank');
+    } catch (error) {
+      setErrorModal({ isOpen: true, message: "The authentication request failed. Please try again." })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* 1. 상단 헤더 카드 (Vessel Info 아코디언 포함) */}
@@ -293,53 +315,53 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
 
             {/* 2행: Prepaid / Beta 토글 + Grafana */}
             <div className="flex flex-row items-center gap-3">
-            {/* Prepaid 토글 */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={prepaidEnabled}
-              onClick={handlePrepaidToggle}
-              disabled={prepaidLoading}
-              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${prepaidEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                } ${prepaidLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-            >
-              <span
-                className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${prepaidEnabled ? "translate-x-[58px]" : "translate-x-0.5"
-                  }`}
-              />
-              <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${prepaidEnabled ? "pr-5" : "pl-5"
-                }`}>
-                Prepaid
-              </span>
-            </button>
+              {/* Prepaid 토글 */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={prepaidEnabled}
+                onClick={handlePrepaidToggle}
+                disabled={prepaidLoading}
+                className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${prepaidEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                  } ${prepaidLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              >
+                <span
+                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${prepaidEnabled ? "translate-x-[58px]" : "translate-x-0.5"
+                    }`}
+                />
+                <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${prepaidEnabled ? "pr-5" : "pl-5"
+                  }`}>
+                  Prepaid
+                </span>
+              </button>
 
-            <button
-              type="button"
-              role="switch"
-              aria-checked={betaVersionEnabled}
-              onClick={handleBetaVersion}
-              disabled={betaVersionLoading}
-              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${betaVersionEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                } ${betaVersionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-            >
-              <span
-                className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${betaVersionEnabled ? "translate-x-[58px]" : "translate-x-0.5"
-                  }`}
-              />
-              <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${betaVersionEnabled ? "pr-5" : "pl-5"
-                }`}>
-                Beta
-              </span>
-            </button>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={betaVersionEnabled}
+                onClick={handleBetaVersion}
+                disabled={betaVersionLoading}
+                className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${betaVersionEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                  } ${betaVersionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              >
+                <span
+                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${betaVersionEnabled ? "translate-x-[58px]" : "translate-x-0.5"
+                    }`}
+                />
+                <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${betaVersionEnabled ? "pr-5" : "pl-5"
+                  }`}>
+                  Beta
+                </span>
+              </button>
 
-            {/* Grafana Dashboard 버튼 */}
-            <button
-              onClick={() => setShowGrafana(true)}
-              title="Grafana Dashboard"
-              className="flex items-center justify-center transition-all hover:scale-110"
-            >
-              <GrafanaDashIcon className="h-6 w-6 text-blue-500 dark:text-blue-400" />
-            </button>
+              {/* Grafana Dashboard 버튼 */}
+              <button
+                onClick={() => setShowGrafana(true)}
+                title="Grafana Dashboard"
+                className="flex items-center justify-center transition-all hover:scale-110"
+              >
+                <GrafanaDashIcon className="h-6 w-6 text-blue-500 dark:text-blue-400" />
+              </button>
             </div>
           </div>
 
@@ -434,6 +456,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                   <DetailItem label="FW PW" value={data.fireWallPassword} />
                 </div>
               </div>
+
               <div className="flex items-center gap-2 mt-4">
                 <Button
                   size="xs"
@@ -468,8 +491,14 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 >
                   Reset Core
                 </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleOpenTerminal()}
+                >
+                  <Terminal size={16} />
+                  Terminal
+                </Button>
               </div>
-
             </div>
           </div>
         </div>
@@ -657,6 +686,11 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           onClose={() => setShowGrafana(false)}
         />
       )}
+      <ErrorAlertModal
+        isOpen={errorModal.isOpen}
+        message={errorModal.message}
+        onClose={() => setErrorModal({ isOpen: false, message: "" })}
+      />
     </div>
   );
 };
