@@ -24,6 +24,7 @@ import Image from "next/image";
 import { Terminal } from 'lucide-react';
 import { getAuth } from "@/api/auth"
 import ErrorAlertModal from "../ui/ErrorAlertModal";
+import ConfirmModal from "../ui/ConfirmModal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
@@ -86,6 +87,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [prepaidLoading, setPrepaidLoading] = useState(false);
   const [betaVersionEnabled, setBetaVersionEnabled] = useState<boolean>(false);
   const [betaVersionLoading, setBetaVersionLoading] = useState(false);
+  const [pendingToggle, setPendingToggle] = useState<"prepaid" | "beta" | null>(null);
   const router = useRouter();
   const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
 
@@ -143,13 +145,20 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     if (vesselImo) fetchVesselDetail();
   }, [vesselImo]);
 
-  const handlePrepaidToggle = async () => {
+  const handlePrepaidToggle = () => {
     if (!data || prepaidLoading) return;
-    const next = !prepaidEnabled;
+    if (!prepaidEnabled) {
+      setPendingToggle("prepaid");
+      return;
+    }
+    executePrepaidToggle(false);
+  };
+
+  const executePrepaidToggle = async (next: boolean) => {
     setPrepaidEnabled(next);
     setPrepaidLoading(true);
     try {
-      await updatePrepayEnabled(data.imo, next);
+      await updatePrepayEnabled(data!.imo, next);
     } catch {
       setPrepaidEnabled(!next);
     } finally {
@@ -157,19 +166,31 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
   };
 
-  const handleBetaVersion = async () => {
+  const handleBetaVersion = () => {
     if (!data || betaVersionLoading) return;
-    const next = !betaVersionEnabled;
+    if (!betaVersionEnabled) {
+      setPendingToggle("beta");
+      return;
+    }
+    executeBetaToggle(false);
+  };
+
+  const executeBetaToggle = async (next: boolean) => {
     setBetaVersionEnabled(next);
     setBetaVersionLoading(true);
     try {
-      await patchBetaVersion(data.imo, next);
+      await patchBetaVersion(data!.imo, next);
     } catch {
       setBetaVersionEnabled(!next);
     } finally {
       setBetaVersionLoading(false);
     }
-  }
+  };
+
+  const handleConfirmToggle = () => {
+    if (pendingToggle === "prepaid") executePrepaidToggle(true);
+    if (pendingToggle === "beta") executeBetaToggle(true);
+  };
 
   // antennaDisplayName → 표기 라벨 매핑
   const DISPLAY_NAME_MAP: Record<string, string> = {
@@ -690,6 +711,29 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         isOpen={errorModal.isOpen}
         message={errorModal.message}
         onClose={() => setErrorModal({ isOpen: false, message: "" })}
+      />
+
+      <ConfirmModal
+        isOpen={pendingToggle === "prepaid"}
+        onClose={() => setPendingToggle(null)}
+        onConfirm={handleConfirmToggle}
+        title="Apply Prepaid Option"
+        message="Would you like to apply the prepaid option?"
+        confirmLabel="Yes, Apply"
+        cancelLabel="No"
+        variant="default"
+      />
+
+      <ConfirmModal
+        isOpen={pendingToggle === "beta"}
+        onClose={() => setPendingToggle(null)}
+        onConfirm={handleConfirmToggle}
+        title="Apply Beta Version Update"
+        message="Are you sure you want to apply the beta version update?"
+        cautionText="Unintended updates may be applied. Please proceed only if you are certain."
+        confirmLabel="Yes, Apply"
+        cancelLabel="No"
+        variant="warning"
       />
     </div>
   );
