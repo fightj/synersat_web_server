@@ -22,25 +22,25 @@ export async function getVessels(): Promise<Vessel[]> {
       vpnIp: v.vpn_ip,
       enabled: v.vessel_enable,
       description: v.description,
-      logo: v.logo,
+      logo: v.logo, //x
       manager: v.manager,
-      mailAddress: v.mailAddress,
+      mailAddress: v.mailAddress, //x
       acct: v.acct,
       fireWallPassword: v.fireWallPassword,
       serialNumber: v.serialNumber,
       prepaidEnabled: v.prepaidEnabled,
       status: {
         available: v.status?.available,
-        currentRoute: v.status?.currentRoute,
-        lastConnectedAt: v.status?.lastConnectedAt,
-        antennaServiceName: v.status?.antennaServiceName,
+        currentRoute: v.status?.currentRoute, //x
+        lastConnectedAt: v.status?.lastConnectedAt, //x
+        antennaServiceName: v.status?.antennaServiceName, //x
         antennaServiceDisplayName: v.status?.antennaServiceDisplayName,
-        antennaServiceColor: v.status?.antennaServiceColor,
-        satId: v.status?.satId,
-        satSignal: v.status?.satSignal,
-        satType: v.status?.satType,
-        antennaStatus: v.status?.antennaStatus,
-        transmitEnabled: v.status?.transmitEnabled,
+        antennaServiceColor: v.status?.antennaServiceColor, //x
+        satId: v.status?.satId, //x
+        satSignal: v.status?.satSignal, //x
+        satType: v.status?.satType,//x
+        antennaStatus: v.status?.antennaStatus,//x
+        transmitEnabled: v.status?.transmitEnabled,//x
         discard: v.status?.discard,
       },
     }));

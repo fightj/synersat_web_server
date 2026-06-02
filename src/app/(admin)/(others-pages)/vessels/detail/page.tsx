@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import dynamic from "next/dynamic";
 import posthog from "posthog-js";
 import useSWR from "swr";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
@@ -14,12 +15,15 @@ import Link from "next/link";
 import type { VesselRouteResponse } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
+const SshTerminal = dynamic(() => import("@/components/terminal/SshTerminal"), { ssr: false });
+
 const THREE_MINUTES = 3 * 60 * 1000;
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 
 // 선박이 바뀌면 key가 바뀌어 이 컴포넌트가 리마운트 → 모든 상태 자동 초기화
 function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string | null }) {
   const [isLive, setIsLive] = useState(true);
+  const [terminalVpnIp, setTerminalVpnIp] = useState<string | null>(null);
 
   useEffect(() => {
     posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
@@ -127,16 +131,24 @@ function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string 
               coordinates={routeData?.coordinates ?? []}
               timeRange={timeRange}
               onTimeRangeChange={handleChartRangeChange}
+              onOpenTerminal={(vpnIp) => setTerminalVpnIp(vpnIp)}
             />
           </div>
 
           <div className="h-[450px] w-full lg:h-auto lg:w-1/2">
-            <WorldMap
-              vesselImo={imo}
-              vesselId={vesselId}
-              coordinates={routeData?.coordinates ?? []}
-              timeRange={timeRange}
-            />
+            {terminalVpnIp ? (
+              <SshTerminal
+                vpnIp={terminalVpnIp}
+                onClose={() => setTerminalVpnIp(null)}
+              />
+            ) : (
+              <WorldMap
+                vesselImo={imo}
+                vesselId={vesselId}
+                coordinates={routeData?.coordinates ?? []}
+                timeRange={timeRange}
+              />
+            )}
           </div>
         </div>
       </div>

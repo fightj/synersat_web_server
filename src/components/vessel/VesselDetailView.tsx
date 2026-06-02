@@ -35,6 +35,7 @@ interface VesselDetailViewProps {
     endAt: string;
   };
   onTimeRangeChange?: (start: string, end: string) => void;
+  onOpenTerminal?: (vpnIp: string) => void;
 }
 
 const formatDataSize = (bytes: number) => {
@@ -72,6 +73,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   coordinates,
   timeRange,
   onTimeRangeChange,
+  onOpenTerminal,
 }) => {
   const [data, setData] = useState<VesselDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -285,7 +287,11 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         setErrorModal({ isOpen: true, message: "Only synersat users can access this." })
         return
       }
-      window.open(`/terminal?vpnIp=${data.vpn_ip}`, '_blank');
+      if (onOpenTerminal) {
+        onOpenTerminal(data.vpn_ip);
+      } else {
+        window.open(`/terminal?vpnIp=${data.vpn_ip}`, '_blank');
+      }
     } catch (error) {
       setErrorModal({ isOpen: true, message: "The authentication request failed. Please try again." })
     }

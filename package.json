@@ -3,9 +3,9 @@
   "version": "2.2.1",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node server.js",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -22,10 +22,13 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.17",
     "@tanstack/react-virtual": "^3.13.23",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "apexcharts": "^4.7.0",
     "autoprefixer": "^10.4.22",
     "axios": "^1.13.3",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.4.2",
     "flatpickr": "^4.6.13",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
@@ -38,9 +41,11 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
+    "ssh2": "^1.17.0",
     "swiper": "^11.2.10",
     "swr": "^2.4.1",
     "tailwind-merge": "^2.6.0",
+    "ws": "^8.21.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
