@@ -44,7 +44,7 @@ app.prepare().then(() => {
     const conn = new Client();
 
     conn.on('ready', () => {
-      ws.send(JSON.stringify({ type: 'status', msg: '선박 접속 완료' }));
+      ws.send(JSON.stringify({ type: 'status', msg: 'Connected' }));
 
       conn.shell(
         {
@@ -103,10 +103,10 @@ app.prepare().then(() => {
     });
 
     conn.connect({
-      host: vpnIp,
-      port: parseInt(process.env.VESSEL_SSH_PORT),
-      username: process.env.VESSEL_SSH_USER,
-      password: process.env.VESSEL_SSH_PASSWORD,
+      host: process.env.GATEWAY_SSH_HOST,
+      port: parseInt(process.env.GATEWAY_SSH_PORT),
+      username: process.env.GATEWAY_SSH_USER,
+      password: process.env.GATEWAY_SSH_PASSWORD,
       hostVerifier: () => true,
       readyTimeout: 10000,
     });
