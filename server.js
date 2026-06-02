@@ -103,10 +103,10 @@ app.prepare().then(() => {
     });
 
     conn.connect({
-      host: process.env.GATEWAY_SSH_HOST,
-      port: parseInt(process.env.GATEWAY_SSH_PORT),
-      username: process.env.GATEWAY_SSH_USER,
-      password: process.env.GATEWAY_SSH_PASSWORD,
+      host: vpnIp,
+      port: parseInt(process.env.VESSEL_SSH_PORT),
+      username: process.env.VESSEL_SSH_USER,
+      password: process.env.VESSEL_SSH_PASSWORD,
       hostVerifier: () => true,
       readyTimeout: 10000,
     });
