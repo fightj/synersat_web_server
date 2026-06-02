@@ -1,5 +1,6 @@
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 export interface AuthInfo {
+  userId: string
   userAcct: string;
   authKind: string;
 }

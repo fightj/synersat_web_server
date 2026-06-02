@@ -283,8 +283,9 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         setErrorModal({ isOpen: true, message: "Failed to retrieve authentication information." })
         return
       }
-      if (result.userAcct !== "synersat") {
-        setErrorModal({ isOpen: true, message: "Only synersat users can access this." })
+      const ALLOWED_USERS = ["henry.jeong", "synersatadmin"];
+      if (!ALLOWED_USERS.includes(result.userId)) {
+        setErrorModal({ isOpen: true, message: "Access denied. You do not have permission to use the terminal." })
         return
       }
       if (onOpenTerminal) {
