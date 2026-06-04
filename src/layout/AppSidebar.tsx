@@ -92,11 +92,10 @@ function DropdownItem({
         <>
           <button
             onClick={() => setOpen((v) => !v)}
-            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              open
-                ? "bg-white/15 text-white"
-                : "text-blue-100 hover:bg-white/10 hover:text-white"
-            }`}
+            className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${open
+              ? "bg-white/15 text-white"
+              : "text-blue-100 hover:bg-white/10 hover:text-white"
+              }`}
           >
             <span className="truncate">{item.name}</span>
             <ChevronDownIcon
@@ -104,9 +103,8 @@ function DropdownItem({
             />
           </button>
           <div
-            className={`grid transition-all duration-200 ${
-              open ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
-            }`}
+            className={`grid transition-all duration-200 ${open ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"
+              }`}
           >
             <ul className="ml-3 overflow-hidden border-l border-white/10 pl-2">
               {item.subItems!.map((sub) => (
@@ -120,11 +118,10 @@ function DropdownItem({
           <Link
             href={item.path}
             onClick={onNavigate}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-white/20 text-white"
-                : "text-blue-100 hover:bg-white/10 hover:text-white"
-            }`}
+            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${isActive
+              ? "bg-white/20 text-white"
+              : "text-blue-100 hover:bg-white/10 hover:text-white"
+              }`}
           >
             <span className="truncate">{item.name}</span>
           </Link>
@@ -145,10 +142,10 @@ function NavIconButton({ item }: { item: NavItem }) {
   const isActive = item.path
     ? stripQuery(item.path) === pathname
     : item.subItems?.some((s) =>
-        s.subItems
-          ? s.subItems.some((ss) => stripQuery(ss.path ?? "") === pathname)
-          : stripQuery(s.path ?? "") === pathname,
-      );
+      s.subItems
+        ? s.subItems.some((ss) => stripQuery(ss.path ?? "") === pathname)
+        : stripQuery(s.path ?? "") === pathname,
+    );
 
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -177,18 +174,16 @@ function NavIconButton({ item }: { item: NavItem }) {
       {hasSub ? (
         <button
           onClick={handleClick}
-          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${
-            isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
         >
           <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
         </button>
       ) : (
         <Link
           href={item.path!}
-          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${
-            isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`flex items-center justify-center rounded-lg px-2 py-1 transition-colors xl:hidden ${isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
         >
           <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
         </Link>
@@ -196,18 +191,16 @@ function NavIconButton({ item }: { item: NavItem }) {
       {hasSub ? (
         <button
           onClick={handleClick}
-          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${
-            isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${isActive || open ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
         >
           {item.name}
         </button>
       ) : (
         <Link
           href={item.path!}
-          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${
-            isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
-          }`}
+          className={`hidden items-center justify-center whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors xl:flex ${isActive ? "bg-white/20 text-white" : "text-blue-100 hover:bg-white/10 hover:text-white"
+            }`}
         >
           {item.name}
         </Link>

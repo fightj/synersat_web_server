@@ -104,7 +104,6 @@ function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string 
           </span>
           <h1 className="text-xl font-bold tracking-tight">Vessels</h1>
         </Link>
-
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
           {isLive && (
             <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
