@@ -54,15 +54,15 @@ export default function CrewComponentCard() {
       const u = row.updateType === "CREATE" ? row.next : row.current;
       if (!u) return null;
       return {
-        userId:                  u.userName,
-        password:                u.password ?? "",
-        description:             u.description ?? null,
-        terminalType:            u.terminalType ?? null,
-        halfTimePeriod:          u.halfTimePeriod ?? null,
-        maxTotalOctets:          u.maxTotalOctets,
+        userId: u.userName,
+        password: u.password ?? "",
+        description: u.description ?? null,
+        terminalType: u.terminalType ?? null,
+        halfTimePeriod: u.halfTimePeriod ?? null,
+        maxTotalOctets: u.maxTotalOctets,
         maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange,
-        currentOctetUsage:       u.currentOctetUsage,
-        updateType:              row.updateType ?? null,
+        currentOctetUsage: u.currentOctetUsage,
+        updateType: row.updateType ?? null,
       };
     });
     return (mapped.filter(Boolean) as CrewEntry[]).sort((a, b) => {
@@ -211,8 +211,6 @@ export default function CrewComponentCard() {
     <div className="space-y-6">
       <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
 
-      <PageBreadcrumb pageTitle={mode === "prepay" ? "Manage Prepay" : "Manage Crew Account"} />
-
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
         <CrewToolbar
           vesselName={selectedVessel?.name}
@@ -220,7 +218,7 @@ export default function CrewComponentCard() {
           isLoading={isLoading}
           isError={!!fetchError}
           crewCount={filteredCrew.length}
-          mode = {mode}
+          mode={mode}
           onAction={onAction}
           onExportCSV={handleExportCSV}
           onAddVoucher={() => setAddCrewOpen(true)}

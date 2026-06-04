@@ -970,3 +970,14 @@ html.dark {
 .beam-selector-scroll::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
+
+/* WorldMap vessel marker ping animation — 전역에 한 번만 정의 */
+@keyframes vessel-ping {
+  75%, 100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+.vessel-ping-ring {
+  animation: vessel-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}

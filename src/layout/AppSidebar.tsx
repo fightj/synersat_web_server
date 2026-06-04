@@ -1,17 +1,13 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   EarthIcon,
   VesselIcon,
-  UserCircleIcon,
-  FirewallIcon,
-  ManagementIcon,
   CommandSidebar,
   ChevronDownIcon,
 } from "../icons/index";
-import { useVesselStore } from "@/store/vessel.store";
 
 type NavItem = {
   name: string;
@@ -23,42 +19,6 @@ type NavItem = {
 const navItems: NavItem[] = [
   { icon: <EarthIcon />, name: "Dashboard", path: "/" },
   { icon: <VesselIcon />, name: "Vessels", path: "/vessels" },
-  {
-    icon: <UserCircleIcon />,
-    name: "Crew Account",
-    subItems: [
-      { name: "Crew Account", path: "/crew_account" },
-      { name: "Prepay", path: "/crew_account?mode=prepay" },
-    ],
-  },
-  {
-    icon: <FirewallIcon />,
-    name: "FireWall",
-    subItems: [
-      {
-        name: "Incoming",
-        subItems: [
-          { name: "Port Forward (System)", path: "/port_forward_system" },
-          { name: "Port Forward (User)", path: "/port_forward_user" },
-        ],
-      },
-      {
-        name: "Outgoing",
-        subItems: [
-          { name: "Global Rules", path: "/outgoing_global" },
-          { name: "User Rules", path: "/outgoing_user" },
-        ],
-      },
-    ],
-  },
-  {
-    icon: <ManagementIcon />,
-    name: "Manage",
-    subItems: [
-      { name: "Resource", path: "/resource" },
-      { name: "Device Manage", path: "/device_manage" },
-    ],
-  },
   { icon: <CommandSidebar />, name: "Commands", path: "/commands" },
 ];
 
@@ -239,21 +199,9 @@ function NavIconButton({ item }: { item: NavItem }) {
 }
 
 export default function AppSidebar() {
-  const selectedVessel = useVesselStore((s) => s.selectedVessel);
-
-  const computedNavItems = useMemo(() => {
-    if (selectedVessel?.prepaidEnabled === true) return navItems;
-    return navItems.map((item) => {
-      if (item.name === "Crew Account") {
-        return { ...item, subItems: item.subItems?.filter((sub) => sub.name !== "Prepay") };
-      }
-      return item;
-    });
-  }, [selectedVessel?.prepaidEnabled]);
-
   return (
     <nav className="flex items-center gap-1">
-      {computedNavItems.map((item) => (
+      {navItems.map((item) => (
         <NavIconButton key={item.name} item={item} />
       ))}
     </nav>

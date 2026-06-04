@@ -23,6 +23,18 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
     { marker: any; data: RouteCoordinate; isLast: boolean }[]
   >([]);
   const boundsRef = useRef<any>(null);
+  const invalidateSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 컴포넌트 언마운트 시 Leaflet 인스턴스 완전 파괴
+  useEffect(() => {
+    return () => {
+      if (invalidateSizeTimerRef.current) clearTimeout(invalidateSizeTimerRef.current);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
 
   // 1. GPS 정보가 단 하나라도 존재하는지 체크
   const hasValidGps = useMemo(() => {
@@ -64,7 +76,8 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
       markersRef.current = [];
 
       // 지도가 깨져 보이는 현상 방지 (크기 재계산)
-      setTimeout(() => map.invalidateSize(), 100);
+      if (invalidateSizeTimerRef.current) clearTimeout(invalidateSizeTimerRef.current);
+      invalidateSizeTimerRef.current = setTimeout(() => map.invalidateSize(), 100);
 
       // 데이터가 아예 없으면 여기서 로직 중단
       if (!hasValidGps) {
@@ -150,16 +163,14 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
         return L.divIcon({
           className: "",
           html: `<div style="position:relative; width:${w}px; height:${h}px; display:flex; align-items:center; justify-content:center;">
-                    <div style="
+                    <div class="vessel-ping-ring" style="
                       position:absolute; top:50%; left:50%;
                       transform:translate(-50%,-50%);
                       width:${w * 2}px; height:${w * 2}px;
                       background:${color};
                       border-radius:50%;
                       opacity:0.25;
-                      animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;
                     "></div>
-                    <style>@keyframes ping { 75%,100% { transform:translate(-50%,-50%) scale(2); opacity:0; } }</style>
                     <div style="transform: rotate(${heading}deg); position:relative; z-index:10; filter: drop-shadow(0px 0px 1px rgba(0,0,0,0.5));">
                       <svg width="${w}" height="${h}" viewBox="0 -5 16 33" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M8 -4C9 -2 14 1.5 14 5.5V21C14 22.65 12.65 24 11 24H5C3.35 24 2 22.65 2 21V5.5C2 1.5 7 -2 8 -4Z" fill="${color}" fill-opacity="0.4" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
