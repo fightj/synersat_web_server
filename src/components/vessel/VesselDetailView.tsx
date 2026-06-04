@@ -283,7 +283,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         setErrorModal({ isOpen: true, message: "Failed to retrieve authentication information." })
         return
       }
-      const ALLOWED_USERS = ["henry.jeong", "synersatadmin"];
+      const ALLOWED_USERS = ["henry.jeong", "synersatadmin", "ronnie.yoon"];
       if (!ALLOWED_USERS.includes(result.userId)) {
         setErrorModal({ isOpen: true, message: "Access denied. You do not have permission to use the terminal." })
         return
@@ -706,7 +706,6 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             mmsi: data.mmsi,
             vpnIp: data.vpn_ip,
             enabled: true,
-            description: data.description,
             acct: data.acct,
             fireWallPassword: data.fireWallPassword,
             serialNumber: data.serialNumber,

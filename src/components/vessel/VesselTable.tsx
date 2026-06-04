@@ -23,8 +23,8 @@ interface VesselTableProps {
 
 function getSortValue(v: Vessel, key: SortKey) {
   switch (key) {
-    case "company":    return v.acct ?? "";
-    case "vesselId":   return String(v.id ?? "");
+    case "company": return v.acct ?? "";
+    case "vesselId": return String(v.id ?? "");
     case "vesselName": return v.name ?? "";
   }
 }
@@ -89,19 +89,18 @@ const VesselRow = memo(
       const badgeClass = isInactive
         ? "bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20"
         : isOffline
-        ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
-        : isNA
-        ? "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
-        : getServiceBadgeStyles(displayName);
+          ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+          : isNA
+            ? "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
+            : getServiceBadgeStyles(displayName);
 
       return (
         <tbody ref={ref} {...tbodyProps}>
           <tr
             onClick={handleToggle}
             onDoubleClick={() => onDoubleClick(vessel)}
-            className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${
-              !isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
-            }`}
+            className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
+              }`}
           >
             <td className="pl-5 pr-1 py-4 text-start">
               {vessel.manager === "sktelink" ? (
@@ -122,14 +121,18 @@ const VesselRow = memo(
               {vessel.name || "-"}
             </td>
             <td className="px-3 py-4 text-start">
-              {vessel.prepaidEnabled === true ? (
-                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
-                  
-                  PrePaid
-                </span>
-              ) : (
-                <span className="text-[11px] text-gray-300 dark:text-gray-600">—</span>
-              )}
+              <div className="flex flex-wrap gap-1">
+                {vessel.prepaidEnabled === true && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                    Prepaid
+                  </span>
+                )}
+                {vessel.betaVersionEnabled === true && (
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
+                    Beta
+                  </span>
+                )}
+              </div>
             </td>
             <td className="px-3 py-4 text-start">
               {badgeLabel && (
@@ -142,18 +145,24 @@ const VesselRow = memo(
               {vessel.id}
             </td>
             <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-              {vessel.imo || "-"}
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-              {vessel.callsign || "-"}
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-              {vessel.mmsi || "-"}
+              {vessel.imo}
             </td>
             <td className="px-5 py-4 text-start">
-              <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                {vessel.vpnIp || "-"}
-              </code>
+              <span className="relative inline-flex overflow-hidden rounded">
+                <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
+                  {vessel.coreVersion}
+                </code>
+                {vessel.isLatestCoreVersion === true && (
+                  <span
+                    className="absolute right-0 top-0 h-0 w-0"
+                    style={{
+                      borderStyle: "solid",
+                      borderWidth: "0 8px 8px 0",
+                      borderColor: "transparent #10b981 transparent transparent",
+                    }}
+                  />
+                )}
+              </span>
             </td>
             <td className="py-2 text-center">
               <button
@@ -169,11 +178,10 @@ const VesselRow = memo(
           </tr>
 
           <tr>
-            <td colSpan={11} className="p-0">
+            <td colSpan={9} className="p-0">
               <div
-                className={`grid transition-all duration-300 ease-in-out ${
-                  isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                }`}
+                className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  }`}
               >
                 <div className="overflow-hidden">
                   {isExpanded && (
@@ -259,20 +267,20 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
       if (!(v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (!categoryFilter || categoryFilter === "total") return true;
       switch (categoryFilter) {
-        case "starlink":  return name(v).includes("starlink");
+        case "starlink": return name(v).includes("starlink");
         case "nexuswave": return name(v).includes("nexuswave");
-        case "vsat":      return name(v).includes("vsat") || name(v).includes("fx");
-        case "fbb":       return name(v).includes("fbb");
-        case "oneweb":    return name(v).includes("oneweb");
-        case "fourgee":   return name(v).includes("4g") || name(v).includes("lte");
-        case "iridium":   return name(v).includes("iridium");
+        case "vsat": return name(v).includes("vsat") || name(v).includes("fx");
+        case "fbb": return name(v).includes("fbb");
+        case "oneweb": return name(v).includes("oneweb");
+        case "fourgee": return name(v).includes("4g") || name(v).includes("lte");
+        case "iridium": return name(v).includes("iridium");
         case "na":
           return v.status?.available === true && !v.status?.antennaServiceDisplayName;
         case "inactive":
           return !v.status?.available && v.status?.discard === true;
         case "offline":
           return !v.status?.available && v.status?.discard !== true;
-        default:          return true;
+        default: return true;
       }
     });
 
@@ -323,16 +331,14 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {/* colgroup: table-layout:fixed에서 열 너비 고정 */}
           <colgroup>
             <col style={{ width: "7%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
             <col style={{ width: "13%" }} />
-            <col style={{ width: "13%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "14%" }} />
             <col style={{ width: "7%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "6%" }} />
           </colgroup>
 
           <thead className="border-b border-gray-100 bg-blue-50/50 dark:border-white/[0.05] dark:bg-slate-800/50">
@@ -347,7 +353,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
                 <SortHeader label="Vessel Name" k="vesselName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                Prepaid
+                Configuration
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 Status
@@ -356,9 +362,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
                 <SortHeader label="Vessel ID" k="vesselId" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
               </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">IMO</th>
-              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">CallSign</th>
-              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">MMSI</th>
-              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">VPN IP</th>
+              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">Version</th>
               <th className="text-theme-xs py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</th>
             </tr>
           </thead>
@@ -367,7 +371,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingTop > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={11} style={{ height: paddingTop, padding: 0 }} />
+                <td colSpan={9} style={{ height: paddingTop, padding: 0 }} />
               </tr>
             </tbody>
           )}
@@ -393,7 +397,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
           {paddingBottom > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={11} style={{ height: paddingBottom, padding: 0 }} />
+                <td colSpan={9} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
             </tbody>
           )}

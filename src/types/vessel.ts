@@ -1,15 +1,6 @@
 export interface VesselStatus {
   available: boolean;
-  currentRoute: string | null;
-  lastConnectedAt: string | null;
-  antennaServiceName: string | null;
   antennaServiceDisplayName: string | null;
-  antennaServiceColor: string | null;
-  satId?: number | null;
-  satSignal?: number | null;
-  satType?: string | null;
-  antennaStatus?: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
-  transmitEnabled?: boolean | null;
   discard?: boolean | null;
 }
 
@@ -21,15 +12,15 @@ export interface Vessel {
   mmsi: number;
   vpnIp: string;
   enabled: boolean;
-  description: string;
-  logo?: string;
   manager?: string;
-  mailAddress?: string;
   acct: string;
   fireWallPassword?: string;
-  serialNumber?: string;
   prepaidEnabled?: boolean;
+  betaVersionEnabled?: boolean;
+  isLatestCoreVersion?: boolean;
+  coreVersion?: string;
   status?: VesselStatus;
+  serialNumber: string;
 }
 
 // API 응답 타입
