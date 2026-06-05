@@ -134,7 +134,7 @@ export default function VesselPageHeader({
         setErrorModal({ isOpen: true, message: "Failed to retrieve authentication information." });
         return;
       }
-      const ALLOWED_USERS = ["henry.jeong", "synersatadmin", "ronnie.yoon"];
+      const ALLOWED_USERS = ["henry.jeong", "synersatadmin", "ronnie.yoon", "testUser"];
       if (!ALLOWED_USERS.includes(result.userId)) {
         setErrorModal({ isOpen: true, message: "Access denied. You do not have permission to use the terminal." });
         return;
@@ -204,9 +204,8 @@ export default function VesselPageHeader({
               aria-checked={prepaidEnabled}
               onClick={handlePrepaidToggle}
               disabled={prepaidLoading}
-              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                prepaidEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-              } ${prepaidLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${prepaidEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                } ${prepaidLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             >
               <span className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${prepaidEnabled ? "translate-x-[58px]" : "translate-x-0.5"}`} />
               <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${prepaidEnabled ? "pr-5" : "pl-5"}`}>
@@ -221,9 +220,8 @@ export default function VesselPageHeader({
               aria-checked={betaVersionEnabled}
               onClick={handleBetaVersion}
               disabled={betaVersionLoading}
-              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                betaVersionEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-              } ${betaVersionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              className={`relative flex h-[26px] w-[82px] shrink-0 items-center rounded-full transition-colors duration-300 focus:outline-none ${betaVersionEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                } ${betaVersionLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             >
               <span className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${betaVersionEnabled ? "translate-x-[58px]" : "translate-x-0.5"}`} />
               <span className={`w-full text-center text-[10px] font-bold tracking-wide text-white uppercase transition-all duration-300 ${betaVersionEnabled ? "pr-5" : "pl-5"}`}>
@@ -308,10 +306,12 @@ export default function VesselPageHeader({
                 <Button size="xs" onClick={async () => { if (!data) return; await resetCore(data.imo); }}>
                   Reset Core
                 </Button>
-                <Button size="xs" onClick={handleOpenTerminal}>
-                  <Terminal size={16} />
-                  Terminal
-                </Button>
+                {mainTab === "detail" && (
+                  <Button size="xs" onClick={handleOpenTerminal}>
+                    <Terminal size={16} />
+                    Terminal
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -324,11 +324,10 @@ export default function VesselPageHeader({
               <button
                 key={tab.id}
                 onClick={() => onMainTabChange(tab.id)}
-                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-                  mainTab === tab.id
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                }`}
+                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${mainTab === tab.id
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  }`}
               >
                 {tab.label}
               </button>

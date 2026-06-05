@@ -49,58 +49,52 @@ export default function CrewToolbar({
   onModifyVoucher,
 }: CrewToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
-      <div></div>
-
+    <div className="sticky top-20 z-40 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-3 dark:border-white/[0.05] dark:bg-gray-900">
+      {/* 왼쪽: 액션 버튼들 */}
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" startIcon={<CsvIcon />}
+        <Button size="compact" variant="outline" startIcon={<CsvIcon />}
           onClick={onExportCSV} disabled={crewCount === 0 || isLoading}>
           Export CSV
         </Button>
         {mode === "normal" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline"
+          <>
+            <Button size="compact" variant="outline"
               onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}>
               Reset PW
             </Button>
-
-            <Button size="sm" variant="outline"
+            <Button size="compact" variant="outline"
               onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}>
               Reset Data
             </Button>
-
-            <Button size="sm" variant="outline"
+            <Button size="compact" variant="outline"
               onClick={() => onAction("CHECK_PW")} disabled={noneSelected || isLoading}>
               Check PW
             </Button>
-
-            <Button size="sm" variant="outline"
+            <Button size="compact" variant="outline"
               onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
               Check Usage
             </Button>
-
-            <Button size="sm" variant="outline" startIcon={<EditIcon />}
+            <Button size="compact" variant="outline" startIcon={<EditIcon />}
               onClick={onModifyVoucher} disabled={noneSelected || isLoading}
-              className=" text-amber-700! ring-amber-300! hover:bg-amber-50! dark:text-amber-400! dark:ring-amber-700! dark:hover:bg-amber-900/30!">
+              className="text-amber-700! ring-amber-300! hover:bg-amber-50! dark:text-amber-400! dark:ring-amber-700! dark:hover:bg-amber-900/30!">
               Modify Voucher
             </Button>
-
-            <Button size="sm" variant="outline" startIcon={<PlusIcon />}
-              onClick={onAddVoucher} disabled={isLoading || isError}
-              className=" text-emerald-700! ring-emerald-300! hover:bg-emerald-50!  dark:text-emerald-400! dark:ring-emerald-700! dark:hover:bg-emerald-900/30!">
-              Add Voucher
-            </Button>
-
-            <Button size="sm" variant="outline" startIcon={<DeleteIcon />}
+            <Button size="compact" variant="outline" startIcon={<DeleteIcon />}
               onClick={() => onAction("DELETE")} disabled={noneSelected || isLoading}
-              className=" text-red-700! ring-red-300! hover:bg-red-50!  dark:text-red-400! dark:ring-red-700! dark:hover:bg-red-900/30!">
+              className="text-red-700! ring-red-300! hover:bg-red-50! dark:text-red-400! dark:ring-red-700! dark:hover:bg-red-900/30!">
               Delete
             </Button>
-          </div>
-
+          </>
         )}
-
       </div>
+
+      {/* 오른쪽: Add Voucher */}
+      {mode === "normal" && (
+        <Button size="compact" variant="blue" startIcon={<PlusIcon />}
+          onClick={onAddVoucher} disabled={isLoading || isError}>
+          Add Voucher
+        </Button>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
@@ -28,7 +28,6 @@ interface CrewComponentCardProps {
 export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardProps = {}) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ?? null;
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsMode = searchParams.get("mode") ?? "normal";
   const mode = modeProp ?? searchParamsMode;
@@ -119,11 +118,11 @@ export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardP
     if (!lastEvent) return;
     if (!CREW_COMMAND_TYPES.includes(lastEvent.commandType)) return;
     if (Number(lastEvent.imo) !== Number(imo)) return;
-    if (!pathname.startsWith("/crew_account")) return;
+    if (searchParams.get("tab") !== "crew") return;
 
     silentRefetch();
     clearLastEvent();
-  }, [lastEvent, imo, pathname, silentRefetch, clearLastEvent]);
+  }, [lastEvent, imo, searchParams, silentRefetch, clearLastEvent]);
 
   const filteredCrew = useMemo(
     () =>
@@ -216,7 +215,7 @@ export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardP
     <div className="space-y-6">
       <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
 
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
         <CrewToolbar
           vesselName={selectedVessel?.name}
           noneSelected={noneSelected}
@@ -229,21 +228,23 @@ export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardP
           onAddVoucher={() => setAddCrewOpen(true)}
           onModifyVoucher={() => setModifyCrewOpen(true)}
         />
-        <CrewTable
-          crew={filteredCrew}
-          isLoading={isLoading}
-          hasVessel={!!imo}
-          fetchError={fetchError}
-          selected={selected}
-          allSelected={allSelected}
-          onToggleAll={toggleAll}
-          onToggleOne={toggleOne}
-          onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
-          onOpenTopUp={(u) => setTopUpTarget(u)}
-          onOpenUsageHistory={(u) => setUsageHistoryTarget(u)}
-          onRetry={() => fetchCrewData()}
-          formatUserId={mode === "prepay" ? (id) => id.replace(/^crewpay-/, "") : undefined}
-        />
+        <div className="overflow-x-auto">
+          <CrewTable
+            crew={filteredCrew}
+            isLoading={isLoading}
+            hasVessel={!!imo}
+            fetchError={fetchError}
+            selected={selected}
+            allSelected={allSelected}
+            onToggleAll={toggleAll}
+            onToggleOne={toggleOne}
+            onOpenSuspension={(userId) => setSuspensionModal({ open: true, userId })}
+            onOpenTopUp={(u) => setTopUpTarget(u)}
+            onOpenUsageHistory={(u) => setUsageHistoryTarget(u)}
+            onRetry={() => fetchCrewData()}
+            formatUserId={mode === "prepay" ? (id) => id.replace(/^crewpay-/, "") : undefined}
+          />
+        </div>
       </div>
 
       {imo && topUpTarget && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, type ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
@@ -14,9 +14,10 @@ interface WorldMapProps {
   vesselId: string | null;
   coordinates: RouteCoordinate[];
   timeRange?: { startAt: string; endAt: string };
+  mapOverlay?: ReactNode;
 }
 
-export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }: WorldMapProps) {
+export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange, mapOverlay }: WorldMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<
@@ -286,11 +287,19 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange }
   return (
     <>
     <div className="relative h-[550px] w-full overflow-hidden rounded-xl border border-gray-200 bg-[#aad3df] shadow-inner dark:border-white/10 dark:bg-[#121212]">
-      {/* 4. 지도 레이어 */}
+      {/* 지도 레이어 */}
       <div ref={mapRef} className="absolute inset-0 z-0" />
-      <div className="pointer-events-none absolute bottom-1 right-2 z-1000 text-[10px] text-gray-500 dark:text-gray-400">
-        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">OpenStreetMap</a> contributors, © <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">Leaflet</a>
-      </div>
+      {/* 터미널 overlay — 맵 위에 완전히 덮음, Leaflet 인스턴스는 유지 */}
+      {mapOverlay && (
+        <div className="absolute inset-0 z-50 overflow-hidden rounded-xl">
+          {mapOverlay}
+        </div>
+      )}
+      {!mapOverlay && (
+        <div className="pointer-events-none absolute bottom-1 right-2 z-1000 text-[10px] text-gray-500 dark:text-gray-400">
+          © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">OpenStreetMap</a> contributors, © <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">Leaflet</a>
+        </div>
+      )}
 
       {/* 5. 데이터가 없을 때만 지도 위에 씌우는 블러 막 */}
       {!hasValidGps && (

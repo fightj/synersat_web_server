@@ -114,15 +114,10 @@ export default function DeviceManage({ imo }: DeviceManageProps) {
     <div className="space-y-4">
       {/* ✅ 상단 툴바 */}
       <div className="flex items-center justify-end gap-2">
-        {/* Add Device 버튼 */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
-        >
+        <Button size="compact" variant="blue" onClick={() => setIsModalOpen(true)}>
           <PlusIcon className="h-4 w-4" />
           Add Device
-        </button>
-
+        </Button>
       </div>
 
       {/* 디바이스 없을 때 */}

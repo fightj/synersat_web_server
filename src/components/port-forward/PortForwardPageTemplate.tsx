@@ -65,12 +65,9 @@ export default function PortForwardPageTemplate({
 
           <div className="relative">
             <Button
-              size="sm"
+              size="compact"
+              variant="blue"
               disabled={!selectedVessel}
-              className={`font-semibold shadow-md transition-all ${!selectedVessel
-                ? "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none dark:bg-white/5 dark:text-white/20"
-                : "bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                }`}
               onClick={() => {
                 if (!selectedVessel) return;
                 setIsAddModalOpen(true);

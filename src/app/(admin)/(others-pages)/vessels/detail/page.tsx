@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import posthog from "posthog-js";
 import useSWR from "swr";
@@ -26,7 +27,28 @@ const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 type FirewallSubTab = "system" | "user";
 
 function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; vesselId: string | null; prepaidEnabled: boolean }) {
+  const router = useRouter();
   const [mainTab, setMainTab] = useState<MainTab>("detail");
+  // 한 번 방문한 탭은 Set에 기록 → 이후 unmount 없이 hidden으로 처리
+  const [mountedTabs, setMountedTabs] = useState<Set<MainTab>>(new Set());
+  // Firewall 서브탭도 동일하게 lazy mount
+  const [mountedFirewallSubTabs, setMountedFirewallSubTabs] = useState<Set<FirewallSubTab>>(new Set());
+
+  const handleMainTabChange = (tab: MainTab) => {
+    setMainTab(tab);
+    setMountedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
+    if (tab === "firewall") {
+      setMountedFirewallSubTabs((prev) => (prev.has("system") ? prev : new Set([...prev, "system"])));
+    }
+    // 현재 탭을 URL 파라미터에 반영 → CrewComponentCard/usePortForward의 자동갱신 조건에서 읽음
+    router.replace(`/vessels/detail?tab=${tab}&imo=${imo}`, { scroll: false });
+  };
+
+  const handleFirewallSubTabChange = (tab: FirewallSubTab) => {
+    setFirewallSubTab(tab);
+    setMountedFirewallSubTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
+  };
+
   const [firewallSubTab, setFirewallSubTab] = useState<FirewallSubTab>("system");
   const [crewSubTab, setCrewSubTab] = useState<"normal" | "prepay">("normal");
   const [viewMode, setViewMode] = useState<"OVERVIEW" | "COMMANDS">("OVERVIEW");
@@ -35,7 +57,9 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
 
   useEffect(() => {
     posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
-  }, [imo, vesselId]);
+    // 선박 전환 시 URL 파라미터 초기화 (key={imo}로 remount되므로 마운트 = 선박 변경)
+    router.replace(`/vessels/detail?tab=detail&imo=${imo}`, { scroll: false });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [liveRangeFn, setLiveRangeFn] = useState<
     (() => { start: Date; end: Date }) | null
@@ -155,6 +179,30 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         </div>
       );
     }
+    if (mainTab === "firewall") {
+      return (
+        <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+          <button
+            onClick={() => handleFirewallSubTabChange("system")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "system"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Port Forward (System)
+          </button>
+          <button
+            onClick={() => handleFirewallSubTabChange("user")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "user"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Port Forward (User)
+          </button>
+        </div>
+      );
+    }
     return null;
   })();
 
@@ -164,93 +212,75 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
       <VesselPageHeader
         vesselImo={imo}
         mainTab={mainTab}
-        onMainTabChange={setMainTab}
+        onMainTabChange={handleMainTabChange}
         onOpenTerminal={(vpnIp) => setTerminalVpnIp(vpnIp)}
         tabRightSlot={tabRightSlot}
       />
 
       {/* ── 탭 콘텐츠 ── */}
 
-      {/* Detail 탭 */}
-      {mainTab === "detail" && (
-        <div className="relative flex flex-col gap-6">
-          {isLoading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
-              <Loading message="Loading..." />
-            </div>
-          )}
-          <div className="flex flex-col gap-6 lg:flex-row">
-            <div className="w-full lg:w-1/2">
-              <VesselDetailView
-                vesselImo={imo}
-                dataUsages={routeData?.dataUsages ?? []}
-                coordinates={routeData?.coordinates ?? []}
-                timeRange={timeRange}
-                onTimeRangeChange={handleChartRangeChange}
-                viewMode={viewMode}
-              />
-            </div>
-            <div className="h-[450px] w-full lg:h-auto lg:w-1/2">
-              {terminalVpnIp ? (
-                <SshTerminal
-                  vpnIp={terminalVpnIp}
-                  onClose={() => setTerminalVpnIp(null)}
-                />
-              ) : (
-                <WorldMap
-                  vesselImo={imo}
-                  vesselId={vesselId}
-                  coordinates={routeData?.coordinates ?? []}
-                  timeRange={timeRange}
-                />
-              )}
-            </div>
+      {/* Detail 탭: hidden 패턴 — 터미널 WebSocket이 탭 이동 중에도 유지됨 */}
+      <div className={mainTab !== "detail" ? "hidden" : "relative flex flex-col gap-6"}>
+        {isLoading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
+            <Loading message="Loading..." />
           </div>
+        )}
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="w-full lg:w-1/2">
+            <VesselDetailView
+              vesselImo={imo}
+              dataUsages={routeData?.dataUsages ?? []}
+              coordinates={routeData?.coordinates ?? []}
+              timeRange={timeRange}
+              onTimeRangeChange={handleChartRangeChange}
+              viewMode={viewMode}
+            />
+          </div>
+          <div className="w-full lg:w-1/2">
+            <WorldMap
+              vesselImo={imo}
+              vesselId={vesselId}
+              coordinates={routeData?.coordinates ?? []}
+              timeRange={timeRange}
+              mapOverlay={terminalVpnIp ? (
+                <SshTerminal vpnIp={terminalVpnIp} onClose={() => setTerminalVpnIp(null)} />
+              ) : undefined}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Crew Account 탭: 첫 방문 시 마운트, 이후 hidden으로 유지 */}
+      {mountedTabs.has("crew") && (
+        <div className={mainTab !== "crew" ? "hidden" : ""}>
+          <Suspense fallback={<Loading message="Loading..." />}>
+            <CrewComponentCard mode={crewSubTab} />
+          </Suspense>
         </div>
       )}
 
-      {/* Crew Account 탭 */}
-      {mainTab === "crew" && (
-        <Suspense fallback={<Loading message="Loading..." />}>
-          <CrewComponentCard mode={crewSubTab} />
-        </Suspense>
-      )}
-
-      {/* Firewall 탭 */}
-      {mainTab === "firewall" && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 w-fit dark:bg-white/5">
-            <button
-              onClick={() => setFirewallSubTab("system")}
-              className={`rounded-md px-4 py-2 text-xs font-bold transition-all ${firewallSubTab === "system"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                }`}
-            >
-              Port Forward (System)
-            </button>
-            <button
-              onClick={() => setFirewallSubTab("user")}
-              className={`rounded-md px-4 py-2 text-xs font-bold transition-all ${firewallSubTab === "user"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                }`}
-            >
-              Port Forward (User)
-            </button>
-          </div>
-          {firewallSubTab === "system" && (
-            <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" />
+      {/* Firewall 탭: 첫 방문 시 마운트, 서브탭도 lazy mount */}
+      {mountedTabs.has("firewall") && (
+        <div className={mainTab !== "firewall" ? "hidden" : "space-y-4"}>
+          {mountedFirewallSubTabs.has("system") && (
+            <div className={firewallSubTab !== "system" ? "hidden" : ""}>
+              <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" />
+            </div>
           )}
-          {firewallSubTab === "user" && (
-            <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" />
+          {mountedFirewallSubTabs.has("user") && (
+            <div className={firewallSubTab !== "user" ? "hidden" : ""}>
+              <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" />
+            </div>
           )}
         </div>
       )}
 
-      {/* Manage 탭 */}
-      {mainTab === "manage" && (
-        <DeviceManage imo={Number(imo)} />
+      {/* Manage 탭: 첫 방문 시 마운트, 이후 hidden으로 유지 */}
+      {mountedTabs.has("manage") && (
+        <div className={mainTab !== "manage" ? "hidden" : ""}>
+          <DeviceManage imo={Number(imo)} />
+        </div>
       )}
     </div>
   );

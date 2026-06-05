@@ -6,7 +6,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import { DeviceNatRow } from "@/types/firewall";
 import { getDeviceNats, deleteDeviceNat } from "@/api/firewall";
 import { getDeviceInterfaces, DeviceInterface } from "@/api/interfaces";
-import { usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
@@ -14,7 +14,7 @@ export function usePortForward(ruleType: RuleType) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo;
   const vpnIp = selectedVessel?.vpnIp;
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const lastEvent = useCommandEventStore((s) => s.lastEvent);
   const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent)
 
@@ -81,16 +81,13 @@ export function usePortForward(ruleType: RuleType) {
     if (!NAT_COMMAND_TYPES.includes(lastEvent.commandType)) return;
     if (Number(lastEvent.imo) !== Number(selectedVessel?.imo)) return;
 
-    const isPortForwardPage =
-      pathname.startsWith("/port_forward_system") ||
-      pathname.startsWith("/port_forward_user");
-    if (!isPortForwardPage) return;
+    if (searchParams.get("tab") !== "firewall") return;
 
     if (isEditModalOpen || isAddModalOpen) return;
 
     silentRefetch();
     clearLastEvent();
-  }, [lastEvent, selectedVessel?.imo, pathname, isEditModalOpen, isAddModalOpen, silentRefetch, clearLastEvent]);
+  }, [lastEvent, selectedVessel?.imo, searchParams, isEditModalOpen, isAddModalOpen, silentRefetch, clearLastEvent]);
 
   // 탭별 필터링된 rules
   const filteredRules = useMemo(() => {
