@@ -25,6 +25,8 @@ app.prepare().then(() => {
   server.on('upgrade', (req, socket, head) => {
     const { pathname } = parse(req.url);
     if (pathname === '/ws/terminal') {
+      // TCP Nagle 알고리즘 비활성화 → 소량 패킷(키입력) 즉시 전송
+      socket.setNoDelay(true);
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit('connection', ws, req);
       });
@@ -34,12 +36,17 @@ app.prepare().then(() => {
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url, 'http://localhost');
     const vpnIp = url.searchParams.get('vpnIp');
+    const termType = url.searchParams.get('type') || 'core'; // 'core' | 'firewall'
 
     if (!vpnIp) {
       ws.send(JSON.stringify({ type: 'error', msg: 'vpnIp가 없습니다.' }));
       ws.close();
       return;
     }
+
+    const sshPort = termType === 'firewall'
+      ? parseInt(process.env.VESSEL_SSH22_PORT)
+      : parseInt(process.env.VESSEL_SSH_PORT);
 
     const conn = new Client();
 
@@ -104,7 +111,7 @@ app.prepare().then(() => {
 
     conn.connect({
       host: vpnIp,
-      port: parseInt(process.env.VESSEL_SSH_PORT),
+      port: sshPort,
       username: process.env.VESSEL_SSH_USER,
       password: process.env.VESSEL_SSH_PASSWORD,
       hostVerifier: () => true,

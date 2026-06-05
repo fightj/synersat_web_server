@@ -38,6 +38,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
   const [viewMode, setViewMode] = useState<"OVERVIEW" | "COMMANDS">("OVERVIEW");
   const [isLive, setIsLive] = useState(true);
   const [terminalVpnIp, setTerminalVpnIp] = useState<string | null>(null);
+  const [terminalType, setTerminalType] = useState<'core' | 'firewall'>('core');
   const [liveRangeFn, setLiveRangeFn] = useState<(() => { start: Date; end: Date }) | null>(
     () => () => ({ start: subHours(new Date(), 24), end: new Date() })
   );
@@ -211,7 +212,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         vesselImo={imo}
         mainTab={mainTab}
         onMainTabChange={handleMainTabChange}
-        onOpenTerminal={(vpnIp) => setTerminalVpnIp(vpnIp)}
+        onOpenTerminal={(vpnIp, type) => { setTerminalVpnIp(vpnIp); setTerminalType(type); }}
         tabRightSlot={tabRightSlot}
       />
 
@@ -242,7 +243,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
               coordinates={routeData?.coordinates ?? []}
               timeRange={timeRange}
               mapOverlay={terminalVpnIp ? (
-                <SshTerminal vpnIp={terminalVpnIp} onClose={() => setTerminalVpnIp(null)} />
+                <SshTerminal vpnIp={terminalVpnIp} type={terminalType} onClose={() => setTerminalVpnIp(null)} />
               ) : undefined}
             />
           </div>

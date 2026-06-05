@@ -6,6 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 
 interface SshTerminalProps {
   vpnIp: string;
+  type?: 'core' | 'firewall';
   onClose: () => void;
 }
 
@@ -17,7 +18,7 @@ function fromBase64(b64: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-export default function SshTerminal({ vpnIp, onClose }: SshTerminalProps) {
+export default function SshTerminal({ vpnIp, type = 'core', onClose }: SshTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export default function SshTerminal({ vpnIp, onClose }: SshTerminalProps) {
       term.writeln("\x1b[38;5;38m Connecting to vessel...\x1b[0m\r\n");
 
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${protocol}://${window.location.host}/ws/terminal?vpnIp=${vpnIp}`);
+      ws = new WebSocket(`${protocol}://${window.location.host}/ws/terminal?vpnIp=${vpnIp}&type=${type}`);
 
       ws.onopen = () => {
         if (!disposed) term.writeln("\x1b[32m WebSocket connected\x1b[0m\r\n");
@@ -131,7 +132,7 @@ export default function SshTerminal({ vpnIp, onClose }: SshTerminalProps) {
       (containerRef as any)._cleanup?.();
       ws?.close();
     };
-  }, [vpnIp]);
+  }, [vpnIp, type]);
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#0d1117]">

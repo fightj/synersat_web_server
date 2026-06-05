@@ -38,7 +38,7 @@ interface VesselPageHeaderProps {
   vesselImo: string;
   mainTab: MainTab;
   onMainTabChange: (tab: MainTab) => void;
-  onOpenTerminal?: (vpnIp: string) => void;
+  onOpenTerminal?: (vpnIp: string, type: 'core' | 'firewall') => void;
   tabRightSlot?: React.ReactNode;
 }
 
@@ -144,7 +144,7 @@ export default function VesselPageHeader({
     if (pendingToggle === "beta") executeBetaToggle(true);
   };
 
-  const handleOpenTerminal = async () => {
+  const handleOpenTerminal = async (type: 'core' | 'firewall') => {
     try {
       const result = await getAuth();
       if (!result) {
@@ -157,9 +157,9 @@ export default function VesselPageHeader({
         return;
       }
       if (onOpenTerminal && data) {
-        onOpenTerminal(data.vpn_ip);
+        onOpenTerminal(data.vpn_ip, type);
       } else if (data) {
-        window.open(`/terminal?vpnIp=${data.vpn_ip}`, "_blank");
+        window.open(`/terminal?vpnIp=${data.vpn_ip}&type=${type}`, "_blank");
       }
     } catch {
       setErrorModal({ isOpen: true, message: "The authentication request failed. Please try again." });
@@ -317,10 +317,16 @@ export default function VesselPageHeader({
                   Reset Core
                 </Button>
                 {mainTab === "detail" && (
-                  <Button size="xs" onClick={handleOpenTerminal}>
-                    <Terminal size={16} />
-                    Terminal
-                  </Button>
+                  <>
+                    <Button size="xs" onClick={() => handleOpenTerminal('core')}>
+                      <Terminal size={16} />
+                      Core
+                    </Button>
+                    <Button size="xs" onClick={() => handleOpenTerminal('firewall')}>
+                      <Terminal size={16} />
+                      Firewall
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
