@@ -44,64 +44,99 @@ app.prepare().then(() => {
       return;
     }
 
-    const sshPort = termType === 'firewall'
-      ? parseInt(process.env.VESSEL_SSH22_PORT)
-      : parseInt(process.env.VESSEL_SSH_PORT);
+    const isFirewall = termType === 'firewall';
+    const sshPort     = isFirewall ? parseInt(process.env.VESSEL_SSH22_PORT)  : parseInt(process.env.VESSEL_SSH_PORT);
+    const sshUser     = isFirewall ? (process.env.VESSEL_FW_SSH_USER || 'root') : process.env.VESSEL_SSH_USER;
+    const sshPassword = isFirewall ? process.env.VESSEL_SSH2_PASSWORD           : process.env.VESSEL_SSH_PASSWORD;
 
     const conn = new Client();
+
+    // shell 스트림 — ready 전에는 null
+    let shellStream = null;
+
+    // keyboard-interactive 상태
+    let kbFinish = null;
+    let kbBuffer = '';
+
+    // ── 메시지 핸들러를 connect() 이전에 등록
+    // firewall의 keyboard-interactive 단계에서도 입력을 받아야 하므로
+    ws.on('message', (msg) => {
+      try {
+        const parsed = JSON.parse(msg);
+
+        if (parsed.type === 'resize') {
+          if (shellStream) shellStream.setWindow(parsed.rows, parsed.cols, 0, 0);
+          return;
+        }
+
+        if (parsed.type !== 'input') return;
+
+        // keyboard-interactive 비밀번호 입력 처리
+        if (kbFinish) {
+          const chars = Buffer.from(parsed.data, 'base64').toString('utf8');
+          for (const ch of chars) {
+            if (ch === '\r' || ch === '\n') {
+              // Enter: 개행 echo 후 finish 호출
+              ws.send(JSON.stringify({ type: 'data', data: Buffer.from('\r\n').toString('base64') }));
+              const cb = kbFinish;
+              kbFinish = null;
+              cb([kbBuffer]);
+              kbBuffer = '';
+            } else if (ch === '\x7f' || ch === '\x08') {
+              // Backspace
+              if (kbBuffer.length > 0) kbBuffer = kbBuffer.slice(0, -1);
+            } else {
+              kbBuffer += ch; // 비밀번호는 echo하지 않음
+            }
+          }
+          return;
+        }
+
+        // 일반 shell 입력
+        if (shellStream) shellStream.write(Buffer.from(parsed.data, 'base64'));
+      } catch (e) {
+        console.error('메시지 파싱 오류:', e);
+      }
+    });
+
+    // keyboard-interactive: env 비밀번호 실패 시 터미널에서 직접 입력
+    conn.on('keyboard-interactive', (name, instructions, lang, prompts, finish) => {
+      kbBuffer = '';
+      kbFinish = finish;
+      if (instructions) {
+        ws.send(JSON.stringify({ type: 'data', data: Buffer.from(instructions + '\r\n').toString('base64') }));
+      }
+      prompts.forEach((p) => {
+        ws.send(JSON.stringify({ type: 'data', data: Buffer.from(p.prompt).toString('base64') }));
+      });
+    });
 
     conn.on('ready', () => {
       ws.send(JSON.stringify({ type: 'status', msg: 'Connected' }));
 
-      conn.shell(
-        {
-          term: 'xterm-256color',
-          cols: 220,
-          rows: 50,
-        },
-        (err, stream) => {
-          if (err) {
-            ws.send(JSON.stringify({ type: 'error', msg: err.message }));
-            conn.end();
-            return;
-          }
-
-          // 선박 → 브라우저
-          stream.on('data', (data) => {
-            ws.send(JSON.stringify({
-              type: 'data',
-              data: data.toString('base64')
-            }));
-          });
-
-          stream.stderr.on('data', (data) => {
-            ws.send(JSON.stringify({
-              type: 'data',
-              data: data.toString('base64')
-            }));
-          });
-
-          // 브라우저 → 선박
-          ws.on('message', (msg) => {
-            try {
-              const parsed = JSON.parse(msg);
-              if (parsed.type === 'input') {
-                stream.write(Buffer.from(parsed.data, 'base64'));
-              } else if (parsed.type === 'resize') {
-                stream.setWindow(parsed.rows, parsed.cols, 0, 0);
-              }
-            } catch (e) {
-              console.error('메시지 파싱 오류:', e);
-            }
-          });
-
-          stream.on('close', () => {
-            ws.send(JSON.stringify({ type: 'status', msg: '세션 종료' }));
-            ws.close();
-            conn.end();
-          });
+      conn.shell({ term: 'xterm-256color', cols: 220, rows: 50 }, (err, stream) => {
+        if (err) {
+          ws.send(JSON.stringify({ type: 'error', msg: err.message }));
+          conn.end();
+          return;
         }
-      );
+
+        shellStream = stream;
+
+        stream.on('data', (data) => {
+          ws.send(JSON.stringify({ type: 'data', data: data.toString('base64') }));
+        });
+
+        stream.stderr.on('data', (data) => {
+          ws.send(JSON.stringify({ type: 'data', data: data.toString('base64') }));
+        });
+
+        stream.on('close', () => {
+          ws.send(JSON.stringify({ type: 'status', msg: '세션 종료' }));
+          ws.close();
+          conn.end();
+        });
+      });
     });
 
     conn.on('error', (err) => {
@@ -112,8 +147,9 @@ app.prepare().then(() => {
     conn.connect({
       host: vpnIp,
       port: sshPort,
-      username: process.env.VESSEL_SSH_USER,
-      password: process.env.VESSEL_SSH_PASSWORD,
+      username: sshUser,
+      password: sshPassword,
+      tryKeyboard: isFirewall, // firewall만 keyboard-interactive fallback 활성화
       hostVerifier: () => true,
       readyTimeout: 10000,
     });
