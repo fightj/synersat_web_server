@@ -151,7 +151,7 @@ app.prepare().then(() => {
       password: sshPassword,
       tryKeyboard: isFirewall, // firewall만 keyboard-interactive fallback 활성화
       hostVerifier: () => true,
-      readyTimeout: 10000,
+      readyTimeout: isFirewall ? 60000 : 10000, // firewall: 사용자 입력 대기 시간 확보
     });
 
     ws.on('close', () => {
