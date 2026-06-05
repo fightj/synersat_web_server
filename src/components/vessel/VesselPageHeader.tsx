@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Terminal } from "lucide-react";
 import type { VesselDetail } from "@/types/vessel";
@@ -15,6 +15,7 @@ import {
 import { updatePrepayEnabled } from "@/api/crew-account";
 import { getAuth } from "@/api/auth";
 import { useRouter } from "next/navigation";
+import { useVesselStore } from "@/store/vessel.store";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import VesselFormModal from "./VesselFormModal";
@@ -54,8 +55,15 @@ export default function VesselPageHeader({
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showGrafana, setShowGrafana] = useState(false);
-  const [prepaidEnabled, setPrepaidEnabled] = useState(false);
+  // store의 prepaidEnabled를 초기값으로 사용 → SSE로 변경 시 즉시 반영
+  const storePrepaid = useVesselStore((s) => s.selectedVessel?.prepaidEnabled ?? false);
+  const [prepaidEnabled, setPrepaidEnabled] = useState(storePrepaid);
   const [prepaidLoading, setPrepaidLoading] = useState(false);
+
+  // SSE로 store가 변경되면 로컬 상태 동기화 (토글 로딩 중엔 무시)
+  useEffect(() => {
+    if (!prepaidLoading) setPrepaidEnabled(storePrepaid);
+  }, [storePrepaid, prepaidLoading]);
   const [betaVersionEnabled, setBetaVersionEnabled] = useState(false);
   const [betaVersionLoading, setBetaVersionLoading] = useState(false);
   const [pendingToggle, setPendingToggle] = useState<"prepaid" | "beta" | null>(null);
@@ -65,10 +73,17 @@ export default function VesselPageHeader({
   });
   const router = useRouter();
 
+  const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+    const { signal } = abortRef.current;
+
     const load = async () => {
       try {
         const result = await getVesselDetail(vesselImo);
+        if (signal.aborted) return;
         setData(result);
         setPrepaidEnabled(result.prepaidEnabled ?? false);
         setBetaVersionEnabled(result.betaVersionEnabled ?? false);
@@ -77,6 +92,8 @@ export default function VesselPageHeader({
       }
     };
     if (vesselImo) load();
+
+    return () => { abortRef.current?.abort(); };
   }, [vesselImo]);
 
   const handleDeleteVessel = async () => {
@@ -259,44 +276,37 @@ export default function VesselPageHeader({
         <div className={`grid transition-all duration-300 ease-in-out ${isInfoExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
           <div className="overflow-hidden">
             <div className="mx-6 mt-1 border-t border-gray-100 pt-4 pb-4 dark:border-white/5">
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex items-center gap-2">
                 <span className="text-xs font-bold tracking-wider text-gray-400 uppercase dark:text-gray-500">
                   Vessel Info
                 </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                  >
-                    Edit Info
-                  </button>
-                  <button
-                    onClick={() => setIsDeleteAlertOpen(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-500 transition-all hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition-all hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                >
+                  Edit Info
+                </button>
+                <button
+                  onClick={() => setIsDeleteAlertOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-500 transition-all hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                >
+                  Delete
+                </button>
               </div>
               {data && (
-                <div className="grid grid-cols-1 gap-x-12 gap-y-2 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <DetailItem label="Account" value={data.acct} />
-                    <DetailItem label="IMO" value={data.imo} />
-                    <DetailItem label="MMSI" value={data.mmsi} />
-                    <DetailItem label="Call Sign" value={data.callsign} />
-                    <DetailItem label="FW ID" value={data.fireWallId} />
-                  </div>
-                  <div className="space-y-2">
-                    <DetailItem label="S/N" value={data.serialNumber} />
-                    <DetailItem label="VPN IP" value={data.vpn_ip} />
-                    <DetailItem label="Manager" value={data.manager} />
-                    <DetailItem label="Mail" value={data.mailAddress} />
-                    <DetailItem label="FW PW" value={data.fireWallPassword} />
-                  </div>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-3">
+                  <DetailItem label="Account" value={data.acct} />
+                  <DetailItem label="IMO" value={data.imo} />
+                  <DetailItem label="MMSI" value={data.mmsi} />
+                  <DetailItem label="Call Sign" value={data.callsign} />
+                  <DetailItem label="FW ID" value={data.fireWallId} />
+                  <DetailItem label="S/N" value={data.serialNumber} />
+                  <DetailItem label="VPN IP" value={data.vpn_ip} />
+                  <DetailItem label="Mail" value={data.mailAddress} />
+                  <DetailItem label="FW PW" value={data.fireWallPassword} />
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center justify-end gap-2 mt-4">
                 <Button size="xs" onClick={async () => { if (!data) return; await vesselSmartboxUpdate(data.imo); }}>
                   Run Update.sh
                 </Button>
@@ -407,11 +417,11 @@ export default function VesselPageHeader({
 }
 
 const DetailItem = ({ label, value }: { label: string; value: string | number }) => (
-  <div className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0 last:pb-0 dark:border-white/[0.05]">
-    <span className="text-xs font-medium tracking-wider text-gray-400 uppercase dark:text-gray-500">
+  <div className="flex flex-col gap-0.5 border-b border-gray-100 pb-2 dark:border-white/5">
+    <span className="text-[10px] font-medium tracking-wider text-gray-400 uppercase dark:text-gray-500">
       {label}
     </span>
-    <span className="text-sm font-semibold text-gray-800 dark:text-white/90">
+    <span className="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">
       {value || "-"}
     </span>
   </div>

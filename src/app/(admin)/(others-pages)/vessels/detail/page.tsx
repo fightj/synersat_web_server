@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, Suspense } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import posthog from "posthog-js";
@@ -28,49 +28,52 @@ type FirewallSubTab = "system" | "user";
 
 function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; vesselId: string | null; prepaidEnabled: boolean }) {
   const router = useRouter();
+
+  // ── 상태 선언 (handlers보다 먼저) ──────────────────────────────
   const [mainTab, setMainTab] = useState<MainTab>("detail");
-  // 한 번 방문한 탭은 Set에 기록 → 이후 unmount 없이 hidden으로 처리
   const [mountedTabs, setMountedTabs] = useState<Set<MainTab>>(new Set());
-  // Firewall 서브탭도 동일하게 lazy mount
   const [mountedFirewallSubTabs, setMountedFirewallSubTabs] = useState<Set<FirewallSubTab>>(new Set());
-
-  const handleMainTabChange = (tab: MainTab) => {
-    setMainTab(tab);
-    setMountedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
-    if (tab === "firewall") {
-      setMountedFirewallSubTabs((prev) => (prev.has("system") ? prev : new Set([...prev, "system"])));
-    }
-    // 현재 탭을 URL 파라미터에 반영 → CrewComponentCard/usePortForward의 자동갱신 조건에서 읽음
-    router.replace(`/vessels/detail?tab=${tab}&imo=${imo}`, { scroll: false });
-  };
-
-  const handleFirewallSubTabChange = (tab: FirewallSubTab) => {
-    setFirewallSubTab(tab);
-    setMountedFirewallSubTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
-  };
-
   const [firewallSubTab, setFirewallSubTab] = useState<FirewallSubTab>("system");
   const [crewSubTab, setCrewSubTab] = useState<"normal" | "prepay">("normal");
   const [viewMode, setViewMode] = useState<"OVERVIEW" | "COMMANDS">("OVERVIEW");
   const [isLive, setIsLive] = useState(true);
   const [terminalVpnIp, setTerminalVpnIp] = useState<string | null>(null);
-
-  useEffect(() => {
-    posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
-    // 선박 전환 시 URL 파라미터 초기화 (key={imo}로 remount되므로 마운트 = 선박 변경)
-    router.replace(`/vessels/detail?tab=detail&imo=${imo}`, { scroll: false });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [liveRangeFn, setLiveRangeFn] = useState<
-    (() => { start: Date; end: Date }) | null
-  >(() => () => ({ start: subHours(new Date(), 24), end: new Date() }));
-
+  const [liveRangeFn, setLiveRangeFn] = useState<(() => { start: Date; end: Date }) | null>(
+    () => () => ({ start: subHours(new Date(), 24), end: new Date() })
+  );
   const [timeRange, setTimeRange] = useState({
     startAt: toUTCString(subHours(new Date(), 24)),
     endAt: toUTCString(new Date()),
   });
 
-  const handleTimeApply = (
+  // ── 초기화: 선박 전환 시 URL 리셋 ────────────────────────────
+  useEffect(() => {
+    posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
+    router.replace(`/vessels/detail?tab=detail&imo=${imo}`, { scroll: false });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── debounce ref 언마운트 cleanup ─────────────────────────────
+  const chartDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => { if (chartDebounceRef.current) clearTimeout(chartDebounceRef.current); };
+  }, []);
+
+  // ── handlers ─────────────────────────────────────────────────
+  const handleMainTabChange = useCallback((tab: MainTab) => {
+    setMainTab(tab);
+    setMountedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
+    if (tab === "firewall") {
+      setMountedFirewallSubTabs((prev) => (prev.has("system") ? prev : new Set([...prev, "system"])));
+    }
+    router.replace(`/vessels/detail?tab=${tab}&imo=${imo}`, { scroll: false });
+  }, [imo, router]);
+
+  const handleFirewallSubTabChange = useCallback((tab: FirewallSubTab) => {
+    setFirewallSubTab(tab);
+    setMountedFirewallSubTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
+  }, []);
+
+  const handleTimeApply = useCallback((
     start: string,
     end: string,
     live: boolean,
@@ -79,14 +82,19 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     setIsLive(live);
     setLiveRangeFn(live && rangeFn ? () => rangeFn : null);
     setTimeRange({ startAt: start, endAt: end });
-    posthog.capture("vessel_time_range_applied", {
-      vessel_imo: imo,
-      start_at: start,
-      end_at: end,
-      is_live: live,
-    });
-  };
+    posthog.capture("vessel_time_range_applied", { vessel_imo: imo, start_at: start, end_at: end, is_live: live });
+  }, [imo]);
 
+  const handleChartRangeChange = useCallback((startISO: string, endISO: string) => {
+    if (chartDebounceRef.current) clearTimeout(chartDebounceRef.current);
+    chartDebounceRef.current = setTimeout(() => {
+      setIsLive(false);
+      setLiveRangeFn(null);
+      setTimeRange({ startAt: startISO, endAt: endISO });
+    }, 500);
+  }, []);
+
+  // ── SWR ───────────────────────────────────────────────────────
   const fetcher = useCallback(async (): Promise<VesselRouteResponse> => {
     let startUTC = timeRange.startAt;
     let endUTC = timeRange.endAt;
@@ -110,21 +118,11 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     },
   );
 
-  const chartDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleChartRangeChange = (startISO: string, endISO: string) => {
-    if (chartDebounceRef.current) clearTimeout(chartDebounceRef.current);
-    chartDebounceRef.current = setTimeout(() => {
-      setIsLive(false);
-      setLiveRangeFn(null);
-      setTimeRange({ startAt: startISO, endAt: endISO });
-    }, 500);
-  };
-
-  // 탭 바 오른쪽 슬롯 — 탭별로 다른 컨트롤 표시
-  const tabRightSlot = (() => {
+  // ── 탭 바 오른쪽 슬롯 (useMemo로 불필요한 재생성 방지) ──────
+  const tabRightSlot = useMemo(() => {
     if (mainTab === "detail") {
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-6">
           <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
             <button
               onClick={() => setViewMode("OVERVIEW")}
@@ -204,7 +202,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
       );
     }
     return null;
-  })();
+  }, [mainTab, prepaidEnabled, viewMode, isLive, handleTimeApply, crewSubTab, firewallSubTab, handleFirewallSubTabChange]);
 
   return (
     <div className="space-y-6 p-2">
@@ -265,12 +263,16 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         <div className={mainTab !== "firewall" ? "hidden" : "space-y-4"}>
           {mountedFirewallSubTabs.has("system") && (
             <div className={firewallSubTab !== "system" ? "hidden" : ""}>
-              <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" />
+              <Suspense fallback={<Loading message="Loading..." />}>
+                <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" />
+              </Suspense>
             </div>
           )}
           {mountedFirewallSubTabs.has("user") && (
             <div className={firewallSubTab !== "user" ? "hidden" : ""}>
-              <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" />
+              <Suspense fallback={<Loading message="Loading..." />}>
+                <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" />
+              </Suspense>
             </div>
           )}
         </div>
