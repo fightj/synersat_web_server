@@ -21,12 +21,17 @@ import RefreshBanner from "@/components/common/RefreshBanner";
 
 type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
 
-export default function CrewComponentCard() {
+interface CrewComponentCardProps {
+  mode?: string;
+}
+
+export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardProps = {}) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ?? null;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const mode = searchParams.get("mode") ?? "normal";
+  const searchParamsMode = searchParams.get("mode") ?? "normal";
+  const mode = modeProp ?? searchParamsMode;
   const lastEvent = useCommandEventStore((s) => s.lastEvent);
   const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent);
 

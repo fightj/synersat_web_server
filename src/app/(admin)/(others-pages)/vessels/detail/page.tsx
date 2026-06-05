@@ -25,9 +25,10 @@ const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 
 type FirewallSubTab = "system" | "user";
 
-function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string | null }) {
+function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; vesselId: string | null; prepaidEnabled: boolean }) {
   const [mainTab, setMainTab] = useState<MainTab>("detail");
   const [firewallSubTab, setFirewallSubTab] = useState<FirewallSubTab>("system");
+  const [crewSubTab, setCrewSubTab] = useState<"normal" | "prepay">("normal");
   const [viewMode, setViewMode] = useState<"OVERVIEW" | "COMMANDS">("OVERVIEW");
   const [isLive, setIsLive] = useState(true);
   const [terminalVpnIp, setTerminalVpnIp] = useState<string | null>(null);
@@ -95,38 +96,67 @@ function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string 
     }, 500);
   };
 
-  // Detail 탭일 때만 탭 바 오른쪽에 표시: [Overview|Commands] + Live + TimeSetting
-  const tabRightSlot = mainTab === "detail" ? (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
-        <button
-          onClick={() => setViewMode("OVERVIEW")}
-          className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setViewMode("COMMANDS")}
-          className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-            }`}
-        >
-          Commands
-        </button>
-      </div>
-      {isLive && (
-        <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-          <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
+  // 탭 바 오른쪽 슬롯 — 탭별로 다른 컨트롤 표시
+  const tabRightSlot = (() => {
+    if (mainTab === "detail") {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+            <button
+              onClick={() => setViewMode("OVERVIEW")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setViewMode("COMMANDS")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                }`}
+            >
+              Commands
+            </button>
+          </div>
+          {isLive && (
+            <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+              <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
+            </div>
+          )}
+          <TimeSetting onApply={handleTimeApply} />
         </div>
-      )}
-      <TimeSetting onApply={handleTimeApply} />
-    </div>
-  ) : null;
+      );
+    }
+    if (mainTab === "crew" && prepaidEnabled) {
+      return (
+        <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+          <button
+            onClick={() => setCrewSubTab("normal")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "normal"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Crew Account
+          </button>
+          <button
+            onClick={() => setCrewSubTab("prepay")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "prepay"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Prepaid
+          </button>
+        </div>
+      );
+    }
+    return null;
+  })();
 
   return (
     <div className="space-y-6 p-2">
@@ -182,7 +212,7 @@ function VesselDetailContent({ imo, vesselId }: { imo: string; vesselId: string 
       {/* Crew Account 탭 */}
       {mainTab === "crew" && (
         <Suspense fallback={<Loading message="Loading..." />}>
-          <CrewComponentCard />
+          <CrewComponentCard mode={crewSubTab} />
         </Suspense>
       )}
 
@@ -230,10 +260,11 @@ export default function VesselDetailPage() {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
   const vesselId = selectedVessel?.id ? String(selectedVessel.id) : null;
+  const prepaidEnabled = selectedVessel?.prepaidEnabled ?? false;
 
   if (!selectedVessel || !imo) {
     return <StatusPlaceholder title="Failed to load details" description="Please select a vessel" />;
   }
 
-  return <VesselDetailContent key={imo} imo={imo} vesselId={vesselId} />;
+  return <VesselDetailContent key={imo} imo={imo} vesselId={vesselId} prepaidEnabled={prepaidEnabled} />;
 }
