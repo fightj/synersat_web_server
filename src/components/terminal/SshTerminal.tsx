@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
 
@@ -20,6 +20,7 @@ function fromBase64(b64: string): Uint8Array {
 
 export default function SshTerminal({ vpnIp, type = 'core', onClose }: SshTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [connStatus, setConnStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -83,8 +84,10 @@ export default function SshTerminal({ vpnIp, type = 'core', onClose }: SshTermin
           if (msg.type === "data") {
             term.write(fromBase64(msg.data));
           } else if (msg.type === "status") {
+            if (msg.msg === "Connected") setConnStatus('connected');
             term.writeln(`\r\n\x1b[32m ${msg.msg}\x1b[0m\r\n`);
           } else if (msg.type === "error") {
+            setConnStatus('error');
             term.writeln(`\r\n\x1b[31m ${msg.msg}\x1b[0m\r\n`);
           }
         } catch {
@@ -93,11 +96,17 @@ export default function SshTerminal({ vpnIp, type = 'core', onClose }: SshTermin
       };
 
       ws.onclose = () => {
-        if (!disposed) term.writeln("\r\n\x1b[33m Connection closed\x1b[0m");
+        if (!disposed) {
+          setConnStatus('error');
+          term.writeln("\r\n\x1b[33m Connection closed\x1b[0m");
+        }
       };
 
       ws.onerror = () => {
-        if (!disposed) term.writeln("\r\n\x1b[31m WebSocket error\x1b[0m");
+        if (!disposed) {
+          setConnStatus('error');
+          term.writeln("\r\n\x1b[31m WebSocket error\x1b[0m");
+        }
       };
 
       term.onData((data) => {
@@ -139,7 +148,11 @@ export default function SshTerminal({ vpnIp, type = 'core', onClose }: SshTermin
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-white/[0.07] px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" />
+          <span className={`h-2.5 w-2.5 rounded-full ${
+            connStatus === 'error'
+              ? "bg-red-500 shadow-[0_0_8px_#ef4444]"
+              : "animate-pulse bg-green-400 shadow-[0_0_8px_#4ade80]"
+          }`} />
           <span className="font-mono text-xs text-slate-400">
             ssh <span className="text-slate-500">·</span> {vpnIp}
           </span>

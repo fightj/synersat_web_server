@@ -73,8 +73,6 @@ export function useVesselMarkers({
 
   const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
-  // 현재 flyTo 중인 IMO — 같은 선박 재클릭 시 애니메이션 재시작 방지
-  const flyingToImoRef = useRef<number | null>(null);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -156,14 +154,6 @@ export function useVesselMarkers({
           const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
           setPopupPos({ x: pt.x, y: pt.y });
           setClickedVessel({ imo: v.imo, name: v.name, color: v.color });
-          if (flyingToImoRef.current !== v.imo) {
-            const thisImo = v.imo;
-            flyingToImoRef.current = thisImo;
-            map.flyTo([latlng.lat, latlng.lng], 4, { animate: true, duration: 1, easeLinearity: 0.1 });
-            map.once("moveend", () => {
-              if (flyingToImoRef.current === thisImo) flyingToImoRef.current = null;
-            });
-          }
           const stored = useVesselStore.getState().vessels.find((sv) => sv.imo === v.imo);
           if (stored) {
             setSelectedVessel({ id: stored.id, imo: stored.imo, name: stored.name, vpnIp: stored.vpnIp, prepaidEnabled: stored.prepaidEnabled });

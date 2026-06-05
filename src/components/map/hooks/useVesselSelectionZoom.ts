@@ -72,13 +72,18 @@ export function useVesselSelectionZoom({
 
     const { lat, lng } = clickedLatLngRef.current;
     const color = clickedVessel.color;
+    const pingSize = 36; // 원 지름 — WorldMap.tsx와 동일한 top:50%;left:50%;translate 패턴 사용
     const pingIcon = L.divIcon({
       className: "",
-      html: `<div style="position:relative;width:28px;height:28px;transform:translate(-50%,-50%)">
-        <span style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.25;animation:vessel-ping 1.2s cubic-bezier(0,0,0.2,1) infinite;"></span>
-      </div>`,
-      iconSize: [40, 40],
-      iconAnchor: [0, 0],
+      html: `<div style="
+        position:absolute; top:50%; left:50%;
+        width:${pingSize}px; height:${pingSize}px;
+        transform:translate(-50%,-50%);
+        border-radius:50%; background:${color}; opacity:0.25;
+        animation:vessel-ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+      "></div>`,
+      iconSize: [pingSize * 2, pingSize * 2],
+      iconAnchor: [pingSize, pingSize],
     });
     pingMarkerRef.current = L.marker([lat, lng], { icon: pingIcon, zIndexOffset: 999, interactive: false }).addTo(map);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,16 +135,13 @@ export function useVesselSelectionZoom({
       const closestLng = candidates.reduce((best, c) =>
         Math.abs(c - lng) < Math.abs(best - lng) ? c : best,
       );
-      map.flyTo([lat, closestLng], 4, { animate: true, duration: 1, easeLinearity: 0.1 });
-      map.once("moveend", () => {
-        (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
-        const pt = map.latLngToContainerPoint([lat, closestLng]);
-        setPopupPos({ x: pt.x, y: pt.y });
-        setClickedVessel({
-          imo: found.imo,
-          name: found.vesselName,
-          color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName),
-        });
+      (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
+      const pt = map.latLngToContainerPoint([lat, closestLng]);
+      setPopupPos({ x: pt.x, y: pt.y });
+      setClickedVessel({
+        imo: found.imo,
+        name: found.vesselName,
+        color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName),
       });
     } else {
       setGpsAlert(true);
