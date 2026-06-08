@@ -12,6 +12,7 @@ import { useVesselStore } from "@/store/vessel.store";
 import { getAccounts } from "@/api/vessel";
 import RecentVesselTabs from "@/components/vessel/RecentVesselTabs";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
+import { useAuthStore } from "@/store/auth.store";
 
 const STAT_CATEGORIES = [
   { key: "total", label: "Total", color: "#94a3b8" },
@@ -34,7 +35,7 @@ export default function VesselComponentCard() {
   const [companyFilter, setCompanyFilter] = useState<string>("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const vessels = useVesselStore((s) => s.vessels);
-
+  const user = useAuthStore((s) => s.user)
   const { data: accounts = [] } = useSWR("accounts", getAccounts, {
     revalidateOnFocus: false,
     dedupingInterval: 60 * 60 * 1000,
@@ -91,7 +92,7 @@ export default function VesselComponentCard() {
               </div>
 
               {/* Company 필터 */}
-              <div className="flex flex-col gap-1.5">
+              {(user?.userAcct == "synersat" || user?.userAcct == "sktelink") && <div className="flex flex-col gap-1.5">
                 <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Company</label>
                 <NativeSelectWithIcon
                   value={companyFilter}
@@ -103,7 +104,7 @@ export default function VesselComponentCard() {
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </NativeSelectWithIcon>
-              </div>
+              </div>}
 
               {/* 리셋 */}
               {(searchTerm || companyFilter) && (
