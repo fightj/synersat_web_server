@@ -3,8 +3,10 @@
 import Image from "next/image";
 import React, { memo, useMemo, useState, useTransition, useCallback, useRef, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import useSWR from "swr";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
+import { getAccounts } from "@/api/vessel";
 import Loading from "../common/Loading";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
@@ -19,6 +21,7 @@ type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb
 interface VesselTableProps {
   searchTerm?: string;
   categoryFilter?: CategoryKey | null;
+  companyFilter?: string | null;
 }
 
 function getSortValue(v: Vessel, key: SortKey) {
@@ -63,6 +66,7 @@ const SortHeader = ({
 // ── VesselRow: <tbody> 래퍼로 virtualizer ref를 받음 ──────────────────────
 interface VesselRowProps extends Omit<React.HTMLAttributes<HTMLTableSectionElement>, 'onDoubleClick'> {
   vessel: Vessel;
+  companyLabel: string;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
   onDoubleClick: (vessel: Vessel) => void;
@@ -72,7 +76,7 @@ interface VesselRowProps extends Omit<React.HTMLAttributes<HTMLTableSectionEleme
 const VesselRow = memo(
   React.forwardRef<HTMLTableSectionElement, VesselRowProps>(
     function VesselRow(
-      { vessel, isExpanded, onToggleExpand, onDoubleClick, onGrafanaClick, ...tbodyProps },
+      { vessel, companyLabel, isExpanded, onToggleExpand, onDoubleClick, onGrafanaClick, ...tbodyProps },
       ref,
     ) {
       const handleToggle = useCallback(() => {
@@ -115,7 +119,7 @@ const VesselRow = memo(
               )}
             </td>
             <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-              {vessel.acct || "-"}
+              {companyLabel || "-"}
             </td>
             <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
               {vessel.name || "-"}
@@ -202,9 +206,19 @@ const VesselRow = memo(
 );
 
 // ── 메인 테이블 ────────────────────────────────────────────────────────────
-export default function VesselTable({ searchTerm = "", categoryFilter = null }: VesselTableProps) {
+export default function VesselTable({ searchTerm = "", categoryFilter = null, companyFilter = null }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
+
+  const { data: accounts } = useSWR("accounts", getAccounts, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60 * 60 * 1000, // 1시간 캐시
+  });
+  const acctMap = useMemo(() => {
+    const map = new Map<string, string>();
+    accounts?.forEach(({ value, label }) => map.set(value, label));
+    return map;
+  }, [accounts]);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
   const [sortKey, setSortKey] = useState<SortKey>("vesselName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -265,6 +279,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
 
     const filtered = vessels.filter((v) => {
       if (!(v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (companyFilter && v.acct !== companyFilter) return false;
       if (!categoryFilter || categoryFilter === "total") return true;
       switch (categoryFilter) {
         case "starlink": return name(v).includes("starlink");
@@ -295,7 +310,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
         : bv.localeCompare(av, "en", { numeric: true });
     });
     return copy;
-  }, [vessels, sortKey, sortDir, searchTerm, categoryFilter]);
+  }, [vessels, sortKey, sortDir, searchTerm, categoryFilter, companyFilter]);
 
   // ── 가상화 (window 스크롤 사용 → 내부 스크롤바 없음) ────────────────────
   const rowVirtualizer = useWindowVirtualizer({
@@ -385,6 +400,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null }: 
                 ref={rowVirtualizer.measureElement}
                 data-index={vItem.index}
                 vessel={vessel}
+                companyLabel={acctMap.get(vessel.acct ?? "") || vessel.acct || ""}
                 isExpanded={expandedId === String(vessel.id)}
                 onToggleExpand={handleToggleExpand}
                 onDoubleClick={handleDoubleClick}

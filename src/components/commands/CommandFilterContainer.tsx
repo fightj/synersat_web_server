@@ -49,7 +49,7 @@ export default function CommandFilterContainer({
   };
 
   const selectBaseClass =
-    "appearance-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-10 rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm font-medium transition-all outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 cursor-pointer hover:border-gray-300";
+    "appearance-none cursor-pointer h-10 rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm font-medium outline-none transition-all hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white";
 
   return (
     <div className="space-y-4">

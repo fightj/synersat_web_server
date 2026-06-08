@@ -2,13 +2,16 @@
 
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import useSWR from "swr";
 import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import VesselFormModal from "./VesselFormModal";
 import VesselFiltering from "./VesselFiltering";
 import VesselTable from "./VesselTable";
 import { useVesselStore } from "@/store/vessel.store";
+import { getAccounts } from "@/api/vessel";
 import RecentVesselTabs from "@/components/vessel/RecentVesselTabs";
+import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
 
 const STAT_CATEGORIES = [
   { key: "total", label: "Total", color: "#94a3b8" },
@@ -28,8 +31,14 @@ export default function VesselComponentCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<typeof STAT_CATEGORIES[number]["key"] | null>(null);
+  const [companyFilter, setCompanyFilter] = useState<string>("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const vessels = useVesselStore((s) => s.vessels);
+
+  const { data: accounts = [] } = useSWR("accounts", getAccounts, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60 * 60 * 1000,
+  });
   const fetchVessels = useVesselStore((s) => s.fetchVessels);
 
   useEffect(() => {
@@ -73,8 +82,43 @@ export default function VesselComponentCard() {
         </Suspense>
         <div className="flex flex-col gap-3 px-6 py-4">
           {/* 1행: 필터 + 추가 버튼 */}
-          <div className="flex items-center justify-between gap-4">
-            <VesselFiltering onFilter={(name) => { setSearchTerm(name); setCategoryFilter(null); }} />
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-wrap items-end gap-4">
+              {/* 선박명 검색 */}
+              <div className="flex flex-col gap-1.5">
+                <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Vessel</label>
+                <VesselFiltering onFilter={(name) => { setSearchTerm(name); setCategoryFilter(null); }} />
+              </div>
+
+              {/* Company 필터 */}
+              <div className="flex flex-col gap-1.5">
+                <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Company</label>
+                <NativeSelectWithIcon
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                  className="h-10 w-[200px] appearance-none cursor-pointer rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm font-medium outline-none transition-all hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">All Companies</option>
+                  {accounts.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </NativeSelectWithIcon>
+              </div>
+
+              {/* 리셋 */}
+              {(searchTerm || companyFilter) && (
+                <button
+                  onClick={() => { setSearchTerm(""); setCompanyFilter(""); setCategoryFilter(null); }}
+                  className="mb-0.5 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reset
+                </button>
+              )}
+            </div>
+
             <Button size="sm" onClick={openModal} className="bg-brand-500 flex shrink-0 items-center gap-2 text-white">
               <PlusIcon className="h-4 w-4" />
               Add Vessel
@@ -110,7 +154,7 @@ export default function VesselComponentCard() {
       </div>
 
       <div className="mt-4">
-        <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} />
+        <VesselTable searchTerm={searchTerm} categoryFilter={categoryFilter} companyFilter={companyFilter || null} />
       </div>
       <VesselFormModal isOpen={isOpen} onClose={closeModal} mode="add" />
 

@@ -21,7 +21,7 @@ export default function RecentVesselTabs() {
 
   return (
     <div
-      className="flex w-full items-center gap-1 overflow-x-auto rounded-xl bg-white px-2 py-1 dark:bg-blue-950/80"
+      className="flex w-full items-center gap-1 overflow-x-auto rounded-xl bg-white px-2 py-1 dark:bg-gray-900"
       style={{ scrollbarWidth: "none" }}
     >
       {recents.map((v) => {
@@ -34,7 +34,7 @@ export default function RecentVesselTabs() {
             onKeyDown={(e) => e.key === "Enter" && handleNavigate(v.imo, v.lastTab)}
             className={`group relative flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors select-none ${isActive
               ? "bg-white/20 text-gray-800"
-              : "text-gray-400 hover:bg-gray-50 hover:text-black"
+              : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 hover:text-black dark:hover:bg-gray-50/80 dark:hover:text-black"
               }`}
             onClick={() => handleNavigate(v.imo, v.lastTab)}
           >
