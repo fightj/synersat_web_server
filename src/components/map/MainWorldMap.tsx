@@ -175,7 +175,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     try {
       const detail = await getVesselDetail(imo);
       setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push("/vessels/detail");
+      router.push(`/vessels/detail?imo=${detail.imo}`);
     } catch {}
   };
 
@@ -184,7 +184,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     try {
       const detail = await getVesselDetail(selectedVessel.imo);
       setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push("/vessels/detail");
+      router.push(`/vessels/detail?imo=${detail.imo}`);
     } catch {}
   };
 
@@ -205,7 +205,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       {clickedVessel && popupPos && (
         <ViewDetailPopup
           popupPos={popupPos}
-          onViewDetail={() => router.push("/vessels/detail")}
+          onViewDetail={() => router.push(`/vessels/detail?imo=${clickedVessel.imo}`)}
         />
       )}
 

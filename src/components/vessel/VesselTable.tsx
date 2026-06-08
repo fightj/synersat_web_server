@@ -262,7 +262,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
         vpnIp: vessel.vpnIp || "",
         prepaidEnabled: vessel.prepaidEnabled,
       });
-      router.push("/vessels/detail");
+      router.push(`/vessels/detail?imo=${vessel.imo}`);
     },
     [setSelectedVessel, router],
   );

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 import { getVesselsLite } from "@/api/vessel";
 import type { GetVesselsLite } from "@/types/vessel";
 import { CloseLineIcon } from "@/icons";
-import { useRecentVesselsStore } from "@/store/recent-vessels.store";
+import { useRecentSearchStore } from "@/store/recent-search.store";
 
 type Props = { className?: string };
 
@@ -80,11 +80,12 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 export default function VesselSearch({ className = "" }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const [liteVessels, setLiteVessels] = useState<GetVesselsLite[]>([]);
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
-  const addRecent = useRecentVesselsStore((s) => s.addRecent);
-  const recents = useRecentVesselsStore((s) => s.recents);
+  const addRecent = useRecentSearchStore((s) => s.addRecent);
+  const recents = useRecentSearchStore((s) => s.recents);
 
   useEffect(() => {
     getVesselsLite()
@@ -113,12 +114,6 @@ export default function VesselSearch({ className = "" }: Props) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  useEffect(() => {
-    if (!open) return;
-    setVisibleCount(INITIAL_BATCH);
-    setActiveIndex(0);
-  }, [query, open]);
-
   const visibleMatches = useMemo(
     () => allMatches.slice(0, visibleCount),
     [allMatches, visibleCount],
@@ -132,10 +127,13 @@ export default function VesselSearch({ className = "" }: Props) {
       vpnIp: v.vpnIp,
       prepaidEnabled: v.prepaidEnabled,
     });
-    addRecent({imo: v.imo, name: v.name})
+    addRecent({ imo: v.imo, name: v.name });
     setQuery("");
     setOpen(false);
-    inputRef.current?.blur(); // 선택 시 포커스 해제
+    inputRef.current?.blur();
+    if (pathname !== "/") {
+      router.push(`/vessels/detail?imo=${v.imo}`);
+    }
   };
 
   // ✅ 외부 클릭 시 닫기
@@ -169,7 +167,7 @@ export default function VesselSearch({ className = "" }: Props) {
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open) {
-      if (e.key === "ArrowDown" || e.key === "Enter") setOpen(true);
+      if (e.key === "ArrowDown" || e.key === "Enter") { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }
       return;
     }
     if (e.key === "ArrowDown") {
@@ -205,10 +203,12 @@ export default function VesselSearch({ className = "" }: Props) {
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              setVisibleCount(INITIAL_BATCH);
+              setActiveIndex(0);
               setOpen(true);
             }}
-            onFocus={() => setOpen(true)}
-            onClick={() => setOpen(true)}
+            onFocus={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
+            onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
             className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white"
@@ -235,7 +235,7 @@ export default function VesselSearch({ className = "" }: Props) {
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setOpen(false);
-                    router.push("/vessels/detail");
+                    router.push(`/vessels/detail?imo=${selectedVessel?.imo}`);
                   }}
                   className="group flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                   title="View vessel detail"
@@ -313,7 +313,6 @@ export default function VesselSearch({ className = "" }: Props) {
                             onClick={(e) => {
                               e.stopPropagation();
                               selectVessel(v);
-                              router.push("/vessels/detail");
                             }}
                             className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                           >
@@ -351,6 +350,7 @@ export default function VesselSearch({ className = "" }: Props) {
                         onClick={() => {
                           const found = liteVessels.find((v) => v.imo === r.imo);
                           if (found) selectVessel(found);
+                          else if (pathname !== "/") router.push(`/vessels/detail?imo=${r.imo}`);
                         }}
                         className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                       >
@@ -370,7 +370,7 @@ export default function VesselSearch({ className = "" }: Props) {
                             e.stopPropagation();
                             const found = liteVessels.find((v) => v.imo === r.imo);
                             if (found) selectVessel(found);
-                            router.push("/vessels/detail");
+                            router.push(`/vessels/detail?imo=${r.imo}`);
                           }}
                           className="group ml-1 flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                         >

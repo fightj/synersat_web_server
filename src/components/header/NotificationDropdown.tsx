@@ -251,7 +251,7 @@ export default function NotificationDropdown() {
     try {
       const detail = await getVesselDetail(imo);
       setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push("/vessels/detail");
+      router.push(`/vessels/detail?imo=${detail.imo}`);
     } catch (error) {
       console.error("Failed to navigate to vessel detail:", error);
     }

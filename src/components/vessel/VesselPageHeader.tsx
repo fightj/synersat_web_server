@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import RecentVesselTabs from "./RecentVesselTabs";
 import { Terminal } from "lucide-react";
 import type { VesselDetail } from "@/types/vessel";
 import {
@@ -196,6 +197,10 @@ export default function VesselPageHeader({
   return (
     <>
       <div className="rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+        {/* ── 최근 선박 탭 ── */}
+        <Suspense fallback={null}>
+          <RecentVesselTabs />
+        </Suspense>
         {/* ── 상단 정보 행 ── */}
         <div className="flex flex-wrap items-start justify-between gap-3 px-6 pt-5 pb-4">
           {/* 왼쪽: 로고 + 선박명 + 상태 + 설명 */}

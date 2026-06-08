@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
+import useSWR from "swr";
 import {
   getAccounts,
   serialNumberDuplicate,
@@ -12,7 +13,10 @@ import {
 type Mode = "add" | "edit";
 
 export function useVesselForm(mode: Mode, vesselData?: any) {
-  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  const { data: options = [] } = useSWR("accounts", getAccounts, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60 * 60 * 1000,
+  });
   const [account, setAccount] = useState("");
   const [imo, setImo] = useState("");
   const [vesselId, setVesselId] = useState("");
@@ -25,6 +29,7 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
   const [mailAddress, setMailAddress] = useState("");
   const [manager, setManager] = useState("");
   const [logo, setLogo] = useState("");
+  const [fireWallPassword, setFireWallPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error";
@@ -52,7 +57,7 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
     setAccount(""); setImo(""); setVesselId("");
     setVpnIpPart3(""); setVpnIpPart4(""); setName("");
     setSerialNumber(""); setMmsi(""); setCallsign("");
-    setMailAddress(""); setManager(""); setLogo("");
+    setMailAddress(""); setManager(""); setLogo(""); setFireWallPassword("");
     setImoDuplicated(null); setVesselIdDuplicated(null);
     setVpnDuplicated(null); setSnDuplicated(null);
     setAlertState(null);
@@ -64,9 +69,6 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
 
   // ✅ 모달 열릴 때 초기값 세팅
   const init = useCallback(async () => {
-    const data = await getAccounts();
-    setOptions(data);
-
     if (mode === "edit" && vesselData) {
       setAccount(vesselData.acct || "");
       setVesselId(vesselData.id || "");
@@ -80,6 +82,7 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
       setMailAddress(vesselData.mailAddress || "");
       setManager(vesselData.manager || "");
       setLogo(vesselData.logo || "");
+      setFireWallPassword(vesselData.fireWallPassword || "");
       // edit 모드는 기존 값이면 중복 아님
       setVesselIdDuplicated(false);
       setVpnDuplicated(false);
@@ -181,7 +184,7 @@ const handleSubmit = useCallback(async () => {
     mailAddress: mailAddress.trim(),
     ...(mode === "edit" && {
       fireWallId: vesselData?.fireWallId,
-      fireWallPassword: vesselData?.fireWallPassword,
+      fireWallPassword,
     }),
   };
 
@@ -221,7 +224,7 @@ const handleSubmit = useCallback(async () => {
   } finally {
     setSaving(false);
   }
-}, [mode, imo, vesselId, vpnIpPart3, vpnIpPart4, serialNumber, logo, manager, account, mmsi, callsign, name, mailAddress, vesselData]);
+}, [mode, imo, vesselId, vpnIpPart3, vpnIpPart4, serialNumber, logo, manager, account, mmsi, callsign, name, mailAddress, fireWallPassword, vesselData]);
 
   return {
     // 상태
@@ -237,6 +240,7 @@ const handleSubmit = useCallback(async () => {
     mailAddress, setMailAddress,
     manager, setManager,
     logo, setLogo,
+    fireWallPassword, setFireWallPassword,
     saving, alertState,
     // 중복 체크
     imoChecking, imoDuplicated, setImoDuplicated,

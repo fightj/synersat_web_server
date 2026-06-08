@@ -8,7 +8,7 @@ export interface RecentVesselEntry {
   hasNotification: boolean;
 }
 
-const MAX_RECENT = 10;
+const MAX_RECENT = 15;
 
 interface RecentVesselsStore {
   recents: RecentVesselEntry[];
@@ -24,15 +24,22 @@ export const useRecentVesselsStore = create<RecentVesselsStore>()(
       recents: [],
       addRecent: (v) =>
         set((state) => {
-          const existing = state.recents.find((r) => r.imo === v.imo);
-          const filtered = state.recents.filter((r) => r.imo !== v.imo);
+          const existingIndex = state.recents.findIndex((r) => r.imo === v.imo);
+          if (existingIndex !== -1) {
+            // 이미 존재: 제자리에서 name만 갱신, 위치 이동 없음
+            const updated = state.recents.map((r) =>
+              r.imo === v.imo ? { ...r, name: v.name } : r
+            );
+            return { recents: updated };
+          }
+          // 신규 선박: 오른쪽 끝에 추가, 꽉 차면 가장 왼쪽(오래된 것) 제거
           const entry: RecentVesselEntry = {
             imo: v.imo,
             name: v.name,
-            lastTab: existing?.lastTab ?? "detail",
-            hasNotification: existing?.hasNotification ?? false,
+            lastTab: "detail",
+            hasNotification: false,
           };
-          return { recents: [entry, ...filtered].slice(0, MAX_RECENT) };
+          return { recents: [...state.recents, entry].slice(-MAX_RECENT) };
         }),
       updateLastTab: (imo, tab) =>
         set((state) => ({

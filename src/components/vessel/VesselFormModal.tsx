@@ -181,12 +181,12 @@ export default function VesselFormModal({
                     onChange={
                       mode === "add"
                         ? (e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            if (val.length <= 9) {
-                              form.setImo(val);
-                              form.setImoDuplicated(null);
-                            }
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          if (val.length <= 9) {
+                            form.setImo(val);
+                            form.setImoDuplicated(null);
                           }
+                        }
                         : undefined
                     }
                     onBlur={mode === "add" ? form.handleImoBlur : undefined}
@@ -216,9 +216,9 @@ export default function VesselFormModal({
                     onChange={
                       mode === "add"
                         ? (e) => {
-                            form.setVesselId(e.target.value);
-                            form.setVesselIdDuplicated(null);
-                          }
+                          form.setVesselId(e.target.value);
+                          form.setVesselIdDuplicated(null);
+                        }
                         : undefined
                     }
                     onBlur={
@@ -327,7 +327,7 @@ export default function VesselFormModal({
                     onChange={(e) => form.setCallsign(e.target.value)}
                   />
                 </div>
-                <div className="col-span-2">
+                <div className={mode === "edit" ? "" : "col-span-2"}>
                   <Label className={labelStyle}>Mail Address</Label>
                   <div className="relative">
                     <Input
@@ -341,6 +341,18 @@ export default function VesselFormModal({
                     </span>
                   </div>
                 </div>
+                {mode === "edit" && (
+                  <div>
+                    <Label className={labelStyle}>FW Password</Label>
+                    <Input
+                      type="password"
+                      className={inputBaseStyle}
+                      value={form.fireWallPassword}
+                      onChange={(e) => form.setFireWallPassword(e.target.value)}
+                      placeholder="Firewall password"
+                    />
+                  </div>
+                )}
                 <div>
                   <Label className={labelStyle}>Manager</Label>
                   <SelectWithIcon
@@ -440,7 +452,7 @@ export default function VesselFormModal({
                     prepaidEnabled: vesselResult.prepaidEnabled,
                   });
                   onClose();
-                  router.push("/vessels/detail");
+                  router.push(`/vessels/detail?imo=${vesselResult.imo}`);
                 }}
                 className="bg-brand-500 flex-1 rounded-lg py-3 text-sm font-bold text-white shadow-lg"
               >

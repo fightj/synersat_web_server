@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import posthog from "posthog-js";
 import useSWR from "swr";
@@ -24,16 +24,32 @@ const SshTerminal = dynamic(() => import("@/components/terminal/SshTerminal"), {
 
 const THREE_MINUTES = 3 * 60 * 1000;
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
+const VALID_TABS: MainTab[] = ["detail", "crew", "firewall", "manage"];
 
 type FirewallSubTab = "system" | "user";
 
-function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; vesselId: string | null; prepaidEnabled: boolean }) {
+function VesselDetailContent({
+  imo,
+  vesselId,
+  prepaidEnabled,
+  initialTab,
+}: {
+  imo: string;
+  vesselId: string | null;
+  prepaidEnabled: boolean;
+  initialTab: MainTab;
+}) {
   const router = useRouter();
 
-  // ── 상태 선언 (handlers보다 먼저) ──────────────────────────────
-  const [mainTab, setMainTab] = useState<MainTab>("detail");
-  const [mountedTabs, setMountedTabs] = useState<Set<MainTab>>(new Set());
-  const [mountedFirewallSubTabs, setMountedFirewallSubTabs] = useState<Set<FirewallSubTab>>(new Set());
+  // ── 상태 선언 ──────────────────────────────────────────────────
+  const [mainTab, setMainTab] = useState<MainTab>(initialTab);
+  // detail은 항상 렌더링되므로 mountedTabs에서 제외
+  const [mountedTabs, setMountedTabs] = useState<Set<MainTab>>(
+    initialTab !== "detail" ? new Set([initialTab]) : new Set()
+  );
+  const [mountedFirewallSubTabs, setMountedFirewallSubTabs] = useState<Set<FirewallSubTab>>(
+    initialTab === "firewall" ? new Set<FirewallSubTab>(["system"]) : new Set()
+  );
   const [firewallSubTab, setFirewallSubTab] = useState<FirewallSubTab>("system");
   const [crewSubTab, setCrewSubTab] = useState<"normal" | "prepay">("normal");
   const [viewMode, setViewMode] = useState<"OVERVIEW" | "COMMANDS">("OVERVIEW");
@@ -48,10 +64,10 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     endAt: toUTCString(new Date()),
   });
 
-  // ── 초기화: 선박 전환 시 URL 리셋 ────────────────────────────
+  // ── 마운트 시 스크롤 최상단 이동 + posthog 트래킹 ─────────────
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
-    router.replace(`/vessels/detail?tab=detail&imo=${imo}`, { scroll: false });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 최근 선박 탭: 탭 전환 시 lastTab 업데이트 ────────────────
@@ -72,7 +88,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     setMainTab(tab);
     setMountedTabs((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
     if (tab === "firewall") {
-      setMountedFirewallSubTabs((prev) => (prev.has("system") ? prev : new Set([...prev, "system"])));
+      setMountedFirewallSubTabs((prev) => (prev.has("system") ? prev : new Set([...prev, "system" as FirewallSubTab])));
     }
     router.replace(`/vessels/detail?tab=${tab}&imo=${imo}`, { scroll: false });
   }, [imo, router]);
@@ -127,7 +143,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     },
   );
 
-  // ── 탭 바 오른쪽 슬롯 (useMemo로 불필요한 재생성 방지) ──────
+  // ── 탭 바 오른쪽 슬롯 ────────────────────────────────────────
   const tabRightSlot = useMemo(() => {
     if (mainTab === "detail") {
       return (
@@ -136,8 +152,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
             <button
               onClick={() => setViewMode("OVERVIEW")}
               className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                 }`}
             >
               Overview
@@ -145,8 +161,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
             <button
               onClick={() => setViewMode("COMMANDS")}
               className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
-                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                 }`}
             >
               Commands
@@ -168,8 +184,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
           <button
             onClick={() => setCrewSubTab("normal")}
             className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "normal"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
           >
             Crew Account
@@ -177,8 +193,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
           <button
             onClick={() => setCrewSubTab("prepay")}
             className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "prepay"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
           >
             Prepaid
@@ -192,8 +208,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
           <button
             onClick={() => handleFirewallSubTabChange("system")}
             className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "system"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
           >
             Port Forward (System)
@@ -201,8 +217,8 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
           <button
             onClick={() => handleFirewallSubTabChange("user")}
             className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "user"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
               }`}
           >
             Port Forward (User)
@@ -215,7 +231,6 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
 
   return (
     <div className="space-y-6 p-2">
-      {/* ── 고정 헤더: 항상 표시 ── */}
       <VesselPageHeader
         vesselImo={imo}
         mainTab={mainTab}
@@ -224,9 +239,7 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         tabRightSlot={tabRightSlot}
       />
 
-      {/* ── 탭 콘텐츠 ── */}
-
-      {/* Detail 탭: hidden 패턴 — 터미널 WebSocket이 탭 이동 중에도 유지됨 */}
+      {/* Detail 탭 */}
       <div className={mainTab !== "detail" ? "hidden" : "relative flex flex-col gap-6"}>
         {isLoading && (
           <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
@@ -258,7 +271,6 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         </div>
       </div>
 
-      {/* Crew Account 탭: 첫 방문 시 마운트, 이후 hidden으로 유지 */}
       {mountedTabs.has("crew") && (
         <div className={mainTab !== "crew" ? "hidden" : ""}>
           <Suspense fallback={<Loading message="Loading..." />}>
@@ -267,7 +279,6 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         </div>
       )}
 
-      {/* Firewall 탭: 첫 방문 시 마운트, 서브탭도 lazy mount */}
       {mountedTabs.has("firewall") && (
         <div className={mainTab !== "firewall" ? "hidden" : "space-y-4"}>
           {mountedFirewallSubTabs.has("system") && (
@@ -287,7 +298,6 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
         </div>
       )}
 
-      {/* Manage 탭: 첫 방문 시 마운트, 이후 hidden으로 유지 */}
       {mountedTabs.has("manage") && (
         <div className={mainTab !== "manage" ? "hidden" : ""}>
           <DeviceManage imo={Number(imo)} />
@@ -297,15 +307,59 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
   );
 }
 
-export default function VesselDetailPage() {
-  const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const imo = selectedVessel?.imo ? String(selectedVessel.imo) : null;
-  const vesselId = selectedVessel?.id ? String(selectedVessel.id) : null;
-  const prepaidEnabled = selectedVessel?.prepaidEnabled ?? false;
+// useSearchParams()는 Suspense 경계 필요 → inner 컴포넌트로 분리
+function VesselDetailPageInner() {
+  const searchParams = useSearchParams();
+  const imoFromUrl = searchParams.get("imo");
+  const rawTab = searchParams.get("tab") as MainTab | null;
+  const initialTab: MainTab = rawTab && VALID_TABS.includes(rawTab) ? rawTab : "detail";
 
-  if (!selectedVessel || !imo) {
+  const selectedVessel = useVesselStore((s) => s.selectedVessel);
+  const vessels = useVesselStore((s) => s.vessels);
+  const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
+  // URL imo 우선, 없으면 store fallback
+  const imo = imoFromUrl ?? (selectedVessel?.imo ? String(selectedVessel.imo) : null);
+
+  // 현재 보고 있는 선박과 selectedVessel을 동기화 (AppHeader placeholder 반영)
+  useEffect(() => {
+    if (!imo) return;
+    const matched = vessels.find((v) => String(v.imo) === imo);
+    if (!matched) return;
+    if (String(selectedVessel?.imo) === imo) return;
+    setSelectedVessel({
+      id: matched.id,
+      imo: matched.imo,
+      name: matched.name,
+      vpnIp: matched.vpnIp,
+      prepaidEnabled: matched.prepaidEnabled,
+    });
+  }, [imo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!imo) {
     return <StatusPlaceholder title="Failed to load details" description="Please select a vessel" />;
   }
 
-  return <VesselDetailContent key={imo} imo={imo} vesselId={vesselId} prepaidEnabled={prepaidEnabled} />;
+  // vessels 목록에서 정확한 vesselId/prepaidEnabled 조회
+  const matched = vessels.find((v) => String(v.imo) === imo);
+  const vesselId = matched?.id ?? selectedVessel?.id ?? null;
+  const prepaidEnabled = matched?.prepaidEnabled ?? selectedVessel?.prepaidEnabled ?? false;
+
+  return (
+    <VesselDetailContent
+      key={imo}
+      imo={imo}
+      vesselId={vesselId ? String(vesselId) : null}
+      prepaidEnabled={prepaidEnabled}
+      initialTab={initialTab}
+    />
+  );
+}
+
+export default function VesselDetailPage() {
+  return (
+    <Suspense fallback={<Loading message="Loading..." />}>
+      <VesselDetailPageInner />
+    </Suspense>
+  );
 }
