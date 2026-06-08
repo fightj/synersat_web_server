@@ -15,6 +15,7 @@ import Loading from "@/components/common/Loading";
 import StatusPlaceholder from "@/components/common/StatusPlaceholder";
 import type { VesselRouteResponse } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
+import { useRecentVesselsStore } from "@/store/recent-vessels.store";
 import PortForwardPageTemplate from "@/components/port-forward/PortForwardPageTemplate";
 import DeviceManage from "@/components/device-manage/DeviceManage";
 import CrewComponentCard from "@/components/crew/CrewComponentCard";
@@ -52,6 +53,13 @@ function VesselDetailContent({ imo, vesselId, prepaidEnabled }: { imo: string; v
     posthog.capture("vessel_detail_viewed", { vessel_imo: imo, vessel_id: vesselId });
     router.replace(`/vessels/detail?tab=detail&imo=${imo}`, { scroll: false });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── 최근 선박 탭: 탭 전환 시 lastTab 업데이트 ────────────────
+  const updateLastTab = useRecentVesselsStore((s) => s.updateLastTab);
+  useEffect(() => {
+    const imoNum = Number(imo);
+    if (imoNum) updateLastTab(imoNum, mainTab);
+  }, [mainTab, imo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── debounce ref 언마운트 cleanup ─────────────────────────────
   const chartDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

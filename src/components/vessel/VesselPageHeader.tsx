@@ -16,6 +16,7 @@ import { updatePrepayEnabled } from "@/api/crew-account";
 import { getAuth } from "@/api/auth";
 import { useRouter } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
+import { useRecentVesselsStore } from "@/store/recent-vessels.store";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import VesselFormModal from "./VesselFormModal";
@@ -73,6 +74,9 @@ export default function VesselPageHeader({
   });
   const router = useRouter();
 
+  const addRecent = useRecentVesselsStore((s) => s.addRecent);
+  const setNotification = useRecentVesselsStore((s) => s.setNotification);
+
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -87,6 +91,8 @@ export default function VesselPageHeader({
         setData(result);
         setPrepaidEnabled(result.prepaidEnabled ?? false);
         setBetaVersionEnabled(result.betaVersionEnabled ?? false);
+        addRecent({ imo: result.imo, name: result.name });
+        setNotification(result.imo, false);
       } catch {
         // 헤더 로드 실패는 조용히 처리
       }
@@ -94,7 +100,7 @@ export default function VesselPageHeader({
     if (vesselImo) load();
 
     return () => { abortRef.current?.abort(); };
-  }, [vesselImo]);
+  }, [vesselImo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteVessel = async () => {
     if (!data) return;

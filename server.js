@@ -45,9 +45,9 @@ app.prepare().then(() => {
     }
 
     const isFirewall = termType === 'firewall';
-    const sshPort     = isFirewall ? parseInt(process.env.VESSEL_SSH22_PORT)  : parseInt(process.env.VESSEL_SSH_PORT);
-    const sshUser     = isFirewall ? (process.env.VESSEL_FW_SSH_USER || 'root') : process.env.VESSEL_SSH_USER;
-    const sshPassword = isFirewall ? process.env.VESSEL_SSH2_PASSWORD           : process.env.VESSEL_SSH_PASSWORD;
+    const sshPort = isFirewall ? parseInt(process.env.VESSEL_SSH22_PORT) : parseInt(process.env.VESSEL_SSH_PORT);
+    const sshUser = isFirewall ? (process.env.VESSEL_FW_SSH_USER || 'root') : process.env.VESSEL_SSH_USER;
+    const sshPassword = isFirewall ? process.env.VESSEL_SSH2_PASSWORD : process.env.VESSEL_SSH_PASSWORD;
 
     const conn = new Client();
 
@@ -151,7 +151,7 @@ app.prepare().then(() => {
       password: sshPassword,
       tryKeyboard: isFirewall, // firewall만 keyboard-interactive fallback 활성화
       hostVerifier: () => true,
-      readyTimeout: isFirewall ? 60000 : 10000, // firewall: 사용자 입력 대기 시간 확보
+      readyTimeout: 60000
     });
 
     ws.on('close', () => {
