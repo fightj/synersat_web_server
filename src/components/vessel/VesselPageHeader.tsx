@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useRef, useState } from "react";
+import { mutate } from "swr";
 import Image from "next/image";
 import RecentVesselTabs from "./RecentVesselTabs";
 import { Terminal } from "lucide-react";
@@ -108,6 +109,7 @@ export default function VesselPageHeader({
     try {
       setIsDeleting(true);
       if (await deleteVessel([data.imo])) {
+        mutate("vesselsLite");
         setIsDeleteAlertOpen(false);
         router.push("/vessels");
       }

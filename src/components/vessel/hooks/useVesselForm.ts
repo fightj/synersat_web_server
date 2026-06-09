@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import {
   getAccounts,
   serialNumberDuplicate,
@@ -195,6 +195,7 @@ const handleSubmit = useCallback(async () => {
       : await updateVessel(payload);
 
     if (result) {
+      if (mode === "add") mutate("vesselsLite");
       setAlertState({
         variant: "success",
         title: "Success",

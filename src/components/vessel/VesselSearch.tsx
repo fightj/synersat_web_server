@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import useSWR from "swr";
 import { useVesselStore } from "@/store/vessel.store";
 import { getVesselsLite } from "@/api/vessel";
 import type { GetVesselsLite } from "@/types/vessel";
@@ -81,17 +82,14 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 export default function VesselSearch({ className = "" }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const [liteVessels, setLiteVessels] = useState<GetVesselsLite[]>([]);
+  const { data: liteVessels = [] } = useSWR("vesselsLite", getVesselsLite, {
+    dedupingInterval: 5 * 60 * 1000,
+    revalidateOnFocus: false,
+  });
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
   const addRecent = useRecentSearchStore((s) => s.addRecent);
   const recents = useRecentSearchStore((s) => s.recents);
-
-  useEffect(() => {
-    getVesselsLite()
-      .then((data) => setLiteVessels(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
