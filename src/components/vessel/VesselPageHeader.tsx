@@ -175,6 +175,18 @@ export default function VesselPageHeader({
     }
   };
 
+  const lastConnectedText = (() => {
+    const raw = data?.status?.lastConnectedAt;
+    if (!raw) return null;
+    const date = new Date(raw.endsWith("Z") ? raw : raw + "Z");
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 0) return null;
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  })();
+
   // 상태 뱃지 계산
   const statusBadge = (() => {
     if (!data) return null;
@@ -219,6 +231,9 @@ export default function VesselPageHeader({
                 {data?.name ?? "—"}
               </h2>
               {statusBadge}
+              {lastConnectedText && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">{lastConnectedText}</span>
+              )}
             </div>
             {data?.description && (
               <p className="text-sm text-gray-500">{data.description}</p>
