@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
-import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
 import { matchFilter, FilterKey } from "./mapUtils";
@@ -110,20 +109,20 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       const connected = v.connected !== false;
       const name = v.antennaDisplayName;
 
-      if (matchFilter(name, connected, "starlink"))  counts.starlink++;
+      if (matchFilter(name, connected, "starlink")) counts.starlink++;
       else if (matchFilter(name, connected, "nexuswave")) counts.nexuswave++;
-      else if (matchFilter(name, connected, "oneweb"))    counts.oneweb++;
-      else if (matchFilter(name, connected, "vsat"))      counts.vsat++;
-      else if (matchFilter(name, connected, "fbb"))       counts.fbb++;
-      else if (matchFilter(name, connected, "4g"))        counts["4g"]++;
-      else if (matchFilter(name, connected, "iridium"))   counts.iridium++;
-      else if (matchFilter(name, connected, "none"))      counts.none++;
+      else if (matchFilter(name, connected, "oneweb")) counts.oneweb++;
+      else if (matchFilter(name, connected, "vsat")) counts.vsat++;
+      else if (matchFilter(name, connected, "fbb")) counts.fbb++;
+      else if (matchFilter(name, connected, "4g")) counts["4g"]++;
+      else if (matchFilter(name, connected, "iridium")) counts.iridium++;
+      else if (matchFilter(name, connected, "none")) counts.none++;
 
       if (!connected && v.discard !== true && !seenOffline.has(v.imo)) {
         seenOffline.add(v.imo);
         counts.offline++;
       }
-   }
+    }
     return counts;
   }, [vessels]);
 
@@ -171,21 +170,17 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     return () => { clearTimeout(tStart); clearTimeout(tEnd); };
   }, [vessels]);
 
-  const handleListViewDetail = async (imo: number) => {
-    try {
-      const detail = await getVesselDetail(imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push(`/vessels/detail?imo=${detail.imo}`);
-    } catch {}
+  const handleListViewDetail = (imo: number) => {
+    const matched = useVesselStore.getState().vessels.find(v => v.imo === imo);
+    if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+    router.push(`/vessels/detail?imo=${imo}`);
   };
 
-  const handleGpsAlertViewDetail = async () => {
+  const handleGpsAlertViewDetail = () => {
     if (!selectedVessel) return;
-    try {
-      const detail = await getVesselDetail(selectedVessel.imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push(`/vessels/detail?imo=${detail.imo}`);
-    } catch {}
+    const matched = useVesselStore.getState().vessels.find(v => v.imo === selectedVessel.imo);
+    if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+    router.push(`/vessels/detail?imo=${selectedVessel.imo}`);
   };
 
   const handleListPanelToggle = (mode: "online" | "offline") => {
@@ -244,19 +239,19 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
       {/* 하단 컨트롤 바 */}
       <div ref={bottomBarRef}>
-      <MapBottomBar
-        stats={stats}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-        activeStyle={activeStyle}
-        onStyleChange={handleStyleChange}
-        noGpsCount={noGpsVessels.length}
-        offlineCount={offlineVessels.filter((v) => v.discard !== true).length}
-        offlineNoGpsDiscardFalseCount={offlineNoGpsDiscardFalseCount}
-        activeListPanel={activeListPanel}
-        isRefreshing={isRefreshing}
-        onListPanelToggle={handleListPanelToggle}
-      />
+        <MapBottomBar
+          stats={stats}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          activeStyle={activeStyle}
+          onStyleChange={handleStyleChange}
+          noGpsCount={noGpsVessels.length}
+          offlineCount={offlineVessels.filter((v) => v.discard !== true).length}
+          offlineNoGpsDiscardFalseCount={offlineNoGpsDiscardFalseCount}
+          activeListPanel={activeListPanel}
+          isRefreshing={isRefreshing}
+          onListPanelToggle={handleListPanelToggle}
+        />
       </div>
     </div>
   );

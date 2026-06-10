@@ -69,11 +69,10 @@ function NotificationCard({
         onClick={() => {
           if (!isRead) onRead(item.id);
         }}
-        className={`flex cursor-pointer gap-3 rounded-lg border-b border-gray-100 px-3 py-3 transition-colors dark:border-gray-800 ${
-          isRead
-            ? "bg-gray-100/60 opacity-60 dark:bg-white/[0.02]"
-            : "hover:bg-gray-50 dark:hover:bg-white/5"
-        }`}
+        className={`flex cursor-pointer gap-3 rounded-lg border-b border-gray-100 px-3 py-3 transition-colors dark:border-gray-800 ${isRead
+          ? "bg-gray-100/60 opacity-60 dark:bg-white/[0.02]"
+          : "hover:bg-gray-50 dark:hover:bg-white/5"
+          }`}
       >
         <div className="min-w-0 flex-1">
           {/* 선박명 + 뱃지 */}
@@ -98,11 +97,10 @@ function NotificationCard({
               {/* ✅ COMMAND_NOTIFICATION 뱃지 */}
               {isCommand && (
                 <span
-                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    isSuccess
-                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                      : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                  }`}
+                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${isSuccess
+                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                    }`}
                 >
                   {isSuccess ? "Success" : "Failed"}
                 </span>
@@ -152,9 +150,8 @@ function NotificationCard({
           <div className="mt-1.5 flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
               <span
-                className={`font-medium ${
-                  isDisconnect ? "text-orange-500" : "text-blue-500"
-                }`}
+                className={`font-medium ${isDisconnect ? "text-orange-500" : "text-blue-500"
+                  }`}
               >
                 {getKindLabel(item.kind)}
               </span>
@@ -249,9 +246,9 @@ export default function NotificationDropdown() {
     handleRead(notificationId);
     closeDropdown();
     try {
-      const detail = await getVesselDetail(imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push(`/vessels/detail?imo=${detail.imo}`);
+      const matched = useVesselStore.getState().vessels.find(v => v.imo === imo);
+      if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+      router.push(`/vessels/detail?imo=${imo}`);
     } catch (error) {
       console.error("Failed to navigate to vessel detail:", error);
     }

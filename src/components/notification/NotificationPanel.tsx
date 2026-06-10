@@ -11,7 +11,6 @@ import {
 } from "@/api/notification";
 import { useToastStore } from "@/store/toast.store";
 import { CommandSignIcon, DisconnectedIcon } from "@/icons";
-import { getVesselDetail } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import Switch from "@/components/form/switch/Switch";
 
@@ -299,16 +298,12 @@ export default function NotificationPanel({
   const router = useRouter();
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
-  const handleViewDetail = useCallback(async (imo: number, notificationId: number) => {
+  const handleViewDetail = useCallback((imo: number, notificationId: number) => {
     handleRead(notificationId);
     onClose();
-    try {
-      const detail = await getVesselDetail(imo);
-      setSelectedVessel({ id: detail.id, imo: detail.imo, name: detail.name, vpnIp: detail.vpn_ip, prepaidEnabled: detail.prepaidEnabled });
-      router.push(`/vessels/detail?imo=${detail.imo}`);
-    } catch (error) {
-      console.error("Failed to navigate to vessel detail:", error);
-    }
+    const matched = useVesselStore.getState().vessels.find(v => v.imo === imo);
+    if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+    router.push(`/vessels/detail?imo=${imo}`);
   }, [handleRead, onClose, router, setSelectedVessel]);
 
   const handleMarkAllRead = useCallback(() => {
