@@ -191,7 +191,7 @@ const VesselRow = memo(
                   {isExpanded && (
                     <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
                       <div className="w-fit">
-                        <RedirectButtons vesselId={String(vessel.id)} />
+                        <RedirectButtons vesselImo={String(vessel.imo)} />
                       </div>
                     </div>
                   )}

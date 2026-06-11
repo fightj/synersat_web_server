@@ -347,7 +347,7 @@ export default function WorldMap({ vesselImo, coordinates, vesselId, timeRange, 
       )}
     </div>
     <div className="mt-3 rounded-xl border border-gray-200 bg-white p-2 dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <RedirectButtons vesselId={vesselId} />
+      <RedirectButtons vesselImo={vesselImo} />
     </div>
     <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />
     <SatTrackingBar coordinates={coordinates} timeRange={timeRange} />

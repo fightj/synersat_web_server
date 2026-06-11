@@ -167,8 +167,6 @@ export default function VesselPageHeader({
       }
       if (onOpenTerminal && data) {
         onOpenTerminal(data.vpn_ip, type);
-      } else if (data) {
-        window.open(`/terminal?vpnIp=${data.vpn_ip}&type=${type}`, "_blank");
       }
     } catch {
       setErrorModal({ isOpen: true, message: "The authentication request failed. Please try again." });
