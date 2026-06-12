@@ -289,9 +289,8 @@ export default function VesselSearch({ className = "" }: Props) {
                           type="button"
                           onMouseEnter={() => setActiveIndex(idx)}
                           onClick={() => selectVessel(v)}
-                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
-                            isActive ? "bg-gray-100 dark:bg-white/10" : ""
-                          } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${isActive ? "bg-gray-100 dark:bg-white/10" : ""
+                            } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
                         >
                           <div className="flex flex-col gap-0.5">
                             <span className="text-sm font-semibold">
@@ -331,7 +330,7 @@ export default function VesselSearch({ className = "" }: Props) {
             <div className="w-48 shrink-0 border-l border-gray-100 dark:border-white/10 flex flex-col">
               <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                 </svg>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Recent</span>
               </div>
@@ -377,7 +376,7 @@ export default function VesselSearch({ className = "" }: Props) {
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
                         </div>
-                        
+
                       </button>
                     </li>
                   ))}

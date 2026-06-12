@@ -958,6 +958,23 @@ html.dark {
   display: none !important;
 }
 
+.vessel-click-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+.vessel-click-popup .leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.vessel-click-popup .leaflet-popup-tip-container {
+  display: none !important;
+}
+
 .beam-selector-scroll::-webkit-scrollbar {
   height: 4px;
 }

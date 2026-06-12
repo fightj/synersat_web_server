@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, type RefObject } from "react";
 import { getServiceColor } from "../../common/AnntennaMapping";
 import type { DashboardVesselPosition } from "@/types/vessel";
+import { buildVesselCardHtml } from "./useVesselMarkers";
 
 interface SelectedVessel {
   id: string;
@@ -28,6 +29,7 @@ interface UseVesselSelectionZoomOptions {
   setPopupPos: (pos: { x: number; y: number } | null) => void;
   setGpsAlert: (v: boolean) => void;
   vesselsRef: RefObject<DashboardVesselPosition[] | undefined>;
+  onViewDetail?: (imo: number) => void;
 }
 
 interface UseVesselSelectionZoomReturn {
@@ -47,6 +49,7 @@ export function useVesselSelectionZoom({
   setPopupPos,
   setGpsAlert,
   vesselsRef,
+  onViewDetail,
 }: UseVesselSelectionZoomOptions): UseVesselSelectionZoomReturn {
   const pingMarkerRef = useRef<any>(null);
   const gpsAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +57,8 @@ export function useVesselSelectionZoom({
   const prevSelectedImoRef = useRef<number | null>(null);
   const prevSearchTriggerRef = useRef<number>(0);
   const fromMarkerClickRef = useRef(false);
+  const onViewDetailRef = useRef(onViewDetail);
+  useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
 
   const setSelectedVesselFromMarker = useCallback(
     (v: SelectedVessel) => {
@@ -138,11 +143,43 @@ export function useVesselSelectionZoom({
       (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
       const pt = map.latLngToContainerPoint([lat, closestLng]);
       setPopupPos({ x: pt.x, y: pt.y });
-      setClickedVessel({
-        imo: found.imo,
-        name: found.vesselName,
-        color: found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName),
-      });
+      const color = found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName);
+      setClickedVessel({ imo: found.imo, name: found.vesselName, color });
+
+      // 마커 클릭과 동일하게 팝업 열기
+      const L = leafletRef.current;
+      if (L) {
+        const popup = L.popup({
+          closeButton: false,
+          offset: [0, -18],
+          className: "vessel-click-popup",
+          maxWidth: 300,
+          autoPan: true,
+        })
+          .setContent(buildVesselCardHtml({
+            lat, lng: closestLng,
+            name: found.vesselName,
+            imo: found.imo,
+            color,
+            connected: found.connected !== false,
+            antennaDisplayName: found.antennaDisplayName,
+            satType: found.satType,
+            vesselSpeed: found.vesselSpeed,
+          }, true))
+          .setLatLng([lat, closestLng])
+          .openOn(map);
+
+        setTimeout(() => {
+          const btn = popup.getElement()?.querySelector("[data-detail-btn]");
+          if (btn) {
+            btn.addEventListener("click", (evt: Event) => {
+              evt.stopPropagation();
+              map.closePopup();
+              onViewDetailRef.current?.(found.imo);
+            }, { once: true });
+          }
+        }, 30);
+      }
     } else {
       setGpsAlert(true);
       gpsAlertTimerRef.current = setTimeout(() => setGpsAlert(false), 30000);

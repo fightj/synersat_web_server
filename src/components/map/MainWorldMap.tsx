@@ -10,7 +10,6 @@ import { matchFilter, FilterKey } from "./mapUtils";
 import { useLeafletMap } from "./hooks/useLeafletMap";
 import { useVesselMarkers } from "./hooks/useVesselMarkers";
 import { useVesselSelectionZoom, type ClickedVessel } from "./hooks/useVesselSelectionZoom";
-import ViewDetailPopup from "./components/ViewDetailPopup";
 import GpsAlert from "./components/GpsAlert";
 import NoGpsPanel from "./components/NoGpsPanel";
 import MapBottomBar from "./components/MapBottomBar";
@@ -33,7 +32,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
   const [clickedVessel, setClickedVessel] = useState<ClickedVessel | null>(null);
-  const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const [, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   const [gpsAlert, setGpsAlert] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
@@ -77,6 +76,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setPopupPos,
     setGpsAlert,
     vesselsRef,
+    onViewDetail: (imo) => handleListViewDetail(imo),
   });
 
   // ── 마커 업데이트 ─────────────────────────────────────────────────
@@ -92,6 +92,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setClickedVessel,
     setPopupPos,
     onDoubleClick: (imo) => handleListViewDetail(imo),
+    onViewDetail: (imo) => handleListViewDetail(imo),
   });
 
   // ── 카테고리별 통계 ───────────────────────────────────────────────
@@ -195,14 +196,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">OpenStreetMap</a> contributors, © <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer" className="pointer-events-auto hover:underline">Leaflet</a>
         </div>
       </div>
-
-      {/* 선박 클릭 팝업 */}
-      {clickedVessel && popupPos && (
-        <ViewDetailPopup
-          popupPos={popupPos}
-          onViewDetail={() => router.push(`/vessels/detail?imo=${clickedVessel.imo}`)}
-        />
-      )}
 
       {/* No GPS 알림 토스트 */}
       <GpsAlert show={gpsAlert} vesselName={selectedVessel?.name} onViewDetail={handleGpsAlertViewDetail} />

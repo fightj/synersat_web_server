@@ -131,7 +131,7 @@ export default function VesselFiltering({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown} // ✅ 키다운 이벤트 연결
           placeholder="Filter by vessel name..."
-          className="h-10 w-full rounded-xl border-2 border-gray-300 bg-white pr-10 pl-10 text-sm  outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-blue-400"
+          className="h-10 w-full rounded-lg border-2 border-gray-300 bg-white pr-10 pl-10 text-sm  outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-blue-400"
         />
         {/* 아이콘 및 Clear 버튼 생략 (기존과 동일) */}
         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
@@ -160,7 +160,7 @@ export default function VesselFiltering({
       </div>
 
       {open && matches.length > 0 && (
-        <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
+        <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
           <ul ref={scrollContainerRef} className="custom-scrollbar max-h-60 overflow-auto">
             {matches.map((v, idx) => (
               <li key={v.id}>
@@ -168,11 +168,10 @@ export default function VesselFiltering({
                   type="button" // form 제출 방지
                   onClick={() => handleSelect(v.name || "")}
                   onMouseEnter={() => setActiveIndex(idx)} // 마우스 오버 시 인덱스 동기화
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${
-                    idx === activeIndex
-                      ? "text-brand-500 bg-gray-100 dark:bg-white/10" // 활성화 스타일 강조
-                      : "text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${idx === activeIndex
+                    ? "text-brand-500 bg-gray-100 dark:bg-white/10" // 활성화 스타일 강조
+                    : "text-gray-700 dark:text-gray-300"
+                    }`}
                 >
                   <HighlightedText text={v.name || ""} query={query} />
                 </button>

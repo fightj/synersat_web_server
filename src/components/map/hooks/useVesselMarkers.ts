@@ -16,6 +16,7 @@ interface UseVesselMarkersOptions {
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
   setPopupPos: (pos: { x: number; y: number } | null) => void;
   onDoubleClick?: (imo: number) => void;
+  onViewDetail?: (imo: number) => void;
 }
 
 interface VesselPoint {
@@ -31,7 +32,19 @@ interface VesselPoint {
   vesselSpeed: number | null | undefined;
 }
 
-function buildTooltipHtml(vessel: VesselPoint): string {
+export interface VesselCardData {
+  lat: number;
+  lng: number;
+  name: string;
+  imo: number;
+  color: string;
+  connected: boolean;
+  antennaDisplayName: string | null | undefined;
+  satType: string | null | undefined;
+  vesselSpeed: number | null | undefined;
+}
+
+export function buildVesselCardHtml(vessel: VesselCardData, withDetail = false): string {
   const statusDot = vessel.connected
     ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;box-shadow:0 0 4px #22c55e;"></span>`
     : `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;"></span>`;
@@ -39,6 +52,15 @@ function buildTooltipHtml(vessel: VesselPoint): string {
     ? `<span style="color:#22c55e;font-weight:700;">Online</span>`
     : `<span style="color:#ef4444;font-weight:700;">Offline</span>`;
   const antennaLabel = vessel.connected ? (vessel.antennaDisplayName ?? "N/A") : null;
+
+  const detailButton = withDetail
+    ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);">
+        <button data-detail-btn style="display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:6px 10px;background:#f97316;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">
+          View Detail
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>`
+    : "";
 
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-width:175px;padding:0;border-radius:10px;overflow:hidden;">
     <div style="background:${vessel.color};padding:8px 12px 7px;">
@@ -50,6 +72,7 @@ function buildTooltipHtml(vessel: VesselPoint): string {
       ${vessel.satType ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">SAT Type</span><span style="color:#e2e8f0;font-weight:600;">${vessel.satType}</span></div>` : ""}
       ${vessel.vesselSpeed != null ? `<div style="font-size:12px;display:flex;justify-content:space-between;"><span style="color:#64748b;">Speed</span><span style="color:#e2e8f0;font-weight:600;">${vessel.vesselSpeed} kn</span></div>` : ""}
       <div style="font-size:11px;margin-top:2px;color:#cbd5e1;">${vessel.lat}°N, ${vessel.lng}°E</div>
+      ${detailButton}
     </div>
   </div>`;
 }
@@ -66,13 +89,15 @@ export function useVesselMarkers({
   setClickedVessel,
   setPopupPos,
   onDoubleClick,
+  onViewDetail,
 }: UseVesselMarkersOptions) {
-  // imo → marker 맵으로 변경: diff 기반 업데이트
   const ICON_H = 28;
   const ICON_W = 20;
 
   const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
+  const onViewDetailRef = useRef(onViewDetail);
+  useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -144,11 +169,49 @@ export function useVesselMarkers({
         marker._vesselImo = vessel.imo;
         marker._vesselData = vessel;
 
-        // 클릭 핸들러는 _vesselData를 참조 → 항상 최신 데이터 사용
         marker.on("click", (e: any) => {
           L.DomEvent.stop(e);
           const v: VesselPoint = marker._vesselData;
           const targetLng = getClosestLng(v.lng, e.latlng.lng);
+
+          // hover tooltip을 잠시 숨기고 Popup(클릭 가능)으로 대체
+          marker.unbindTooltip();
+
+          const popup = L.popup({
+            closeButton: false,
+            offset: [0, -(h / 2 + 4)],
+            className: "vessel-click-popup",
+            maxWidth: 300,
+            autoPan: false,
+          })
+            .setContent(buildVesselCardHtml(v, true))
+            .setLatLng([v.lat, targetLng])
+            .openOn(map);
+
+          // Popup 닫힐 때 tooltip 복원
+          popup.once("remove", () => {
+            if (marker._map) {
+              marker.bindTooltip(buildVesselCardHtml(marker._vesselData), {
+                direction: "top",
+                offset: [0, -(h / 2 + 4)],
+                className: "vessel-hover-tooltip",
+                opacity: 1,
+              });
+            }
+          });
+
+          // Popup DOM 준비 후 Detail 버튼에 핸들러 연결
+          setTimeout(() => {
+            const btn = popup.getElement()?.querySelector("[data-detail-btn]");
+            if (btn) {
+              btn.addEventListener("click", (evt: Event) => {
+                evt.stopPropagation();
+                map.closePopup();
+                onViewDetailRef.current?.(v.imo);
+              }, { once: true });
+            }
+          }, 30);
+
           const latlng = { lat: v.lat, lng: targetLng };
           clickedLatLngRef.current = latlng;
           const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
@@ -166,7 +229,7 @@ export function useVesselMarkers({
           onDoubleClick?.(v.imo);
         });
 
-        marker.bindTooltip(buildTooltipHtml(vessel), {
+        marker.bindTooltip(buildVesselCardHtml(vessel), {
           direction: "top",
           offset: [0, -(h / 2 + 4)],
           className: "vessel-hover-tooltip",
@@ -198,7 +261,7 @@ export function useVesselMarkers({
           prev.lat !== vessel.lat ||
           prev.lng !== vessel.lng
         ) {
-          existing.setTooltipContent(buildTooltipHtml(vessel));
+          existing.setTooltipContent(buildVesselCardHtml(vessel));
         }
 
         existing._vesselData = vessel;
