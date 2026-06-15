@@ -12,11 +12,13 @@ import { usePortForward, RuleType } from "./usePortForward";
 interface PortForwardPageTemplateProps {
   ruleType: RuleType;
   pageTitle: string;
+  imo?: number;
 }
 
 export default function PortForwardPageTemplate({
   ruleType,
   pageTitle,
+  imo: imoProp,
 }: PortForwardPageTemplateProps) {
   const {
     selectedVessel,
@@ -45,7 +47,7 @@ export default function PortForwardPageTemplate({
     handleDeleteConfirm,
     refreshBanner,
     setRefreshBanner,
-  } = usePortForward(ruleType);
+  } = usePortForward(ruleType, imoProp);
 
   return (
     <div className="space-y-6">

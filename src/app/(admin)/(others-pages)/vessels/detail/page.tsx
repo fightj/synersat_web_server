@@ -274,7 +274,7 @@ function VesselDetailContent({
       {mountedTabs.has("crew") && (
         <div className={mainTab !== "crew" ? "hidden" : ""}>
           <Suspense fallback={<Loading message="Loading..." />}>
-            <CrewComponentCard mode={crewSubTab} />
+            <CrewComponentCard mode={crewSubTab} imo={Number(imo)} />
           </Suspense>
         </div>
       )}
@@ -284,14 +284,14 @@ function VesselDetailContent({
           {mountedFirewallSubTabs.has("system") && (
             <div className={firewallSubTab !== "system" ? "hidden" : ""}>
               <Suspense fallback={<Loading message="Loading..." />}>
-                <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" />
+                <PortForwardPageTemplate ruleType="[System Rule]" pageTitle="Port Forward (System)" imo={Number(imo)} />
               </Suspense>
             </div>
           )}
           {mountedFirewallSubTabs.has("user") && (
             <div className={firewallSubTab !== "user" ? "hidden" : ""}>
               <Suspense fallback={<Loading message="Loading..." />}>
-                <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" />
+                <PortForwardPageTemplate ruleType="[User Rule]" pageTitle="Port Forward (User)" imo={Number(imo)} />
               </Suspense>
             </div>
           )}

@@ -14,6 +14,7 @@ type VesselStore = {
   searchTrigger: number;
   setSelectedVessel: (v: SelectedVessel | null) => void;
   clearSelectedVessel: () => void;
+  updateVesselPrepaid: (imo: number, enabled: boolean) => void;
 
   fetchVessels: () => Promise<void>;
   refreshVessels: () => Promise<void>;
@@ -29,7 +30,8 @@ function hasVesselDataChanged(fresh: Vessel[], cached: Vessel[]): boolean {
     if (!c) return true;
     return (
       c.status?.available !== v.status?.available ||
-      c.status?.antennaServiceDisplayName !== v.status?.antennaServiceDisplayName
+      c.status?.antennaServiceDisplayName !== v.status?.antennaServiceDisplayName ||
+      c.prepaidEnabled !== v.prepaidEnabled
     );
   });
 }
@@ -45,6 +47,17 @@ export const useVesselStore = create<VesselStore>()(
       searchTrigger: 0,
       setSelectedVessel: (v) => set((state) => ({ selectedVessel: v, searchTrigger: state.searchTrigger + 1 })),
       clearSelectedVessel: () => set({ selectedVessel: null }),
+
+      updateVesselPrepaid: (imo, enabled) =>
+        set((state) => ({
+          vessels: state.vessels.map((v) =>
+            v.imo === imo ? { ...v, prepaidEnabled: enabled } : v
+          ),
+          selectedVessel:
+            state.selectedVessel?.imo === imo
+              ? { ...state.selectedVessel, prepaidEnabled: enabled }
+              : state.selectedVessel,
+        })),
 
       fetchVessels: async () => {
         if (get().loading) return;

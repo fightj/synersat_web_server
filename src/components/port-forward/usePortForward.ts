@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCommandEventStore, NAT_COMMAND_TYPES } from "@/store/command-event.store";
 import { useVesselStore } from "@/store/vessel.store";
 import { DeviceNatRow } from "@/types/firewall";
@@ -10,10 +10,11 @@ import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 export type RuleType = "[System Rule]" | "[User Rule]";
 
-export function usePortForward(ruleType: RuleType) {
+export function usePortForward(ruleType: RuleType, imoProp?: number) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const imo = selectedVessel?.imo;
+  const imo = imoProp ?? selectedVessel?.imo;
   const vpnIp = selectedVessel?.vpnIp;
+  const fetchIdRef = useRef(0);
   const searchParams = useSearchParams();
   const lastEvent = useCommandEventStore((s) => s.lastEvent);
   const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent)
@@ -35,6 +36,7 @@ export function usePortForward(ruleType: RuleType) {
 
   const fetchAllData = useCallback(async () => {
     if (!imo) return;
+    const fetchId = ++fetchIdRef.current;
     setIsLoading(true);
     setFetchError(null);
     try {
@@ -42,36 +44,43 @@ export function usePortForward(ruleType: RuleType) {
         getDeviceNats(Number(imo)),
         getDeviceInterfaces(Number(imo)),
       ]);
+      if (fetchId !== fetchIdRef.current) return;
       setRules(Array.isArray(natsData) ? natsData : []);
       setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
     } catch (error) {
+      if (fetchId !== fetchIdRef.current) return;
       console.error("Fetch Error:", error);
       setFetchError(error instanceof Error ? error.message : "Failed to load data");
     } finally {
-      setIsLoading(false);
+      if (fetchId === fetchIdRef.current) setIsLoading(false);
     }
   }, [imo]);
 
   const silentRefetch = useCallback(async () => {
     if (!imo) return;
+    const fetchId = ++fetchIdRef.current;
     try {
       const [natsData, ifaceData] = await Promise.all([
         getDeviceNats(Number(imo)),
         getDeviceInterfaces(Number(imo)),
       ]);
+      if (fetchId !== fetchIdRef.current) return;
       setRules(Array.isArray(natsData) ? natsData : []);
       setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
       setRefreshBanner(true);
     } catch (error) {
+      if (fetchId !== fetchIdRef.current) return;
       console.error("Silent Refetch Error:", error);
     }
   }, [imo]);
 
   useEffect(() => {
-    if (imo) fetchAllData();
-    else {
-      setRules([]);
-      setInterfaces([]);
+    setRules([]);
+    setInterfaces([]);
+    setFetchError(null);
+    if (imo) {
+      setIsLoading(true);
+      fetchAllData();
     }
   }, [imo, fetchAllData]);
 

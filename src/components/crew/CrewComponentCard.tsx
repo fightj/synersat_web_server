@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
@@ -23,11 +23,13 @@ type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USA
 
 interface CrewComponentCardProps {
   mode?: string;
+  imo?: number;
 }
 
-export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardProps = {}) {
+export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: CrewComponentCardProps = {}) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
-  const imo = selectedVessel?.imo ?? null;
+  const imo = imoProp ?? selectedVessel?.imo ?? null;
+  const fetchIdRef = useRef(0);
   const searchParams = useSearchParams();
   const searchParamsMode = searchParams.get("mode") ?? "normal";
   const mode = modeProp ?? searchParamsMode;
@@ -80,37 +82,47 @@ export default function CrewComponentCard({ mode: modeProp }: CrewComponentCardP
 
   const fetchCrewData = useCallback(async (preserveOnError = false) => {
     if (!imo) return;
+    const fetchId = ++fetchIdRef.current;
     setIsLoading(true);
     setFetchError(null);
     try {
       const result = await getCrewData(imo);
+      if (fetchId !== fetchIdRef.current) return;
       setCrew(processRaw(result));
     } catch (error) {
+      if (fetchId !== fetchIdRef.current) return;
       console.error("Crew Fetch Error:", error);
       if (!preserveOnError) {
         setFetchError("The vessel network is unstable. Please try again later.");
       }
     } finally {
-      setIsLoading(false);
+      if (fetchId === fetchIdRef.current) setIsLoading(false);
     }
   }, [imo, processRaw]);
 
   // 로딩 없이 조용히 데이터 갱신
   const silentRefetch = useCallback(async () => {
     if (!imo) return;
+    const fetchId = ++fetchIdRef.current;
     try {
       const result = await getCrewData(imo);
+      if (fetchId !== fetchIdRef.current) return;
       setCrew(processRaw(result));
       setRefreshBanner(true);
     } catch (error) {
+      if (fetchId !== fetchIdRef.current) return;
       console.error("Crew Silent Refetch Error:", error);
     }
   }, [imo, processRaw]);
 
   useEffect(() => {
-    if (imo) fetchCrewData();
-    else { setCrew([]); setFetchError(null); }
+    setCrew([]);
+    setFetchError(null);
     setSelected(new Set());
+    if (imo) {
+      setIsLoading(true);
+      fetchCrewData();
+    }
   }, [imo, fetchCrewData]);
 
   // SSE 이벤트 감지 → 자동 갱신

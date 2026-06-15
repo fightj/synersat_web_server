@@ -76,6 +76,8 @@ export default function VesselPageHeader({
   });
   const router = useRouter();
 
+  const updateVesselPrepaid = useVesselStore((s) => s.updateVesselPrepaid);
+
   const addRecent = useRecentVesselsStore((s) => s.addRecent);
   const setNotification = useRecentVesselsStore((s) => s.setNotification);
 
@@ -129,9 +131,14 @@ export default function VesselPageHeader({
   const executePrepaidToggle = async (next: boolean) => {
     setPrepaidEnabled(next);
     setPrepaidLoading(true);
-    try { await updatePrepayEnabled(data!.imo, next); }
-    catch { setPrepaidEnabled(!next); }
-    finally { setPrepaidLoading(false); }
+    try {
+      await updatePrepayEnabled(data!.imo, next);
+      updateVesselPrepaid(data!.imo, next);
+    } catch {
+      setPrepaidEnabled(!next);
+    } finally {
+      setPrepaidLoading(false);
+    }
   };
 
   const handleBetaVersion = () => {
