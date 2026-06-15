@@ -37,8 +37,8 @@ interface AddCrewModalProps {
 
 const TIME_RANGE_OPTIONS = [
   { value: "MONTHLY", label: "Monthly" },
-  { value: "WEEKLY",  label: "Weekly" },
-  { value: "DAILY",   label: "Daily" },
+  { value: "WEEKLY", label: "Weekly" },
+  { value: "DAILY", label: "Daily" },
   { value: "FOREVER", label: "Forever" },
 ];
 
@@ -178,11 +178,11 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
 
     const payloads: AddCrewRequest[] = entries.map((entry) => {
       const payload: AddCrewRequest = {
-        userId:                  entry.isPrepay ? `crewpay-${entry.userId.trim()}` : entry.userId.trim(),
-        maxTotalOctets:          entry.maxTotalOctets.trim(),
+        userId: entry.isPrepay ? `crewpay-${entry.userId.trim()}` : entry.userId.trim(),
+        maxTotalOctets: entry.maxTotalOctets.trim(),
         maxTotalOctetsTimeRange: entry.maxTotalOctetsTimeRange,
-        description:             entry.description.trim() || null,
-        terminalType:            entry.terminalType,
+        description: entry.description.trim() || null,
+        terminalType: entry.terminalType,
       };
       payload.password = entry.password.trim() || "1111";
       if (entry.halfTimePeriod === "half") payload.halfTimePeriod = "half";
@@ -196,19 +196,19 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
         payloads.map((payload) => addCrewData(imo, payload)),
       );
 
-      const failed    = results.filter((r) => r.status === "rejected");
+      const failed = results.filter((r) => r.status === "rejected");
       const succeeded = results.filter((r) => r.status === "fulfilled");
 
       if (failed.length > 0) {
         setAlertState({
           variant: "warning",
-          title:   "Partial Success",
+          title: "Partial Success",
           message: `${succeeded.length} saved, ${failed.length} failed.`,
         });
       } else {
         setAlertState({
           variant: "success",
-          title:   "Saved Successfully",
+          title: "Saved Successfully",
           message: `${succeeded.length} crew account${succeeded.length > 1 ? "s" : ""} registered.`,
         });
         setEntries([createEmptyEntry()]);
@@ -221,7 +221,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
     } catch {
       setAlertState({
         variant: "error",
-        title:   "Save Failed",
+        title: "Save Failed",
         message: "An error occurred while saving. Please try again.",
       });
     } finally {
@@ -234,7 +234,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
       <div className="flex h-[90vh] flex-col">
         {/* Header */}
         <div className="border-b border-gray-100 px-6 py-4 dark:border-white/10">
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Crew Account</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Create Voucher</h3>
           <p className="text-sm text-gray-500">Fill in the details to register crew accounts.</p>
         </div>
 
@@ -290,39 +290,36 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* User ID */}
-                  <div>
+                  <div className="md:col-span-2">
                     <Label className={labelClass}>
-                      User ID <span className="text-red-500">*</span>
+                      Allow data <span className="text-red-500">*</span>
                     </Label>
-                    <input
-                      type="text"
-                      className={`${inputClass} ${entryErrors.userId || duplicateIndices.has(index) ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
-                      placeholder="Enter user ID"
-                      value={entry.userId}
-                      onChange={(e) => handleChange(index, "userId", e.target.value.replace(/[^a-zA-Z0-9-]/g, "").replace(/crewpay-/gi, ""))}
-                      onBlur={() => {
-                        if (!entry.userId.trim())
-                          setErrors((prev) => ({ ...prev, [index]: { ...prev[index], userId: "User ID is required." } }));
-                      }}
-                    />
-                    {duplicateIndices.has(index) && (
-                      <p className={errorClass}>Duplicate User ID. Each crew must have a unique ID.</p>
-                    )}
-                    {!duplicateIndices.has(index) && entryErrors.userId && (
-                      <p className={errorClass}>{entryErrors.userId}</p>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        className={`${inputClass} ${entryErrors.maxTotalOctets ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
+                        placeholder="e.g. 10000"
+                        value={entry.maxTotalOctets}
+                        onChange={(e) => handleChange(index, "maxTotalOctets", e.target.value.replace(/\D/g, ""))}
+                        onBlur={() => {
+                          if (!entry.maxTotalOctets.trim())
+                            setErrors((prev) => ({ ...prev, [index]: { ...prev[index], maxTotalOctets: "Usage limit is required." } }));
+                        }}
+                      />
+                      <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
+                    </div>
+                    {entryErrors.maxTotalOctets && <p className={errorClass}>{entryErrors.maxTotalOctets}</p>}
                   </div>
 
-                  {/* Password */}
-                  <div>
-                    <Label className={labelClass}>Password</Label>
+                  <div className="md:col-span-2">
+                    <Label className={labelClass}># of Vouchers</Label>
                     <input
                       type="text"
                       className={inputClass}
-                      placeholder="default: 1111"
-                      value={entry.password}
-                      onChange={(e) => handleChange(index, "password", e.target.value.replace(/\s/g, ""))}
+                      placeholder="Enter number of users"
+                      value={entry.description}
+                      onChange={(e) => handleChange(index, "description", e.target.value)}
                     />
                   </div>
 
@@ -342,27 +339,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo, defaultPre
                   </div>
 
                   {/* Max Total Octets */}
-                  <div>
-                    <Label className={labelClass}>
-                      Usage Limit <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        className={`${inputClass} ${entryErrors.maxTotalOctets ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
-                        placeholder="e.g. 10000"
-                        value={entry.maxTotalOctets}
-                        onChange={(e) => handleChange(index, "maxTotalOctets", e.target.value.replace(/\D/g, ""))}
-                        onBlur={() => {
-                          if (!entry.maxTotalOctets.trim())
-                            setErrors((prev) => ({ ...prev, [index]: { ...prev[index], maxTotalOctets: "Usage limit is required." } }));
-                        }}
-                      />
-                      <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
-                    </div>
-                    {entryErrors.maxTotalOctets && <p className={errorClass}>{entryErrors.maxTotalOctets}</p>}
-                  </div>
+
 
                   {/* Max Total Octets Time Range */}
                   <div>

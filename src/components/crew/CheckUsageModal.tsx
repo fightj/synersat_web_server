@@ -33,8 +33,8 @@ interface CheckUsageModalProps {
   vesselName: string;
 }
 
-// bits → MB
-const toMB = (bits: number) => (bits / 8 / 1024 / 1024).toFixed(3);
+// bytes(octets) → MB
+const toMB = (octets: number) => (octets / 1024 / 1024).toFixed(3);
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;
@@ -51,7 +51,13 @@ const formatDuration = (seconds: number) => {
   return `${h}h ${m}m ${s}s`;
 };
 
-const formatTime = (iso: string | null | undefined) => (iso ? iso.replace("T", " ") : "-");
+const formatTime = (iso: string | null | undefined): string => {
+  if (!iso) return "-";
+  const date = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+  if (isNaN(date.getTime())) return iso.replace("T", " ");
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
 
 const getDefault24hRange = () => {
   const end = new Date();

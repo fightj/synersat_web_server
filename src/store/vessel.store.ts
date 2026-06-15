@@ -31,7 +31,9 @@ function hasVesselDataChanged(fresh: Vessel[], cached: Vessel[]): boolean {
     return (
       c.status?.available !== v.status?.available ||
       c.status?.antennaServiceDisplayName !== v.status?.antennaServiceDisplayName ||
-      c.prepaidEnabled !== v.prepaidEnabled
+      c.prepaidEnabled !== v.prepaidEnabled ||
+      c.betaVersionEnabled !== v.betaVersionEnabled ||
+      c.name !== v.name
     );
   });
 }
