@@ -32,7 +32,10 @@ export async function addCrews(imo: number, payload: AddCrewRequest): Promise<nu
         body: JSON.stringify(payload)
       }
     ))
-    if (!res.ok) throw new Error("Fail to Add new Crew")
+    if (!res.ok) {
+      const body = await res.text().catch(() => "(no body)");
+      throw new Error(`Fail to Add new Crew (${res.status}): ${body}`);
+    }
     return await res.json()
   }
   catch (error) {

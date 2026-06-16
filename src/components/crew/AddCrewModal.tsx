@@ -40,16 +40,17 @@ const labelClass = "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 bloc
 
 const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
-export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewModalProps) {
-  const [values, setValues] = useState<AddCrewRequest>({
-    userCount: 1,
-    maxTotalOctets: '',
-    maxTotalOctetsTimeRange: 'MONTHLY',
-    terminalType: 'Auto',
-    applyRandomPassword: false,
-    applySimplifiedId: false,
+const initialValues: AddCrewRequest = {
+  userCount: 1,
+  maxTotalOctets: '',
+  maxTotalOctetsTimeRange: 'MONTHLY',
+  terminalType: 'AUTO',
+  applyRandomPassword: false,
+  applySimplifiedId: false,
+};
 
-  })
+export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewModalProps) {
+  const [values, setValues] = useState<AddCrewRequest>(initialValues);
   const [errors, setErrors] = useState<EntryErrors>({});
   const [saving, setSaving] = useState(false);
   const [gateways, setGateways] = useState<string[]>([]);
@@ -61,6 +62,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
 
   useEffect(() => {
     if (!isOpen) return;
+    setValues(initialValues);
     setErrors({});
     setAlertState(null);
     getGateways(imo)
@@ -79,14 +81,11 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
     if (!values.userCount || values.userCount == 0) {
       newErrors.userCount = 'User Count is required.'
     }
-    if (!values.maxTotalOctets.trim()) {
-      newErrors.maxTotalOctets = 'Max total octets is required.'
+    if (!values.maxTotalOctets.trim() || Number(values.maxTotalOctets) <= 0) {
+      newErrors.maxTotalOctets = 'Allow data must be greater than 0.'
     }
     if (!values.maxTotalOctetsTimeRange.trim()) {
       newErrors.maxTotalOctetsTimeRange = 'Time range is required.'
-    }
-    if (!values.terminalType?.trim()) {
-      newErrors.terminalType = 'Terminal type is required.'
     }
 
     setErrors(newErrors)
@@ -177,7 +176,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                   value={values.userCount}
                   onChange={(e) => {
                     const onlyNumber = e.target.value.replace(/[^0-9]/g, '')
-                    handleChange('userCount', onlyNumber)
+                    handleChange('userCount', Number(onlyNumber))
                   }}
                 />
                 {errors.userCount && <p className={errorClass}>{errors.userCount}</p>}
@@ -249,13 +248,13 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
 
               {/* Terminal Type */}
               <div>
-                <Label className={labelClass}>Terminal Type<span className="text-red-500">*</span></Label>
+                <Label className={labelClass}>Terminal Type</Label>
                 <NativeSelectWithIcon
                   value={values.terminalType}
                   onChange={(e) => handleChange('terminalType', e.target.value)}
                   className={selectClass}
                 >
-                  <option value="">Auto</option>
+                  <option value="AUTO">Auto</option>
                   {gateways.map((gw) => (
                     <option key={gw} value={gw}>{gw}</option>
                   ))}
