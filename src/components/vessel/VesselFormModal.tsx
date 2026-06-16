@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Select from "../form/Select";
 import Alert from "../ui/alert/Alert";
 import { EnvelopeIcon } from "@/icons";
 import { useVesselForm } from "./hooks/useVesselForm";

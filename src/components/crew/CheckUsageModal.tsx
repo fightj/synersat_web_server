@@ -34,7 +34,7 @@ interface CheckUsageModalProps {
 }
 
 // bytes(octets) → MB
-const toMB = (octets: number) => (octets / 1024 / 1024).toFixed(3);
+const toMB = (octets: number) => (octets / 1024 / 1024).toFixed(2);
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) return `${seconds}s`;

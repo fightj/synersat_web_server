@@ -21,6 +21,7 @@ export const CREW_COMMAND_TYPES = [
   "UPDATE_CREW_ACCOUNT",
   "CREATE_CREW_ACCOUNT",
   "DELETE_MULTI_CREW_ACCOUNT",
+  "CREATE_MULTI_CREW_ACCOUNT",
 ];
 
 interface CommandEventStore {

@@ -22,9 +22,9 @@ export async function getCrewData(imo: number): Promise<CrewResponse> {
   }
 }
 
-export async function addCrewData(imo: number, payload: AddCrewRequest): Promise<number | null> {
+export async function addCrews(imo: number, payload: AddCrewRequest): Promise<number | null> {
   try {
-    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews`, withTestUser(
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/bulk`, withTestUser(
       {
         ...fetchOptions,
         method: "POST",

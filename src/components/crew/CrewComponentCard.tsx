@@ -326,7 +326,6 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           onClose={() => setAddCrewOpen(false)}
           onSaved={() => { setAddCrewOpen(false); fetchCrewData(true); }}
           imo={imo}
-          defaultPrepay={mode === "prepay"}
         />
       )}
     </div>

@@ -24,13 +24,13 @@ export interface CrewEntry extends CrewData {
 }
 
 export interface AddCrewRequest {
-  userId: string
-  password?: string | null
-  halfTimePeriod?: string | null
+  userCount: number
+  // halfTimePeriod?: string | null  추후 업데이트 예정?
   maxTotalOctets: string
-  maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER",
-  description: string | null
-  terminalType: string | null
+  maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER" | "HALF_MONTHLY",
+  terminalType: string
+  applyRandomPassword: boolean
+  applySimplifiedId: boolean
 }
 
 export interface UpdateCrewRequest {
