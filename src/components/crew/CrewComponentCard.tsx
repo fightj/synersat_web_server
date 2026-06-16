@@ -215,7 +215,9 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `crew_accounts_${new Date().toISOString().slice(0, 10)}.csv`);
+    const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
+    const vesselFileName = safe(selectedVessel?.name ?? "vessel");
+    link.setAttribute("download", `${vesselFileName}_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();

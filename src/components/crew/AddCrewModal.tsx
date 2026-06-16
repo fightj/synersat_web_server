@@ -45,8 +45,8 @@ const initialValues: AddCrewRequest = {
   maxTotalOctets: '',
   maxTotalOctetsTimeRange: 'MONTHLY',
   terminalType: '',
-  applyRandomPassword: false,
-  applySimplifiedId: false,
+  applyRandomPassword: true,
+  applySimplifiedId: true,
 };
 
 export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewModalProps) {

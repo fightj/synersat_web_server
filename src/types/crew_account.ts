@@ -35,11 +35,13 @@ export interface AddCrewRequest {
 
 export interface UpdateCrewRequest {
   userList: string[]
-  maxTotalOctets: string
-  timePeriod: "MONTHLY" | "HALF_MONTHLY" | "WEEKLY" | "DAILY" | "ONE_TIME",
+  maxTotalOctets?: string
+  currentOctetUsage?: string
+  timePeriod?: "MONTHLY" | "HALF_MONTHLY" | "WEEKLY" | "DAILY" | "ONE_TIME",
   maxBandwidthDown?: string
   maxBandwidthUp?: string
   terminalType?: string
+  applyRandomPassword?: boolean
 }
 
 export interface CrewTopUpRequest {

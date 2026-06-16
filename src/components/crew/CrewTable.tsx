@@ -232,7 +232,7 @@ export default function CrewTable({
                     <Badge size="sm" color={badge.color}>{badge.label}</Badge>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-                    {u.halfTimePeriod === "Half"
+                    {u.halfTimePeriod === "half"
                       ? `Half-${u.maxTotalOctetsTimeRange}`
                       : u.maxTotalOctetsTimeRange}
                   </TableCell>

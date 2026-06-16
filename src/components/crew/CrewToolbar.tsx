@@ -58,14 +58,7 @@ export default function CrewToolbar({
         </Button>
         {mode === "normal" && (
           <>
-            <Button size="compact" variant="outline"
-              onClick={() => onAction("RESET_PW")} disabled={noneSelected || isLoading}>
-              Reset PW
-            </Button>
-            <Button size="compact" variant="outline"
-              onClick={() => onAction("RESET_DATA")} disabled={noneSelected || isLoading}>
-              Reset Data
-            </Button>
+
             <Button size="compact" variant="outline"
               onClick={() => onAction("CHECK_PW")} disabled={noneSelected || isLoading}>
               Check PW
