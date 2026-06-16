@@ -44,7 +44,7 @@ const initialValues: AddCrewRequest = {
   userCount: 1,
   maxTotalOctets: '',
   maxTotalOctetsTimeRange: 'MONTHLY',
-  terminalType: 'Auto',
+  terminalType: '',
   applyRandomPassword: false,
   applySimplifiedId: false,
 };
@@ -254,7 +254,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                   onChange={(e) => handleChange('terminalType', e.target.value)}
                   className={selectClass}
                 >
-                  <option value="Auto">Auto</option>
+                  <option value="">Auto</option>
                   {gateways.map((gw) => (
                     <option key={gw} value={gw}>{gw}</option>
                   ))}
