@@ -49,7 +49,7 @@ const labelClass = "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 bloc
 const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
 const initialDraft: CrewDraft = {
-  terminalType: "AUTO",
+  terminalType: "Auto",
   maxTotalOctets: "",
   timePeriod: "MONTHLY",
   maxBandwidthDown: "",
@@ -237,7 +237,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
                 onChange={(e) => handleChange("terminalType", e.target.value)}
                 className={selectClass}
               >
-                <option value="AUTO">Auto</option>
+                <option value="Auto">Auto</option>
                 {gateways.map((gw) => (
                   <option key={gw} value={gw}>{gw}</option>
                 ))}
