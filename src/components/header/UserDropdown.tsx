@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
@@ -41,9 +40,8 @@ export default function UserDropdown() {
         </span>
 
         <svg
-          className={`stroke-gray-500 transition-transform duration-200 dark:stroke-gray-400 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`stroke-gray-500 transition-transform duration-200 dark:stroke-gray-400 ${isOpen ? "rotate-180" : ""
+            }`}
           width="18"
           height="20"
           viewBox="0 0 18 20"

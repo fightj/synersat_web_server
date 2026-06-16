@@ -45,9 +45,9 @@ export async function addCrews(imo: number, payload: AddCrewRequest): Promise<nu
 }
 
 
-export async function updateCrewData(imo: number, crewId: string, payload: UpdateCrewRequest): Promise<number | null> {
+export async function updateCrewData(imo: number, payload: UpdateCrewRequest): Promise<number | null> {
   try {
-    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/${encodeURIComponent(crewId)}`, withTestUser(
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/bulk`, withTestUser(
       {
         ...fetchOptions,
         method: "PUT",

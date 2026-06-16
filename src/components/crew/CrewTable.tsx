@@ -18,27 +18,27 @@ import type { CrewEntry, CrewUpdateType } from "@/types/crew_account";
 function getBadgeProps(type: string | undefined | null) {
   if (!type || type.trim() === "") return { color: "light" as const, label: "Auto" };
   const lower = type.toLowerCase();
-  if (lower === "starlink") return { color: "purple"  as const, label: "Starlink" };
-  if (lower === "vsat")     return { color: "success" as const, label: "VSAT" };
+  if (lower === "starlink") return { color: "purple" as const, label: "Starlink" };
+  if (lower === "vsat") return { color: "success" as const, label: "VSAT" };
   return { color: "light" as const, label: type };
 }
 
 const TABLE_HEADERS = ["ID", "Status", "Description", "Duty", "Type", "Update Period", "Usage", ""];
 
 function UsageBar({ current, max, onTopUp }: { current: string | null; max: string | null; onTopUp: () => void }) {
-  const used  = parseFloat(current ?? "0") || 0;
+  const used = parseFloat(current ?? "0") || 0;
   const limit = parseFloat(max ?? "0") || 0;
-  const pct   = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
 
   const barColor =
     pct >= 90 ? "bg-red-500"
-    : pct >= 70 ? "bg-amber-400"
-    : "bg-blue-500";
+      : pct >= 70 ? "bg-amber-400"
+        : "bg-blue-500";
 
   const textColor =
     pct >= 90 ? "text-red-500 dark:text-red-400"
-    : pct >= 70 ? "text-amber-500 dark:text-amber-400"
-    : "text-blue-500 dark:text-blue-400";
+      : pct >= 70 ? "text-amber-500 dark:text-amber-400"
+        : "text-blue-500 dark:text-blue-400";
 
   return (
     <div className="flex min-w-40 items-center gap-2">
@@ -191,8 +191,7 @@ export default function CrewTable({
               return (
                 <TableRow
                   key={u.userId}
-                  className={`group transition-all duration-200 ${
-                    isPending
+                  className={`group transition-all duration-200 ${isPending
                       ? u.updateType === "UPDATE"
                         ? "cursor-not-allowed bg-orange-50/60 opacity-60 dark:bg-orange-500/5"
                         : u.updateType === "DELETE"
@@ -201,7 +200,7 @@ export default function CrewTable({
                       : isChecked
                         ? "bg-blue-50/50 dark:bg-blue-500/5"
                         : "hover:bg-gray-50/80 dark:hover:bg-white/2"
-                  }`}
+                    }`}
                 >
                   <TableCell className="px-5 py-4 text-center">
                     <div className="flex justify-center">
@@ -233,7 +232,7 @@ export default function CrewTable({
                     <Badge size="sm" color={badge.color}>{badge.label}</Badge>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-                    {u.halfTimePeriod === "half"
+                    {u.halfTimePeriod === "Half"
                       ? `Half-${u.maxTotalOctetsTimeRange}`
                       : u.maxTotalOctetsTimeRange}
                   </TableCell>

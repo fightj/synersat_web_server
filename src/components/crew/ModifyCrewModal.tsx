@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
-import Radio from "@/components/form/input/Radio";
 import Label from "@/components/form/Label";
 import { getGateways, updateCrewData } from "@/api/crew-account";
 import Alert from "@/components/ui/alert/Alert";
@@ -18,21 +17,25 @@ interface ModifyCrewModalProps {
 }
 
 interface CrewDraft {
-  description: string;
   terminalType: string;
-  halfTimePeriod: "half" | "null";
   maxTotalOctets: string;
-  maxTotalOctetsTimeRange: string;
-  currentOctetUsage: string;
+  timePeriod: UpdateCrewRequest["timePeriod"];
+  maxBandwidthDown: string;
+  maxBandwidthUp: string;
 }
 
-type RowResult = "success" | "error" | "retrying";
+interface FormErrors {
+  maxTotalOctets?: string;
+  maxBandwidthDown?: string;
+  maxBandwidthUp?: string;
+}
 
-const TIME_RANGE_OPTIONS = [
+const TIME_RANGE_OPTIONS: { value: UpdateCrewRequest["timePeriod"]; label: string }[] = [
   { value: "MONTHLY", label: "Monthly" },
-  { value: "WEEKLY",  label: "Weekly" },
-  { value: "DAILY",   label: "Daily" },
-  { value: "FOREVER", label: "Forever" },
+  { value: "HALF_MONTHLY", label: "Half-Monthly" },
+  { value: "WEEKLY", label: "Weekly" },
+  { value: "DAILY", label: "Daily" },
+  { value: "ONE_TIME", label: "One_Time" },
 ];
 
 const selectClass =
@@ -41,68 +44,34 @@ const selectClass =
 const inputClass =
   "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
-const readonlyInputClass =
-  "h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-400 cursor-not-allowed dark:border-white/5 dark:bg-white/5 dark:text-gray-500";
+const labelClass = "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 block";
 
-const labelClass         = "text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 block";
-const readonlyLabelClass = "text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 block";
-const disabledLabelClass = "text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 block";
+const errorClass = "mt-1 text-[11px] font-medium text-red-500";
 
-function initDraft(u: CrewEntry): CrewDraft {
-  return {
-    description:             u.description ?? "",
-    terminalType:            u.terminalType ?? "",
-    halfTimePeriod:          u.halfTimePeriod === "half" ? "half" : "null",
-    maxTotalOctets:          u.maxTotalOctets ?? "",
-    maxTotalOctetsTimeRange: u.maxTotalOctetsTimeRange ?? "MONTHLY",
-    currentOctetUsage:       u.currentOctetUsage ?? "",
-  };
-}
-
-function buildPayload(draft: CrewDraft): UpdateCrewRequest {
-  const payload: Partial<UpdateCrewRequest> = {};
-  if (draft.description.trim())       payload.description             = draft.description.trim();
-  payload.terminalType = draft.terminalType.trim();
-  if (draft.maxTotalOctets.trim())    payload.maxTotalOctets          = draft.maxTotalOctets.trim();
-  if (draft.maxTotalOctetsTimeRange)  payload.maxTotalOctetsTimeRange = draft.maxTotalOctetsTimeRange as UpdateCrewRequest["maxTotalOctetsTimeRange"];
-  if (draft.currentOctetUsage.trim()) payload.currentOctetUsage       = draft.currentOctetUsage.trim();
-  payload.halfTimePeriod = (draft.maxTotalOctetsTimeRange === "MONTHLY" && draft.halfTimePeriod === "half")
-    ? "half"
-    : "";
-  return payload as UpdateCrewRequest;
-}
+const initialDraft: CrewDraft = {
+  terminalType: "AUTO",
+  maxTotalOctets: "",
+  timePeriod: "MONTHLY",
+  maxBandwidthDown: "",
+  maxBandwidthUp: "",
+};
 
 export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew, imo }: ModifyCrewModalProps) {
-  const [drafts, setDrafts]       = useState<Record<string, CrewDraft>>({});
-  const [activeId, setActiveId]   = useState<string>("");
-  const [gateways, setGateways]   = useState<string[]>([]);
-  const [saving, setSaving]       = useState(false);
-  const [resultMap, setResultMap] = useState<Record<string, RowResult>>({});
-  const [prepayMap, setPrepayMap] = useState<Record<string, boolean>>({});
+  const [draft, setDraft] = useState<CrewDraft>(initialDraft);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [gateways, setGateways] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
   const [alertState, setAlertState] = useState<{
     variant: "success" | "error" | "warning";
     title: string;
     message: string;
   } | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const cardRefs  = useRef<Record<string, HTMLDivElement | null>>({});
-
   useEffect(() => {
     if (!isOpen || selectedCrew.length === 0) return;
-    const initial: Record<string, CrewDraft> = {};
-    const initialPrepay: Record<string, boolean> = {};
-    selectedCrew.forEach((u) => {
-      initial[u.userId] = initDraft(u);
-      initialPrepay[u.userId] = u.userId.startsWith("crewpay-");
-    });
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setDrafts(initial);
-    setPrepayMap(initialPrepay);
-    setActiveId(selectedCrew[0].userId);
-    setResultMap({});
+    setDraft(initialDraft);
+    setErrors({});
     setAlertState(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     getGateways(imo)
       .then((data) => {
@@ -114,136 +83,69 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
       .catch(() => setGateways([]));
   }, [isOpen, selectedCrew, imo]);
 
-  // 스크롤 스파이
-  useEffect(() => {
-    if (!isOpen) return;
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const containerTop = container.getBoundingClientRect().top;
-      let closestId = selectedCrew[0]?.userId ?? "";
-      let closestDist = Infinity;
-      selectedCrew.forEach((u) => {
-        const el = cardRefs.current[u.userId];
-        if (!el) return;
-        const dist = Math.abs(el.getBoundingClientRect().top - containerTop);
-        if (dist < closestDist) { closestDist = dist; closestId = u.userId; }
-      });
-      setActiveId(closestId);
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [isOpen, selectedCrew]);
-
-  const handleChange = (id: string, field: keyof CrewDraft, value: string) => {
-    setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  const handleChange = (field: keyof CrewDraft, value: string) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+    if (errors[field as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
   };
 
-  const handleTogglePrepay = (userId: string) =>
-    setPrepayMap((prev) => ({ ...prev, [userId]: !prev[userId] }));
-
-  const getApiUserId = (userId: string) => {
-    const isPrepay = prepayMap[userId] ?? false;
-    if (isPrepay) return userId.startsWith("crewpay-") ? userId : `crewpay-${userId}`;
-    return userId.startsWith("crewpay-") ? userId.slice("crewpay-".length) : userId;
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {};
+    if (!draft.maxTotalOctets.trim() || Number(draft.maxTotalOctets) <= 0) {
+      newErrors.maxTotalOctets = "Usage limit must be greater than 0.";
+    }
+    if (draft.maxBandwidthDown.trim() && Number(draft.maxBandwidthDown) <= 0) {
+      newErrors.maxBandwidthDown = "Download speed must be greater than 0.";
+    }
+    if (draft.maxBandwidthUp.trim() && Number(draft.maxBandwidthUp) <= 0) {
+      newErrors.maxBandwidthUp = "Upload speed must be greater than 0.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleTimeRangeChange = (id: string, value: string) => {
-    setDrafts((prev) => ({
-      ...prev,
-      [id]: {
-        ...prev[id],
-        maxTotalOctetsTimeRange: value,
-        ...(value !== "MONTHLY" ? { halfTimePeriod: "null" } : {}),
-      },
-    }));
-  };
-
-  const scrollToCard = (id: string) => {
-    const el = cardRefs.current[id];
-    const container = scrollRef.current;
-    if (!el || !container) return;
-    const top =
-      el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 16;
-    container.scrollTo({ top, behavior: "smooth" });
-  };
-
-  const checkAllSucceeded = useCallback((map: Record<string, RowResult>) => {
-    return selectedCrew.every((u) => map[u.userId] === "success");
-  }, [selectedCrew]);
-
-  const handleSaveAll = async () => {
+  const handleSave = async () => {
+    if (!validate()) return;
     setSaving(true);
-    setResultMap({});
     setAlertState(null);
 
-    const payloads = selectedCrew.map((u) => ({
-      userId: u.userId,
-      apiUserId: getApiUserId(u.userId),
-      payload: buildPayload(drafts[u.userId] ?? initDraft(u)),
-    }));
-
-    console.log("[ModifyCrew] payloads:", JSON.stringify(payloads, null, 2));
-
-    const results = await Promise.allSettled(
-      payloads.map(({ apiUserId, payload }) => updateCrewData(imo, apiUserId, payload)),
-    );
-
-    const newResultMap: Record<string, RowResult> = {};
-    payloads.forEach(({ userId }, i) => {
-      newResultMap[userId] = results[i].status === "fulfilled" ? "success" : "error";
-    });
-    setResultMap(newResultMap);
-
-    const failedCount    = results.filter((r) => r.status === "rejected").length;
-    const succeededCount = results.filter((r) => r.status === "fulfilled").length;
-
-    if (failedCount === 0) {
-      setAlertState({ variant: "success", title: "Saved Successfully", message: `${succeededCount} crew account${succeededCount > 1 ? "s" : ""} updated.` });
-      setTimeout(() => { setAlertState(null); onSaved?.(); onClose(); }, 1500);
-    } else {
-      setAlertState({
-        variant: "warning",
-        title: "Partial Success",
-        message: `${succeededCount} succeeded, ${failedCount} failed. Retry the failed ones individually.`,
-      });
-    }
-
-    setSaving(false);
-  };
-
-  const handleRetry = async (userId: string) => {
-    const draft = drafts[userId];
-    if (!draft) return;
-
-    setResultMap((prev) => ({ ...prev, [userId]: "retrying" }));
+    const payload: UpdateCrewRequest = {
+      userList: selectedCrew.map((u) => u.userId),
+      maxTotalOctets: draft.maxTotalOctets.trim(),
+      timePeriod: draft.timePeriod,
+      terminalType: draft.terminalType,
+    };
+    if (draft.maxBandwidthDown.trim()) payload.maxBandwidthDown = draft.maxBandwidthDown.trim();
+    if (draft.maxBandwidthUp.trim()) payload.maxBandwidthUp = draft.maxBandwidthUp.trim();
 
     try {
-      await updateCrewData(imo, getApiUserId(userId), buildPayload(draft));
-      setResultMap((prev) => {
-        const next = { ...prev, [userId]: "success" as RowResult };
-        if (checkAllSucceeded(next)) {
-          setAlertState({ variant: "success", title: "All Saved", message: "All crew accounts updated successfully." });
-          setTimeout(() => { onSaved?.(); onClose(); }, 1500);
-        } else {
-          const remaining = selectedCrew.filter((u) => next[u.userId] === "error").length;
-          setAlertState((a) => a ? { ...a, message: `${remaining} failed. Retry the failed ones individually.` } : a);
-        }
-        return next;
+      await updateCrewData(imo, payload);
+      setAlertState({
+        variant: "success",
+        title: "Saved Successfully",
+        message: `${selectedCrew.length} crew account${selectedCrew.length > 1 ? "s" : ""} updated.`,
       });
+      setTimeout(() => {
+        onSaved?.();
+        onClose();
+      }, 1000);
     } catch {
-      setResultMap((prev) => ({ ...prev, [userId]: "error" }));
+      setAlertState({
+        variant: "error",
+        title: "Save Failed",
+        message: "An error occurred while saving. Please try again.",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
   if (selectedCrew.length === 0) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="w-[95vw] max-w-[960px] overflow-hidden p-0">
-      <div className="flex h-[90vh] flex-col">
-
+    <Modal isOpen={isOpen} onClose={onClose} className="w-[80vw] max-w-[600px] overflow-hidden p-0">
+      <div className="flex h-[70vh] flex-col">
         {/* Header */}
         <div className="border-b border-gray-100 px-6 py-4 dark:border-white/10">
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Modify Crew Voucher</h3>
@@ -259,265 +161,103 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
           </div>
         )}
 
-        {/* Body */}
-        <div className="flex min-h-0 flex-1">
-
-          {/* Left: user list */}
-          <div className="flex w-52 shrink-0 flex-col border-r border-gray-100 bg-gray-50/70 dark:border-white/10 dark:bg-white/2">
-            <p className="px-4 pt-4 pb-2 text-[11px] font-bold tracking-widest text-gray-400 uppercase dark:text-gray-500">
-              Selected Users
-            </p>
-            <div className="flex-1 overflow-y-auto pb-4">
-              {selectedCrew.map((u) => {
-                const isActive = activeId === u.userId;
-                const result = resultMap[u.userId];
-                return (
-                  <button
-                    key={u.userId}
-                    onClick={() => scrollToCard(u.userId)}
-                    className={`flex w-full items-center gap-2 px-4 py-2.5 text-left transition-all ${
-                      isActive
-                        ? "border-r-2 border-blue-500 bg-blue-50 dark:bg-blue-500/10"
-                        : "hover:bg-gray-50 dark:hover:bg-white/2"
-                    }`}
-                  >
-                    {/* 상태 아이콘 */}
-                    {result === "success" && (
-                      <svg className="h-3.5 w-3.5 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                    {result === "error" && (
-                      <svg className="h-3.5 w-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                    {result === "retrying" && (
-                      <svg className="h-3.5 w-3.5 shrink-0 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
-                      </svg>
-                    )}
-                    {!result && (
-                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-all ${
-                        isActive ? "bg-blue-500" : "bg-gray-300 dark:bg-white/20"
-                      }`} />
-                    )}
-                    <span className={`truncate text-sm font-medium transition-colors ${
-                      result === "success" ? "text-green-600 dark:text-green-400"
-                      : result === "error" ? "text-red-500 dark:text-red-400"
-                      : isActive ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-600 dark:text-gray-400"
-                    }`}>
-                      {u.userId}
-                    </span>
-                  </button>
-                );
-              })}
+        {/* Scroll area */}
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          {/* Selected users */}
+          <div>
+            <Label className={labelClass}>Selected Users</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedCrew.map((u) => (
+                <span
+                  key={u.userId}
+                  className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-white/10 dark:text-gray-300"
+                >
+                  {u.userId}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Right: scrollable cards */}
-          <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-6 py-4 pb-16">
-            {selectedCrew.map((u) => {
-              const draft = drafts[u.userId];
-              if (!draft) return null;
-              const isMonthly = draft.maxTotalOctetsTimeRange === "MONTHLY";
-              const result = resultMap[u.userId];
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label className={labelClass}>
+                Allow data <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={`${inputClass} ${errors.maxTotalOctets ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
+                  value={draft.maxTotalOctets}
+                  onChange={(e) => handleChange("maxTotalOctets", e.target.value.replace(/\D/g, ""))}
+                />
+                <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
+              </div>
+              {errors.maxTotalOctets && <p className={errorClass}>{errors.maxTotalOctets}</p>}
+            </div>
 
-              return (
-                <div
-                  key={u.userId}
-                  id={`crew-card-${u.userId}`}
-                  ref={(el) => { cardRefs.current[u.userId] = el; }}
-                  className={`rounded-xl border bg-white p-5 shadow-sm transition-colors dark:bg-white/2 ${
-                    result === "success"
-                      ? "border-green-400/60 dark:border-green-500/40"
-                      : result === "error"
-                      ? "border-red-400/60 dark:border-red-500/40"
-                      : "border-gray-200 dark:border-white/10"
-                  }`}
-                >
-                  <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-white/5">
-                    <span className="text-sm font-black text-gray-900 dark:text-white">
-                      {u.userId}
-                    </span>
-
-                    {/* 카드 상태 배지 + Prepay 토글 + 재시도 버튼 */}
-                    <div className="flex items-center gap-2">
-                      <label className="flex cursor-pointer items-center gap-2">
-                        <span className={`text-xs font-bold transition-colors ${prepayMap[u.userId] ? "text-gray-800 dark:text-gray-200" : "text-gray-300 dark:text-gray-600"}`}>
-                          Prepay
-                        </span>
-                        <div className="relative h-5 w-5">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 dark:border-gray-700"
-                            checked={prepayMap[u.userId] ?? false}
-                            onChange={() => handleTogglePrepay(u.userId)}
-                          />
-                          {(prepayMap[u.userId] ?? false) && (
-                            <svg className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                              <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="1.94437" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </div>
-                      </label>
-                      {result === "success" && (
-                        <span className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold text-green-700 dark:bg-green-500/15 dark:text-green-400">
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          Success
-                        </span>
-                      )}
-                      {result === "error" && (
-                        <>
-                          <span className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-600 dark:bg-red-500/15 dark:text-red-400">
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Failed
-                          </span>
-                          <button
-                            onClick={() => handleRetry(u.userId)}
-                            className="flex items-center gap-1 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-600 transition-all hover:bg-red-100 active:scale-95 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                          >
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Retry
-                          </button>
-                        </>
-                      )}
-                      {result === "retrying" && (
-                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-blue-500">
-                          <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
-                          </svg>
-                          Retrying...
-                        </span>
-                      )}
-                    </div>
+            <div className="md:col-span-2">
+              <Label className={labelClass}>Data speed (Kbps)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Download"
+                      className={`${inputClass} ${errors.maxBandwidthDown ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      value={draft.maxBandwidthDown}
+                      onChange={(e) => handleChange("maxBandwidthDown", e.target.value.replace(/\D/g, ""))}
+                    />
+                    <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">Kbps</span>
                   </div>
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                    <div>
-                      <Label className={readonlyLabelClass}>User ID</Label>
-                      <input type="text" className={readonlyInputClass} value={u.userId} readOnly disabled />
-                    </div>
-                    <div>
-                      <Label className={readonlyLabelClass}>Password</Label>
-                      <input type="password" className={readonlyInputClass} value={u.password ?? ""} readOnly disabled />
-                    </div>
-
-                    <div>
-                      <Label className={labelClass}>Terminal Type</Label>
-                      <NativeSelectWithIcon
-                        value={draft.terminalType}
-                        onChange={(e) => handleChange(u.userId, "terminalType", e.target.value)}
-                        className={selectClass}
-                      >
-                        <option value="">Auto</option>
-                        {gateways.map((gw) => (
-                          <option key={gw} value={gw}>{gw}</option>
-                        ))}
-                      </NativeSelectWithIcon>
-                    </div>
-                    <div>
-                      <Label className={labelClass}>Usage Limit</Label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          className={inputClass}
-                          placeholder="e.g. 10000"
-                          value={draft.maxTotalOctets}
-                          onChange={(e) =>
-                            handleChange(u.userId, "maxTotalOctets", e.target.value.replace(/\D/g, ""))
-                          }
-                        />
-                        <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className={labelClass}>Time Range</Label>
-                      <NativeSelectWithIcon
-                        value={draft.maxTotalOctetsTimeRange}
-                        onChange={(e) => handleTimeRangeChange(u.userId, e.target.value)}
-                        className={selectClass}
-                      >
-                        {TIME_RANGE_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </NativeSelectWithIcon>
-                    </div>
-                    <div>
-                      <Label className={isMonthly ? labelClass : disabledLabelClass}>
-                        Half Time Period
-                        {!isMonthly && (
-                          <span className="ml-1.5 text-[10px] font-normal text-gray-400">(Monthly only)</span>
-                        )}
-                      </Label>
-                      <div className={`flex h-10 items-center gap-6 rounded-lg px-3 transition-all ${
-                        !isMonthly ? "opacity-40" : ""
-                      }`}>
-                        <Radio
-                          id={`modify-half-null-${u.userId}`}
-                          name={`modify-half-${u.userId}`}
-                          value="null"
-                          checked={draft.halfTimePeriod === "null"}
-                          label="None"
-                          onChange={(v) => isMonthly && handleChange(u.userId, "halfTimePeriod", v)}
-                          disabled={!isMonthly}
-                        />
-                        <Radio
-                          id={`modify-half-half-${u.userId}`}
-                          name={`modify-half-${u.userId}`}
-                          value="half"
-                          checked={draft.halfTimePeriod === "half"}
-                          label="Half"
-                          onChange={(v) => isMonthly && handleChange(u.userId, "halfTimePeriod", v)}
-                          disabled={!isMonthly}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <Label className={labelClass}>Description</Label>
-                      <input
-                        type="text"
-                        className={inputClass}
-                        placeholder="Optional description"
-                        value={draft.description}
-                        onChange={(e) => handleChange(u.userId, "description", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <Label className={labelClass}>Current Usage</Label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          className={inputClass}
-                          placeholder="e.g. 4.50"
-                          value={draft.currentOctetUsage}
-                          onChange={(e) =>
-                            handleChange(u.userId, "currentOctetUsage", e.target.value.replace(/[^0-9.]/g, ""))
-                          }
-                        />
-                        <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">MB</span>
-                      </div>
-                    </div>
-
-                  </div>
+                  {errors.maxBandwidthDown && <p className={errorClass}>{errors.maxBandwidthDown}</p>}
                 </div>
-              );
-            })}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Upload"
+                      className={`${inputClass} ${errors.maxBandwidthUp ? "border-red-400 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      value={draft.maxBandwidthUp}
+                      onChange={(e) => handleChange("maxBandwidthUp", e.target.value.replace(/\D/g, ""))}
+                    />
+                    <span className="shrink-0 text-sm font-semibold text-gray-500 dark:text-gray-400">Kbps</span>
+                  </div>
+                  {errors.maxBandwidthUp && <p className={errorClass}>{errors.maxBandwidthUp}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className={labelClass}>Terminal Type <span className="text-red-500">*</span></Label>
+              <NativeSelectWithIcon
+                value={draft.terminalType}
+                onChange={(e) => handleChange("terminalType", e.target.value)}
+                className={selectClass}
+              >
+                <option value="AUTO">Auto</option>
+                {gateways.map((gw) => (
+                  <option key={gw} value={gw}>{gw}</option>
+                ))}
+              </NativeSelectWithIcon>
+            </div>
+
+            <div>
+              <Label className={labelClass}>
+                Reset period <span className="text-red-500">*</span>
+              </Label>
+              <NativeSelectWithIcon
+                value={draft.timePeriod}
+                onChange={(e) => handleChange("timePeriod", e.target.value)}
+                className={selectClass}
+              >
+                {TIME_RANGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </NativeSelectWithIcon>
+            </div>
           </div>
         </div>
 
@@ -530,11 +270,11 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
             Cancel
           </button>
           <button
-            onClick={handleSaveAll}
+            onClick={handleSave}
             disabled={saving}
-            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving..." : "Save All"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

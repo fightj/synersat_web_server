@@ -27,7 +27,7 @@ const TIME_RANGE_OPTIONS = [
   { value: "MONTHLY", label: "Monthly" },
   { value: "WEEKLY", label: "Weekly" },
   { value: "DAILY", label: "Daily" },
-  { value: "FOREVER", label: "Forever" },
+  { value: "ONE_TIME", label: "One_Time" },
 ];
 
 const selectClass =
@@ -299,7 +299,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
             disabled={saving}
             className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving..." : "Save All"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

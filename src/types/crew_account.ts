@@ -34,12 +34,12 @@ export interface AddCrewRequest {
 }
 
 export interface UpdateCrewRequest {
-  halfTimePeriod?: string | null
+  userList: string[]
   maxTotalOctets: string
-  maxTotalOctetsTimeRange: "DAILY" | "WEEKLY" | "MONTHLY" | "FOREVER"
-  currentOctetUsage: string
-  description: string | null
-  terminalType?: string | null
+  timePeriod: "MONTHLY" | "HALF_MONTHLY" | "WEEKLY" | "DAILY" | "ONE_TIME",
+  maxBandwidthDown?: string
+  maxBandwidthUp?: string
+  terminalType?: string
 }
 
 export interface CrewTopUpRequest {

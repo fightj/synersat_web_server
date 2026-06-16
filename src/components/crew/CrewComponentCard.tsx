@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
 import type { CrewEntry } from "@/types/crew_account";
@@ -314,7 +313,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
         <ModifyCrewModal
           isOpen={modifyCrewOpen}
           onClose={() => setModifyCrewOpen(false)}
-          onSaved={() => { setModifyCrewOpen(false); fetchCrewData(true); }}
+          onSaved={() => { setModifyCrewOpen(false); setSelected(new Set()); fetchCrewData(true); }}
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
         />
