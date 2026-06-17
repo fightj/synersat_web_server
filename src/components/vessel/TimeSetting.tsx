@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import {
   format,
   subHours,
@@ -193,11 +193,11 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
   };
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative w-full min-w-0" ref={containerRef}>
       <div className="flex flex-wrap items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/3">
         <button
           onClick={() => { setIsOpen(!isOpen); setOpenSubMenu(null); }}
-          className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-white/5"
+          className="group flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-white/5"
         >
           <div className="flex h-6 w-6 shrink-0 items-center justify-center">
             <TimeSettingIcon className="h-5 w-5 text-blue-600" />
@@ -208,82 +208,87 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
           </span>
         </button>
 
-        <div className="flex items-center gap-1 pr-1">
-          {quickRanges.map((r) => {
+        <div className="flex flex-wrap items-center gap-1 pr-1 max-[401px]:w-full">
+          {quickRanges.map((r, i) => {
             const isActive =
               activeRange === r.label ||
               activeRange === `${r.label} So Far`;
             const isSubOpen = openSubMenu === r.label;
 
             return (
-              <div key={r.label} className="relative">
-                <button
-                  onClick={() => {
-                    setError(null);
-                    if (r.subOptions) {
-                      setIsOpen(false);
-                      setOpenSubMenu(isSubOpen ? null : r.label);
-                      return;
-                    }
-                    setOpenSubMenu(null);
-                    const { start, end } = r.fn();
-                    setRange({ start, end });
-                    setActiveRange(r.label);
-                    const live = true;
-                    onApply(toUTCString(start), toUTCString(end), live, r.fn);
-                  }}
-                  className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {r.label}
-                  {r.subOptions && (
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className={`transition-transform duration-150 ${isSubOpen ? "rotate-180" : ""}`}
-                    >
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  )}
-                </button>
-
-                {r.subOptions && isSubOpen && (
-                  <div className="absolute top-full left-0 z-[10000] mt-1.5 min-w-max overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
-                    {r.subOptions.map((sub, idx) => (
-                      <button
-                        key={sub.label}
-                        onClick={() => applySubOption(sub)}
-                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-bold transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
-                          activeRange === sub.label
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-gray-700 dark:text-gray-300"
-                        } ${idx === 0 ? "" : "border-t border-gray-100 dark:border-white/5"}`}
-                      >
-                        {sub.label === r.label ? (
-                          <>
-                            <span>{sub.label}</span>
-                            <span className="text-[10px] font-normal text-gray-400">full</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>{sub.label}</span>
-                            <span className="text-[10px] font-normal text-gray-400">~ today</span>
-                          </>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+              <Fragment key={r.label}>
+                {r.subOptions && !quickRanges[i - 1]?.subOptions && (
+                  <div className="hidden max-[401px]:block basis-full h-0" />
                 )}
-              </div>
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      if (r.subOptions) {
+                        setIsOpen(false);
+                        setOpenSubMenu(isSubOpen ? null : r.label);
+                        return;
+                      }
+                      setOpenSubMenu(null);
+                      const { start, end } = r.fn();
+                      setRange({ start, end });
+                      setActiveRange(r.label);
+                      const live = true;
+                      onApply(toUTCString(start), toUTCString(end), live, r.fn);
+                    }}
+                    className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    {r.label}
+                    {r.subOptions && (
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-transform duration-150 ${isSubOpen ? "rotate-180" : ""}`}
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {r.subOptions && isSubOpen && (
+                    <div className="absolute top-full left-0 z-[10000] mt-1.5 min-w-max overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
+                      {r.subOptions.map((sub, idx) => (
+                        <button
+                          key={sub.label}
+                          onClick={() => applySubOption(sub)}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-bold transition-colors hover:bg-gray-50 dark:hover:bg-white/5 ${
+                            activeRange === sub.label
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-gray-700 dark:text-gray-300"
+                          } ${idx === 0 ? "" : "border-t border-gray-100 dark:border-white/5"}`}
+                        >
+                          {sub.label === r.label ? (
+                            <>
+                              <span>{sub.label}</span>
+                              <span className="text-[10px] font-normal text-gray-400">full</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{sub.label}</span>
+                              <span className="text-[10px] font-normal text-gray-400">~ today</span>
+                            </>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Fragment>
             );
           })}
         </div>

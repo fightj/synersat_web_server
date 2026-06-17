@@ -147,7 +147,7 @@ function VesselDetailContent({
   const tabRightSlot = useMemo(() => {
     if (mainTab === "detail") {
       return (
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
             <button
               onClick={() => setViewMode("OVERVIEW")}
@@ -169,12 +169,14 @@ function VesselDetailContent({
             </button>
           </div>
           {isLive && (
-            <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
+            <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20 max-[700px]:hidden">
               <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
               <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
             </div>
           )}
-          <TimeSetting onApply={handleTimeApply} />
+          <div className="min-w-0 max-[700px]:w-full">
+            <TimeSetting onApply={handleTimeApply} />
+          </div>
         </div>
       );
     }

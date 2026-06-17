@@ -339,7 +339,7 @@ export default function VesselPageHeader({
                   <DetailItem label="FW PW" value={data.fireWallPassword} />
                 </div>
               )}
-              <div className="flex items-center justify-end gap-2 mt-4">
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
                 <Button size="xs" onClick={async () => { if (!data) return; await vesselSmartboxUpdate(data.imo); }}>
                   Run Update.sh
                 </Button>
@@ -367,13 +367,13 @@ export default function VesselPageHeader({
         </div>
 
         {/* ── 탭 바 ── */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-2 py-1 dark:border-white/5">
+        <div className="flex flex-wrap items-center border-t border-gray-100 px-2 py-1 dark:border-white/5">
           <div className="flex items-center">
             {MAIN_TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => onMainTabChange(tab.id)}
-                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${mainTab === tab.id
+                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors max-[368px]:px-2 max-[368px]:py-2 max-[368px]:text-xs ${mainTab === tab.id
                   ? "border-blue-500 text-blue-600 dark:text-blue-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   }`}
@@ -383,7 +383,7 @@ export default function VesselPageHeader({
             ))}
           </div>
           {tabRightSlot && (
-            <div className="flex items-center pr-2">
+            <div className="ml-auto flex items-center pr-2 max-[1080px]:ml-0 max-[1080px]:w-full max-[1080px]:px-2 max-[1080px]:pb-1">
               {tabRightSlot}
             </div>
           )}
