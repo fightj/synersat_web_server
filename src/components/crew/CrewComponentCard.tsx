@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { useSearchParams } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
@@ -200,28 +201,43 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
 
   const handleExportCSV = () => {
     if (filteredCrew.length === 0) return;
-    const headers = ["ID", "Description", "Type", "Update Period", "Usage (MB)"];
-    const rows = filteredCrew.map((u) => [
-      u.userId,
-      u.description ?? "",
-      u.terminalType || "Auto",
-      u.halfTimePeriod === "half"
-        ? `Half-${u.maxTotalOctetsTimeRange}`
-        : u.maxTotalOctetsTimeRange,
-      `${u.currentOctetUsage ?? "0"} / ${u.maxTotalOctets ?? "0"}`,
-    ]);
-    const csvContent = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
     const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
     const vesselFileName = safe(selectedVessel?.name ?? "vessel");
-    link.setAttribute("download", `${vesselFileName}_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
+
+    const sheetData = [
+      ["ID", "Description", "Type", "Update Period", "Usage (MB)", "Limit (MB)"],
+      ...filteredCrew.map((u) => [
+        u.userId,
+        u.description ?? "",
+        u.terminalType || "Auto",
+        u.halfTimePeriod === "half"
+          ? `Half-${u.maxTotalOctetsTimeRange}`
+          : u.maxTotalOctetsTimeRange,
+        u.currentOctetUsage ?? "0",
+        u.maxTotalOctets ?? "0",
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws["!cols"] = [
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 16 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Crew");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${vesselFileName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (

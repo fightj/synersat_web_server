@@ -231,12 +231,14 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Usage History</h3>
             {crew && <p className="text-xs text-gray-400">{crew.userId}</p>}
           </div>
-          <div className="mr-2 flex flex-wrap items-center gap-2">
-            <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+          <div className="mr-2 flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+            </div>
             <button
               onClick={() => handleApply()}
               disabled={loading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apply
             </button>

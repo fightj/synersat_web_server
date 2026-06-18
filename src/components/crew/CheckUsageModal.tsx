@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import JSZip from "jszip";
+import * as XLSX from "xlsx";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
 import { getCrewOctetUsages } from "@/api/crew-account";
@@ -105,36 +106,58 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
   const handleDownloadZip = useCallback(async () => {
     const zip = new JSZip();
     const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
-    const BOM = "﻿";
+
+    const toKST = (iso: string | null | undefined): string => {
+      if (!iso) return "-";
+      const date = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+      if (isNaN(date.getTime())) return iso.replace("T", " ");
+      const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}`;
+    };
+
     selectedCrew.forEach((crew) => {
       const data = usageMap[crew.userId];
-      const rows: string[] = [];
-      // Summary section
-      rows.push(`Time Range,="${appliedRange?.startAt ?? ""}",="${appliedRange?.endAt ?? ""}"`);
-      rows.push(`Username,${crew.userId}`);
-      rows.push(`Total Download (MB),${data ? toMB(data.totalInputOctets) : "0"}`);
-      rows.push(`Total Upload (MB),${data ? toMB(data.totalOutputOctets) : "0"}`);
-      rows.push(`Total Usage (MB),${data ? toMB(data.totalOctets) : "0"}`);
-      rows.push("");
-      // Session section
-      rows.push("Start,End,Duration,Download (MB),Upload (MB),Total (MB)");
-      (data?.usages ?? []).forEach((s) => {
-        rows.push([
-          `="${formatTime(s.startAt)}"`,
-          `="${formatTime(s.endAt)}"`,
+
+      const sheetData: (string | number)[][] = [
+        ["Time Range (KST)", toKST(appliedRange?.startAt), toKST(appliedRange?.endAt)],
+        ["Username", crew.userId],
+        ["Total Usage (MB)", data ? Number(toMB(data.totalOctets)) : 0],
+        ["Total Download (MB)", data ? Number(toMB(data.totalInputOctets)) : 0],
+        ["Total Upload (MB)", data ? Number(toMB(data.totalOutputOctets)) : 0],
+        [],
+        ["Start (KST)", "End (KST)", "Duration", "Total (MB)", "Download (MB)", "Upload (MB)"],
+        ...(data?.usages ?? []).map((s) => [
+          toKST(s.startAt),
+          toKST(s.endAt),
           formatDuration(s.sessionTime),
-          toMB(s.inputOctets),
-          toMB(s.outputOctets),
-          toMB(s.totalOctets),
-        ].join(","));
-      });
-      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.csv`, BOM + rows.join("\n"));
+          Number(toMB(s.totalOctets)),
+          Number(toMB(s.inputOctets)),
+          Number(toMB(s.outputOctets)),
+        ]),
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws["!cols"] = [
+        { wch: 24 },
+        { wch: 24 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 16 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Usage");
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.xlsx`, wbout);
     });
+
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `usage_${new Date().toISOString().slice(0, 10)}.zip`;
+    a.download = `${safe(vesselName)}_usage_${new Date().toISOString().slice(0, 10)}.zip`;
     a.click();
     URL.revokeObjectURL(url);
   }, [selectedCrew, usageMap, vesselName, appliedRange]);
@@ -158,11 +181,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check Usage</h3>
             <p className="text-xs text-gray-400">{selectedCrew.length} user{selectedCrew.length > 1 ? "s" : ""} selected</p>
           </div>
-          <div className="mr-2 flex flex-wrap items-center gap-2">
+          <div className="mr-2 flex items-center gap-2">
             {hasApplied && Object.keys(usageMap).length > 0 && (
               <button
                 onClick={handleDownloadZip}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -172,11 +195,13 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
                 Download CSV
               </button>
             )}
-            <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+            <div className="min-w-0 flex-1">
+              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+            </div>
             <button
               onClick={handleApply}
               disabled={loading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apply
             </button>

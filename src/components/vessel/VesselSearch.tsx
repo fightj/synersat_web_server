@@ -195,6 +195,11 @@ export default function VesselSearch({ className = "" }: Props) {
     <div ref={rootRef} className={`relative w-full ${className}`}>
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="relative flex items-center">
+          <span className="pointer-events-none absolute left-3 text-gray-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
           <input
             ref={inputRef}
             type="text"
@@ -209,7 +214,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-4 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white"
+            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-10 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white"
           />
 
           <div className="absolute right-3 flex items-center gap-2">
@@ -238,7 +243,7 @@ export default function VesselSearch({ className = "" }: Props) {
                   className="group flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                   title="View vessel detail"
                 >
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 max-[400px]:hidden">Detail</span>
                   <svg
                     width="10"
                     height="10"
@@ -313,7 +318,7 @@ export default function VesselSearch({ className = "" }: Props) {
                             }}
                             className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                           >
-                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 max-[400px]:hidden">Detail</span>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
                               <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
@@ -371,7 +376,7 @@ export default function VesselSearch({ className = "" }: Props) {
                           }}
                           className="group ml-1 flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                         >
-                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Detail</span>
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 max-[400px]:hidden">Detail</span>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400 transition-transform group-hover:translate-x-0.5">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                           </svg>
