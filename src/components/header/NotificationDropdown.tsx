@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import NotificationPanel from "../notification/NotificationPanel";
 import { CommandSignIcon, DisconnectedIcon } from "@/icons";
@@ -187,9 +187,21 @@ export default function NotificationDropdown() {
   const showBadge = serverUnreadCount > 0 || hasNew;
 
   const pendingReadIds = useRef<Set<number>>(new Set());
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const toastCount = useToastStore((s) => s.toasts.length);
   const prevToastCountRef = useRef(toastCount);
+
+  useLayoutEffect(() => {
+    if (!isOpen || !panelRef.current) return;
+    const el = panelRef.current;
+    el.style.transform = "";
+    const rect = el.getBoundingClientRect();
+    const overflowLeft = 8 - rect.left;
+    if (overflowLeft > 0) {
+      el.style.transform = `translateX(${overflowLeft}px)`;
+    }
+  }, [isOpen]);
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
@@ -292,9 +304,10 @@ export default function NotificationDropdown() {
       </button>
 
       <Dropdown
+        ref={panelRef}
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="shadow-theme-lg dark:bg-gray-dark absolute -right-[240px] mt-[17px] flex h-[480px] w-[350px] flex-col rounded-2xl border border-gray-200 bg-white p-3 sm:w-[361px] lg:right-0 dark:border-gray-800"
+        className="shadow-theme-lg dark:bg-gray-dark absolute right-0 mt-[17px] flex h-[480px] w-[350px] flex-col rounded-2xl border border-gray-200 bg-white p-3 sm:w-[361px] dark:border-gray-800"
       >
         {/* 헤더 */}
         <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-700">

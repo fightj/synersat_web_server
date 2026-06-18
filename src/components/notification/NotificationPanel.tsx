@@ -58,11 +58,10 @@ function NotificationPanelCard({
       onClick={() => {
         if (!isRead) onRead(item.id);
       }}
-      className={`relative cursor-pointer rounded-xl border p-4 transition-all ${
-        isRead
-          ? "border-gray-100 bg-gray-50/60 opacity-60 dark:border-white/5 dark:bg-white/1"
-          : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm dark:border-white/5 dark:bg-white/2 dark:hover:border-white/10"
-      }`}
+      className={`relative cursor-pointer rounded-xl border p-4 transition-all ${isRead
+        ? "border-gray-100 bg-gray-50/60 opacity-60 dark:border-white/5 dark:bg-white/1"
+        : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm dark:border-white/5 dark:bg-white/2 dark:hover:border-white/10"
+        }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -131,11 +130,10 @@ function NotificationPanelCard({
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           {isCommand && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                isSuccess
-                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                  : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isSuccess
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                }`}
             >
               {isSuccess ? "Success" : "Failed"}
             </span>
@@ -363,17 +361,15 @@ export default function NotificationPanel({
     <>
       {/* 백드롭 */}
       <div
-        className={`fixed inset-0 z-90 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${
-          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-90 bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 ${isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
         onClick={onClose}
       />
 
       {/* 슬라이드 패널 */}
       <div
-        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[432px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[504px] dark:bg-gray-900 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[344px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[504px] dark:bg-gray-900 ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-white/10">
@@ -409,11 +405,10 @@ export default function NotificationPanel({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  activeTab === tab
-                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
-                }`}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${activeTab === tab
+                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
+                  }`}
               >
                 {tab}
               </button>

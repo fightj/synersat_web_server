@@ -147,34 +147,38 @@ function VesselDetailContent({
   const tabRightSlot = useMemo(() => {
     if (mainTab === "detail") {
       return (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-          <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
-            <button
-              onClick={() => setViewMode("OVERVIEW")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setViewMode("COMMANDS")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-                }`}
-            >
-              Commands
-            </button>
-          </div>
-          {isLive && (
-            <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20 max-[700px]:hidden">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          {/* Overview/Commands + Live: 절대 줄바꿈 안 됨 */}
+          <div className="flex shrink-0 items-center gap-x-4">
+            <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+              <button
+                onClick={() => setViewMode("OVERVIEW")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setViewMode("COMMANDS")}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
+                  ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  }`}
+              >
+                Commands
+              </button>
             </div>
-          )}
-          <div className="min-w-0 max-[700px]:w-full">
+            {isLive && (
+              <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20 max-[700px]:hidden">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
+              </div>
+            )}
+          </div>
+          {/* TimeSetting: 공간이 부족하면 독립적으로 줄바꿈 */}
+          <div className="min-w-0">
             <TimeSetting onApply={handleTimeApply} />
           </div>
         </div>

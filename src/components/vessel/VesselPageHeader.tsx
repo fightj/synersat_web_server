@@ -367,8 +367,8 @@ export default function VesselPageHeader({
         </div>
 
         {/* ── 탭 바 ── */}
-        <div className="flex flex-wrap items-center border-t border-gray-100 px-2 py-1 dark:border-white/5">
-          <div className="flex items-center">
+        <div className="flex flex-wrap items-center gap-y-1 border-t border-gray-100 px-2 py-1 dark:border-white/5">
+          <div className="flex shrink-0 items-center">
             {MAIN_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -383,7 +383,7 @@ export default function VesselPageHeader({
             ))}
           </div>
           {tabRightSlot && (
-            <div className="ml-auto flex items-center pr-2 max-[1080px]:ml-0 max-[1080px]:w-full max-[1080px]:px-2 max-[1080px]:pb-1">
+            <div className="ml-auto flex items-center px-2 py-1">
               {tabRightSlot}
             </div>
           )}

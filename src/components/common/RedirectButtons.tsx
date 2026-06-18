@@ -15,7 +15,10 @@ export default function RedirectButtons({ vesselImo }: RedirectButtonsProps) {
     const vessel = useVesselStore.getState().vessels.find(
       (v) => String(v.imo) === vesselImo
     );
-    if (!vessel) return;
+    if (!vessel) {
+      console.warn(`[RedirectButtons] 해당 선박을 찾지 못했습니다. (IMO: ${vesselImo})`);
+      return;
+    }
     const safeId = vessel.id.replace(/[^a-zA-Z0-9-]/g, "");
     window.open(`https://${safeId}-${action}.synersatfleet.net`, "_blank");
   };
