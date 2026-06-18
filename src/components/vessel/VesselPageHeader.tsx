@@ -383,7 +383,7 @@ export default function VesselPageHeader({
             ))}
           </div>
           {tabRightSlot && (
-            <div className="ml-auto flex items-center px-2 py-1">
+            <div className="ml-auto flex items-center gap-x-4 px-2 py-1 max-[983px]:w-full max-[983px]:flex-wrap max-[983px]:justify-end max-[983px]:gap-y-1">
               {tabRightSlot}
             </div>
           )}
