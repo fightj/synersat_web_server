@@ -214,10 +214,10 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-30 pl-10 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white"
+            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-25 pl-10 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
           />
 
-          <div className="absolute right-3 flex items-center gap-2">
+          <div className="absolute right-3 flex items-center gap-1">
             {query ? (
               <button
                 type="button"
@@ -240,7 +240,7 @@ export default function VesselSearch({ className = "" }: Props) {
                     setOpen(false);
                     router.push(`/vessels/detail?imo=${selectedVessel?.imo}`);
                   }}
-                  className="group flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
+                  className="group flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                   title="View vessel detail"
                 >
                   <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 max-[400px]:hidden">Detail</span>

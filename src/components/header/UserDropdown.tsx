@@ -35,9 +35,12 @@ export default function UserDropdown() {
           />
         </span> */}
 
-      <span className="text-theme-sm mr-1 block font-bold text-white dark:text-white">
+      <span className="text-theme-sm mr-1 block font-bold text-white dark:text-white max-[550px]:hidden">
         {displayName}
       </span>
+      <div className="hidden max-[550px]:flex h-9.5 w-9.5 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white uppercase">
+        {displayName?.charAt(0) ?? "?"}
+      </div>
 
       {/* <svg
           className={`stroke-gray-500 transition-transform duration-200 dark:stroke-gray-400 ${isOpen ? "rotate-180" : ""
