@@ -85,7 +85,7 @@ export default function CommandsPage() {
   };
 
   return (
-    <>
+    <div className="max-[767px]:px-2">
       <PageBreadcrumb pageTitle="Commands" />
 
       <div className="space-y-6">
@@ -111,6 +111,6 @@ export default function CommandsPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
