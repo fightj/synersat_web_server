@@ -214,7 +214,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-25 pl-10 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
+            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-25 pl-8 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
           />
 
           <div className="absolute right-3 flex items-center gap-1">
@@ -269,7 +269,7 @@ export default function VesselSearch({ className = "" }: Props) {
         </div>
 
         {open && (
-          <div className="flex flex-row absolute top-[calc(100%+6px)] w-[480px] left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex flex-row absolute top-[calc(100%+6px)] w-[480px] max-[520px]:w-[288px] left-0 z-9999 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             {/* 왼쪽: 검색 결과 */}
             <div
               ref={dropdownRef}
@@ -332,7 +332,7 @@ export default function VesselSearch({ className = "" }: Props) {
             </div>
 
             {/* 오른쪽: 최근 검색 */}
-            <div className="w-48 shrink-0 border-l border-gray-100 dark:border-white/10 flex flex-col">
+            <div className="w-48 shrink-0 border-l border-gray-100 dark:border-white/10 flex flex-col max-[520px]:hidden">
               <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />

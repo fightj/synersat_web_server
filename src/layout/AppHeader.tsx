@@ -26,39 +26,43 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-80 flex w-full flex-col gap-1 bg-transparent py-3 lg:px-6">
-      {/* 메인 행: 로고+네비 | 검색+아이콘 */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        {/* 왼쪽 영역: 로고 + 네비게이션 */}
-        <div className="flex h-[46px] items-center gap-3 rounded-xl bg-blue-700/95 px-3 shadow-md dark:bg-blue-950/90">
-          <Link href="/" className="flex items-center gap-2">
+    <header className="fixed top-0 right-0 left-0 z-80 flex w-full flex-col gap-1 bg-transparent py-3 px-3 lg:px-6">
+      <div className="flex flex-col gap-1 min-[730px]:flex-row min-[730px]:items-center min-[730px]:justify-between">
+
+        {/* 왼쪽: 로고 + 네비게이션 */}
+        <div className="flex h-[46px] items-center gap-2 rounded-xl bg-blue-700/95 px-3 shadow-md max-[729px]:justify-between dark:bg-blue-950/90">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
             <Image
               src="/images/logo/logo_intro.png"
               alt="SynerSAT"
               width={35}
               height={28}
               priority
+              className="max-[405px]:hidden"
             />
-            <span className="hidden min-[406px]:inline sm:hidden lg:inline">
+            {/* ≤405px: 회사명만 / 406~730px: 로고+회사명 / 730~900px: 로고만 / 900px+: 로고+회사명 */}
+            <span className="inline min-[730px]:hidden min-[900px]:inline">
               <MainLogoDark />
             </span>
           </Link>
           <AppSidebar />
         </div>
 
-        {/* 오른쪽 영역: 검색 + 알림 + 테마 + 사용자 */}
-        <div className="relative z-50 flex h-[46px] items-center gap-2 rounded-xl bg-gray-600/70 px-2 shadow-sm lg:gap-3 lg:px-4 dark:bg-gray-800/90">
+        {/* 오른쪽: 검색 + 아이콘 */}
+        <div className="relative z-50 flex h-[46px] items-center gap-1.5 rounded-xl bg-gray-600/70 px-2 shadow-sm lg:gap-3 lg:px-4 dark:bg-gray-800/90">
           {pathname !== "/vessels" && pathname !== "/commands" && (
-            <div className="min-w-[180px] lg:min-w-[200px]">
+            <div className="min-w-0 flex-1">
               <VesselSearch />
             </div>
           )}
-          <ThemeToggleButton />
-          <NotificationDropdown />
-          <UserDropdown />
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <ThemeToggleButton />
+            <NotificationDropdown />
+            <UserDropdown />
+          </div>
         </div>
-      </div>
 
+      </div>
     </header>
   );
 };

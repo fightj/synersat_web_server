@@ -18,7 +18,7 @@ export default function AdminLayout({
       <CommandToast />
 
       {/* Page Content */}
-      <div className="mx-auto max-w-(--breakpoint-2xl) pt-28 sm:pt-16 md:p-8 md:pt-20">
+      <div className="mx-auto max-w-(--breakpoint-2xl) pt-28 min-[730px]:pt-16 md:p-8 md:pt-20">
         {children}
       </div>
     </div>
