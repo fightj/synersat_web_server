@@ -56,11 +56,12 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
 
   const processRaw = useCallback((result: any): CrewEntry[] => {
     const rawList: any[] = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
-    const mapped: (CrewEntry | null)[] = rawList.map((row: any) => {
+    const mapped: (CrewEntry | null)[] = rawList.map((row: any, idx: number) => {
       const u = row.updateType === "CREATE" ? row.next : row.current;
       if (!u) return null;
       return {
-        userId: u.userName,
+        // CREATE pending 항목은 userName이 null — 임시 식별자 부여
+        userId: u.userName ?? `__pending_${idx}`,
         password: u.password ?? "",
         description: u.description ?? null,
         terminalType: u.terminalType ?? null,

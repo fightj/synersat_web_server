@@ -212,7 +212,9 @@ export default function CrewTable({
                     </div>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-sm font-bold text-gray-800 dark:text-white/90">
-                    {formatUserId ? formatUserId(u.userId) : u.userId}
+                    {u.userId.startsWith("__pending_")
+                      ? <span className="text-blue-400 dark:text-blue-500">Pending ID</span>
+                      : formatUserId ? formatUserId(u.userId) : u.userId}
                   </TableCell>
                   <TableCell className="w-[130px] px-3 py-4">
                     <StatusBadge updateType={u.updateType} />

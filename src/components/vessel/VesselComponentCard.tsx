@@ -76,7 +76,7 @@ export default function VesselComponentCard() {
     <>{/* 최근 선박 탭 행 */}
 
       <div
-        className="rounded-xl border border-gray-200 bg-white dark:border-white/5 dark:bg-white/3"
+        className="rounded-md border border-gray-200 bg-white dark:border-white/5 dark:bg-white/3"
       >
         <Suspense fallback={null}>
           <RecentVesselTabs />
