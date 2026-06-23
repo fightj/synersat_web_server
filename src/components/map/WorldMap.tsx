@@ -416,7 +416,7 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, isLive, ma
         )}
 
         {/* ── Map style selector: thumbnail buttons above reset button ── */}
-        {!mapOverlay && (
+        {!mapOverlay && hasValidGps && (
           <div className="absolute bottom-14 right-4 z-10 flex flex-col gap-1.5">
             {(["light", "dark"] as MapStyle[]).map((s) => (
               <button
