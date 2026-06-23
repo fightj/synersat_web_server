@@ -59,7 +59,7 @@ export default function PortForwardPageTemplate({
         onConfirm={handleDeleteConfirm}
       />
 
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="rounded-2xl border border-gray-200 bg-(--color-surface-1) shadow-sm dark:border-white/5">
         {/* ✅ 헤더 - overflow 영향 없이 고정 */}
         <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
           <div></div>

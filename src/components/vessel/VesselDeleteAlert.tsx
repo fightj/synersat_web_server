@@ -32,7 +32,7 @@ export default function VesselDeleteAlert({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="animate-fadeIn w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+      <div className="animate-fadeIn w-full max-w-md rounded-2xl bg-(--color-surface-1) p-6 shadow-2xl">
         <Alert
           variant="warning"
           title="Delete Vessel"

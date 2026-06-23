@@ -158,14 +158,14 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             {usageStats.map((item) => (
               <div
                 key={item.name}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-5 transition-all hover:shadow-md dark:border-white/[0.05] dark:bg-white/[0.02]"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-(--color-surface-1) p-5 transition-all hover:shadow-md dark:border-white/5"
               >
                 <ScanLine isScanning={showScan} scanKey={scan.key} />
                 <div className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]" />
                 <div className="relative">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
                       <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">{item.name}</span>
                     </div>
                     <span className="font-mono text-[11px] text-gray-400">{item.interfaces.join(" · ")}</span>
@@ -217,7 +217,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
           </div>
 
           {/* 데이터 사용량 히스토리 차트 */}
-          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-(--color-surface-1) p-4 dark:border-white/5">
             <ScanLine isScanning={showScan} scanKey={scan.key} />
             <div className="mb-4 flex items-center justify-between">
               <h4 className="text-sm font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">

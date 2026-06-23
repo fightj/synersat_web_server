@@ -245,7 +245,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     <div className="space-y-6">
       <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
 
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/3">
+      <div className="rounded-2xl border border-gray-200 bg-(--color-surface-1) shadow-sm dark:border-white/5">
         <CrewToolbar
           vesselName={selectedVessel?.name}
           noneSelected={noneSelected}

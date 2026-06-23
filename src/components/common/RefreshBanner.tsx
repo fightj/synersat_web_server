@@ -18,7 +18,7 @@ export default function RefreshBanner({ visible, onClose }: RefreshBannerProps) 
 
   return (
     <div className="fixed top-6 left-1/2 z-9999 -translate-x-1/2">
-      <div className="flex w-[360px] items-start gap-4 rounded-2xl border border-blue-200 bg-white px-5 py-4 shadow-xl dark:border-blue-500/30 dark:bg-gray-900">
+      <div className="flex w-[360px] items-start gap-4 rounded-2xl border border-blue-200 bg-(--color-surface-1) px-5 py-4 shadow-xl dark:border-blue-500/30">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/15">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path

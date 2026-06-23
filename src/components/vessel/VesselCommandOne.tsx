@@ -125,7 +125,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
         {COMMAND_STATUSES.map((status) => (
           <div
             key={status}
-            className="group flex items-center gap-2.5 rounded-full border border-gray-100 bg-white px-3.5 py-1.5 transition-all hover:shadow-sm dark:border-white/5 dark:bg-white/[0.03]"
+            className="group flex items-center gap-2.5 rounded-full border border-gray-100 bg-(--color-surface-1) px-3.5 py-1.5 transition-all hover:shadow-sm dark:border-white/5"
           >
             <span
               className={`h-2 w-2 rounded-full ${
@@ -149,7 +149,7 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
       </div>
 
       {/* 2. 명령어 리스트 테이블 */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-(--color-surface-1) dark:border-white/5">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3 dark:border-white/5">
           <h4 className="text-sm font-bold tracking-wider text-gray-500 uppercase">
             Recent Commands

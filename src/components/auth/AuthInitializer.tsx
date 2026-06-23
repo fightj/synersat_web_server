@@ -28,7 +28,7 @@ export default function AuthInitializer({
   // 로딩 중
   if (!ready) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-(--color-surface-1)">
         <Loading message="Fetching data..." />
       </div>
     );
@@ -37,7 +37,7 @@ export default function AuthInitializer({
   // 인증 실패 (user가 null)
   if (!user) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-(--color-surface-1)">
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
             <svg

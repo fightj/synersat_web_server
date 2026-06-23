@@ -62,7 +62,7 @@ export default function Pagination({
         type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-(--color-surface-1) text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:text-gray-400 dark:hover:bg-white/[0.08]"
       >
         <ChevronIcon direction="left" />
       </button>
@@ -77,7 +77,7 @@ export default function Pagination({
             className={`flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-all ${
               currentPage === number
                 ? "border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
+                : "border-gray-200 bg-(--color-surface-1) text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.08] dark:text-gray-400 dark:hover:bg-white/[0.08]"
             }`}
           >
             {number}
@@ -90,7 +90,7 @@ export default function Pagination({
         type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08]"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-(--color-surface-1) text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/[0.08] dark:text-gray-400 dark:hover:bg-white/[0.08]"
       >
         <ChevronIcon direction="right" />
       </button>

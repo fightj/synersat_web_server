@@ -124,7 +124,7 @@ export default function CommandTable({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+    <div className="relative overflow-hidden rounded-md border border-gray-200 bg-(--color-surface-1) dark:border-white/5">
       <div className="max-w-full overflow-x-auto">
         <Table className="min-w-[1300px]">
           <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
@@ -271,7 +271,7 @@ export default function CommandTable({
       {/* ✅ 상세 정보 모달 */}
       {selectedId !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl dark:border dark:border-white/10 dark:bg-gray-900">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
             {/* 헤더 */}
             <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-white/5">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">

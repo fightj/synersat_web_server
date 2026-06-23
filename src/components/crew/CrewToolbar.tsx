@@ -49,7 +49,7 @@ export default function CrewToolbar({
   onModifyVoucher,
 }: CrewToolbarProps) {
   return (
-    <div className="sticky top-20 z-40 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-3 dark:border-white/[0.05] dark:bg-gray-900">
+    <div className="sticky top-20 z-40 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-gray-100 bg-(--color-surface-1) px-5 py-3 dark:border-white/5">
       {/* 왼쪽: 액션 버튼들 */}
       <div className="flex flex-wrap items-center gap-2">
         <Button size="compact" variant="outline" startIcon={<CsvIcon />}

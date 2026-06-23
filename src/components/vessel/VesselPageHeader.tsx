@@ -215,7 +215,7 @@ export default function VesselPageHeader({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      <div className="rounded-xl border border-gray-200 bg-(--color-surface-1) dark:border-white/5">
         {/* ── 최근 선박 탭 ── */}
         <Suspense fallback={null}>
           <RecentVesselTabs />
@@ -367,7 +367,7 @@ export default function VesselPageHeader({
         </div>
 
         {/* ── 탭 바 ── */}
-        <div className="flex flex-wrap items-center gap-y-1 border-t border-gray-100 px-2 py-1 dark:border-white/5">
+        <div className="flex flex-wrap items-center gap-y-1  px-2 py-1 ">
           <div className="flex shrink-0 items-center">
             {MAIN_TABS.map((tab) => (
               <button

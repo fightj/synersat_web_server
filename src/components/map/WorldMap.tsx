@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, type ReactNode } from "react";
+import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
 import type { RouteCoordinate } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
@@ -14,6 +14,7 @@ interface WorldMapProps {
   vesselId: string | null;
   coordinates: RouteCoordinate[];
   timeRange?: { startAt: string; endAt: string };
+  isLive?: boolean;
   mapOverlay?: ReactNode;
 }
 
@@ -162,17 +163,38 @@ function syncMarkers(
 
 // ── Component ─────────────────────────────────────────────────────────────
 
-export default function WorldMap({ vesselImo, coordinates, timeRange, mapOverlay }: WorldMapProps) {
+type MapStyle = "light" | "dark";
+const MAP_STYLE_KEY = "worldmap-tile-style";
+
+const MAP_STYLE_PREVIEWS = {
+  light: "https://tile.openstreetmap.de/0/0/0.png",
+  dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
+} as const;
+
+export default function WorldMap({ vesselImo, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
+  // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
+  const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
+    if (typeof window === "undefined") return "light";
+    const saved = localStorage.getItem(MAP_STYLE_KEY);
+    return saved === "dark" ? "dark" : "light";
+  });
+  // ref: coordinate effect 클로저에서 최신 스타일 읽기 위해
+  const mapStyleRef = useRef<MapStyle>(mapStyle);
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  // Keyed by timestamp (ms) for O(1) lookup during diff
   const markersRef = useRef<MarkersMap>(new Map());
-  // At most 2 polylines (blue + red), regardless of coordinate count
   const polylinesRef = useRef<any[]>([]);
+  const tileLayersRef = useRef<any[]>([]);
   const boundsRef = useRef<any>(null);
   const invalidateSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Shared ref so zoom handler always sees latest data without re-attaching
   const validPointsRef = useRef<RouteCoordinate[]>([]);
+
+  const handleStyleChange = (style: MapStyle) => {
+    mapStyleRef.current = style;
+    setMapStyle(style);
+    localStorage.setItem(MAP_STYLE_KEY, style);
+  };
 
   // Destroy map on unmount
   useEffect(() => {
@@ -183,8 +205,41 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, mapOverlay
         mapInstanceRef.current = null;
       }
       markersRef.current.clear();
+      tileLayersRef.current = [];
     };
   }, []);
+
+  // ── Tile layer: mapStyle 변경 시에만 교체 (맵 생성 후) ──────────────────
+  useEffect(() => {
+    (async () => {
+      if (!mapInstanceRef.current) return;           // 맵 미생성 시 skip (init 블록이 처리)
+      const L = await import("leaflet");
+      if (!mapInstanceRef.current) return;           // await 후 unmount됐을 수 있으므로 재확인
+      const map = mapInstanceRef.current;
+
+      tileLayersRef.current.forEach((tl) => { try { tl.remove(); } catch { /* ignore */ } });
+      tileLayersRef.current = [];
+
+      if (mapStyle === "dark") {
+        tileLayersRef.current.push(
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            subdomains: "abcd", noWrap: false, keepBuffer: 4,
+          }).addTo(map),
+        );
+      } else {
+        tileLayersRef.current.push(
+          L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
+            noWrap: false, keepBuffer: 4,
+          }).addTo(map),
+        );
+        tileLayersRef.current.push(
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
+            noWrap: false, subdomains: "abcd", zIndex: 10,
+          }).addTo(map),
+        );
+      }
+    })();
+  }, [mapStyle]);
 
   const hasValidGps = useMemo(() => {
     if (!coordinates || coordinates.length === 0) return false;
@@ -198,19 +253,33 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, mapOverlay
       if (!mapRef.current) return;
       const L = await import("leaflet");
 
-      // Initialize map once
+      // Initialize map once — add tiles here to avoid race with tile-swap effect
       if (!mapInstanceRef.current) {
         const map = L.map(mapRef.current, {
           center: [20, 0], zoom: 2,
           zoomControl: false, attributionControl: false,
         });
         mapInstanceRef.current = map;
-        L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
-          noWrap: false, keepBuffer: 4,
-        }).addTo(map);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
-          noWrap: false, subdomains: "abcd", zIndex: 10,
-        }).addTo(map);
+
+        const initStyle = mapStyleRef.current;
+        if (initStyle === "dark") {
+          tileLayersRef.current.push(
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+              subdomains: "abcd", noWrap: false, keepBuffer: 4,
+            }).addTo(map),
+          );
+        } else {
+          tileLayersRef.current.push(
+            L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
+              noWrap: false, keepBuffer: 4,
+            }).addTo(map),
+          );
+          tileLayersRef.current.push(
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", {
+              noWrap: false, subdomains: "abcd", zIndex: 10,
+            }).addTo(map),
+          );
+        }
       }
 
       const map = mapInstanceRef.current;
@@ -346,6 +415,36 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, mapOverlay
           </div>
         )}
 
+        {/* ── Map style selector: thumbnail buttons above reset button ── */}
+        {!mapOverlay && (
+          <div className="absolute bottom-14 right-4 z-10 flex flex-col gap-1.5">
+            {(["light", "dark"] as MapStyle[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => handleStyleChange(s)}
+                title={s === "light" ? "Light map" : "Dark map"}
+                className={`h-10 w-10 overflow-hidden rounded-lg border-2 shadow-lg transition-all hover:scale-105 ${
+                  mapStyle === s ? "border-blue-400" : "border-white/25 hover:border-white/50"
+                }`}
+              >
+                <img
+                  src={MAP_STYLE_PREVIEWS[s]}
+                  alt={s}
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {isLive && !mapOverlay && hasValidGps && (
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+            <span className="text-xs font-bold text-green-400">Live</span>
+          </div>
+        )}
+
         {hasValidGps && (
           <button
             onClick={() => {
@@ -362,7 +461,7 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, mapOverlay
           </button>
         )}
       </div>
-      <div className="mt-3 rounded-xl border border-gray-200 bg-white p-2 dark:border-white/5 dark:bg-white/3">
+      <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
         <RedirectButtons vesselImo={vesselImo} />
       </div>
       <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />

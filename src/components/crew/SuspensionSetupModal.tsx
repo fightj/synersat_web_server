@@ -86,7 +86,7 @@ export default function SuspensionSetupModal({
     >
       <div className="flex flex-col">
         {/* ✅ 헤더 - 이미지처럼 어두운 배경 */}
-        <div className="bg-white px-6 py-4 py-5 dark:bg-gray-900">
+        <div className="bg-(--color-surface-1) px-6 py-4 py-5">
           <h3 className="text-base font-semibold text-black dark:text-white">
             Suspension Setup
           </h3>
@@ -96,7 +96,7 @@ export default function SuspensionSetupModal({
         </div>
 
         {/* 테이블 영역 */}
-        <div className="bg-white px-6 py-5 dark:bg-gray-900">
+        <div className="bg-(--color-surface-1) px-6 py-5">
           {/* ✅ 테이블 형태로 헤더 */}
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/10">
             {/* 헤더 */}
@@ -218,7 +218,7 @@ export default function SuspensionSetupModal({
         </div>
 
         {/* ✅ 하단 버튼 */}
-        <div className="flex justify-center gap-3 border-t border-gray-100 bg-white px-6 py-4 dark:border-white/10 dark:bg-gray-900">
+        <div className="flex justify-center gap-3 border-t border-gray-100 bg-(--color-surface-1) px-6 py-4 dark:border-white/10">
           <button
             onClick={handleApply}
             className="rounded-lg bg-emerald-500 px-10 py-2 text-sm font-bold tracking-wide text-white transition-all hover:bg-emerald-600 active:scale-95"

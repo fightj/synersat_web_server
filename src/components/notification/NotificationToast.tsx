@@ -38,7 +38,7 @@ function ToastCard({
         visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
       }`}
     >
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl dark:border-white/10 dark:bg-gray-800">
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-(--color-surface-1) shadow-xl dark:border-white/10">
         {/* 상단 컬러 바 */}
         <div
           className={`h-1 w-full ${

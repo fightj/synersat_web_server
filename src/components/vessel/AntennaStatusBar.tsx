@@ -172,7 +172,7 @@ export default function AntennaStatusBar({ coordinates, timeRange }: {
   };
 
   return (
-    <div className="relative mt-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
+    <div className="relative mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-4 dark:border-white/5">
       {isScanning && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden">
           <div

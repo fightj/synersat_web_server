@@ -49,9 +49,9 @@ export default function LineChartOne({
   const { allSeries, unavailSeries, gapSeries, isLongTerm, dayDiff } = useMemo(() => {
     const diff = timeRange
       ? differenceInDays(
-          new Date(timeRange.endAt + "Z"),
-          new Date(timeRange.startAt + "Z"),
-        )
+        new Date(timeRange.endAt + "Z"),
+        new Date(timeRange.startAt + "Z"),
+      )
       : 1;
     const longTerm = diff >= 7;
 
@@ -394,12 +394,11 @@ export default function LineChartOne({
                 onClick={() => handleLegendClick(s.name)}
                 onMouseEnter={() => setHoveredAntenna(s.name)}
                 onMouseLeave={() => setHoveredAntenna(null)}
-                className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
-                  isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
-                } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
+                className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${isGhosted ? "scale-95 opacity-30" : "scale-100 opacity-100"
+                  } ${isSelected ? "ring-1 ring-offset-1" : "hover:bg-blue-100 dark:hover:bg-gray-800"}`}
               >
                 <span
-                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
                   style={{ backgroundColor: s.color }}
                 />
                 <span
@@ -415,19 +414,17 @@ export default function LineChartOne({
           {gapSeries.length > 0 && (
             <button
               onClick={handleOfflineClick}
-              className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
-                showOfflineOnly
-                  ? "scale-100 opacity-100 ring-1 ring-red-400 ring-offset-1"
-                  : (selectedAntenna !== null || (hoveredAntenna !== null))
-                    ? "scale-95 opacity-30"
-                    : "scale-100 opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20"
-              }`}
-            >
-              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
-              <span
-                className={`transition-colors ${
-                  showOfflineOnly ? "font-bold text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+              className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${showOfflineOnly
+                ? "scale-100 opacity-100 ring-1 ring-red-400 ring-offset-1"
+                : (selectedAntenna !== null || (hoveredAntenna !== null))
+                  ? "scale-95 opacity-30"
+                  : "scale-100 opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20"
                 }`}
+            >
+              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm bg-red-500" />
+              <span
+                className={`transition-colors ${showOfflineOnly ? "font-bold text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
+                  }`}
               >
                 Offline
               </span>

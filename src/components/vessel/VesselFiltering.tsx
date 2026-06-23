@@ -160,7 +160,7 @@ export default function VesselFiltering({
       </div>
 
       {open && matches.length > 0 && (
-        <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
+        <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-lg border border-gray-200 bg-(--color-surface-1) py-1 shadow-lg dark:border-gray-800">
           <ul ref={scrollContainerRef} className="custom-scrollbar max-h-60 overflow-auto">
             {matches.map((v, idx) => (
               <li key={v.id}>

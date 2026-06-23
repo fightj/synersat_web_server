@@ -349,7 +349,7 @@ export default function AddDeviceModal({
             return (
               <div
                 key={index}
-                className="relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.02]"
+                className="relative rounded-xl border border-gray-200 bg-(--color-surface-1) p-5 shadow-sm dark:border-white/10"
               >
                 {/* 카드 헤더 */}
                 <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-white/5">

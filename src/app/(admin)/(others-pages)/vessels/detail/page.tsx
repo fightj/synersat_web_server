@@ -168,12 +168,6 @@ function VesselDetailContent({
               Commands
             </button>
           </div>
-          {isLive && (
-            <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 dark:bg-green-900/20">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-xs font-bold text-green-600 dark:text-green-400">Live</span>
-            </div>
-          )}
           <div className="min-w-0 max-[983px]:w-full">
             <TimeSetting onApply={handleTimeApply} />
           </div>
@@ -229,7 +223,7 @@ function VesselDetailContent({
       );
     }
     return null;
-  }, [mainTab, prepaidEnabled, viewMode, isLive, handleTimeApply, crewSubTab, firewallSubTab, handleFirewallSubTabChange]);
+  }, [mainTab, prepaidEnabled, viewMode, handleTimeApply, crewSubTab, firewallSubTab, handleFirewallSubTabChange]);
 
   return (
     <div className="space-y-6 p-2">
@@ -265,6 +259,7 @@ function VesselDetailContent({
               vesselId={vesselId}
               coordinates={routeData?.coordinates ?? []}
               timeRange={timeRange}
+              isLive={isLive}
               mapOverlay={terminalVpnIp ? (
                 <SshTerminal vpnIp={terminalVpnIp} type={terminalType} onClose={() => setTerminalVpnIp(null)} />
               ) : undefined}

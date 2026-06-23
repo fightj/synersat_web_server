@@ -60,7 +60,7 @@ function NotificationPanelCard({
       }}
       className={`relative cursor-pointer rounded-xl border p-4 transition-all ${isRead
         ? "border-gray-100 bg-gray-50/60 opacity-60 dark:border-white/5 dark:bg-white/1"
-        : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm dark:border-white/5 dark:bg-white/2 dark:hover:border-white/10"
+        : "border-gray-100 bg-(--color-surface-1) hover:border-gray-200 hover:shadow-sm dark:border-white/5 dark:hover:border-white/10"
         }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -368,7 +368,7 @@ export default function NotificationPanel({
 
       {/* 슬라이드 패널 */}
       <div
-        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[344px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out sm:w-[504px] dark:bg-gray-900 ${isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 z-100 flex h-full w-full min-w-[344px] flex-col bg-(--color-surface-1) shadow-2xl transition-transform duration-300 ease-in-out sm:w-[504px] ${isOpen ? "translate-x-0" : "translate-x-full"
           }`}
       >
         {/* 헤더 */}

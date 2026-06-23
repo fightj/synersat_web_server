@@ -207,7 +207,7 @@ function DeviceCard({
   return (
     <div
       onDoubleClick={!isEditing ? handleDoubleClick : undefined}
-      className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all dark:border-white/10 dark:bg-white/2 ${isEditing ? "shadow-md" : "hover:shadow-md"}`}
+      className={`relative flex flex-col gap-3 overflow-hidden rounded-xl border border-gray-100 bg-(--color-surface-1) p-4 transition-all dark:border-white/10 ${isEditing ? "shadow-md" : "hover:shadow-md"}`}
     >
       <div className="flex items-center justify-between">
         <span className={`rounded-lg px-2.5 py-1 text-xs font-bold uppercase text-white ${style.dot}`}>

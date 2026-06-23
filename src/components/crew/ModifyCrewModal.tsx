@@ -422,7 +422,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
 
       {confirmOpen && pendingPayload && (
         <div className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+          <div className="w-full max-w-md rounded-2xl bg-(--color-surface-1) p-6 shadow-xl">
             <h4 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Changes</h4>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               The following values will be applied to {selectedCrew.length} selected user

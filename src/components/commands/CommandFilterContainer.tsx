@@ -58,18 +58,17 @@ export default function CommandFilterContainer({
         {COMMAND_STATUSES.map((status) => (
           <div
             key={status}
-            className="group flex items-center gap-2.5 rounded-full border border-gray-100 bg-white px-3.5 py-1.5 transition-all hover:shadow-sm dark:border-white/5 dark:bg-white/[0.03]"
+            className="group flex items-center gap-2.5 rounded-full border border-gray-100 bg-(--color-surface-1) px-3.5 py-1.5 transition-all hover:shadow-sm dark:border-white/5"
           >
             <span
-              className={`h-2 w-2 rounded-full ${
-                status === "SUCCESS"
-                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                  : status === "FAILED"
-                    ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
-                    : status === "RUNNING"
-                      ? "animate-pulse bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
-                      : "bg-gray-400"
-              }`}
+              className={`h-2 w-2 rounded-full ${status === "SUCCESS"
+                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                : status === "FAILED"
+                  ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
+                  : status === "RUNNING"
+                    ? "animate-pulse bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                    : "bg-gray-400"
+                }`}
             />
             <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
               {status}
@@ -82,7 +81,7 @@ export default function CommandFilterContainer({
       </div>
 
       {/* 2. 메인 필터 카드 */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+      <div className="rounded-md border border-gray-200 bg-(--color-surface-1) p-5 dark:border-gray-800">
         <div className="flex flex-wrap items-end gap-6">
           {/* Vessel 필터 */}
           <div className="flex flex-col gap-2">

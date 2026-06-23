@@ -37,7 +37,7 @@ export const Dropdown = React.forwardRef<HTMLDivElement, DropdownProps>(
     return (
       <div
         ref={mergedRef}
-        className={`absolute z-40 mt-2 rounded-xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark ${className}`}
+        className={`absolute z-40 mt-2 rounded-xl border border-gray-200 bg-(--color-surface-1) shadow-theme-lg dark:border-gray-800 ${className}`}
       >
         {children}
       </div>

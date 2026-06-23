@@ -336,7 +336,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
   return (
     <div
       ref={listRef}
-      className="overflow-hidden rounded-md border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]"
+      className="overflow-hidden rounded-md border border-gray-200 bg-(--color-surface-1) dark:border-white/5"
     >
       <div className="overflow-x-auto">
         <table

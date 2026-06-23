@@ -214,7 +214,7 @@ export default function VesselSearch({ className = "" }: Props) {
             onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
             onKeyDown={onKeyDown}
             placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-25 pl-8 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:bg-gray-700 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
+            className="text-md h-9.5 w-full rounded-full border border-gray-200 bg-(--color-surface-1) py-2.5 pr-25 pl-8 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
           />
 
           <div className="absolute right-3 flex items-center gap-1">

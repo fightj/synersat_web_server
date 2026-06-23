@@ -194,7 +194,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
 
   return (
     <div className="relative w-full min-w-0" ref={containerRef}>
-      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10 dark:bg-white/3">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-gray-100 bg-(--color-surface-1) p-1 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] dark:border-white/10">
         <button
           onClick={() => { setIsOpen(!isOpen); setOpenSubMenu(null); }}
           className="group flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-white/5"

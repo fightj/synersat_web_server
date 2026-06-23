@@ -60,7 +60,7 @@ export default function RecentVesselTabs() {
   return (
     <div
       ref={containerRef}
-      className={`flex w-full items-center gap-1 overflow-x-auto px-2 py-1.5 [&::-webkit-scrollbar]:hidden ${grabbing ? "cursor-grabbing" : "cursor-grab"}`}
+      className={`flex w-full items-center gap-1 overflow-x-auto border-b border-gray-100 px-2 py-1.5 [&::-webkit-scrollbar]:hidden dark:border-white/5 ${grabbing ? "cursor-grabbing" : "cursor-grab"}`}
       style={{ scrollbarWidth: "none" }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

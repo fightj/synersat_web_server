@@ -26,7 +26,7 @@ export default function ErrorAlertModal({
 
   return (
     <div className="fixed top-6 left-1/2 z-300 -translate-x-1/2">
-      <div className="flex w-[360px] items-start gap-4 rounded-2xl border border-red-200 bg-white px-5 py-4 shadow-xl dark:border-red-500/30 dark:bg-gray-900">
+      <div className="flex w-[360px] items-start gap-4 rounded-2xl border border-red-200 bg-(--color-surface-1) px-5 py-4 shadow-xl dark:border-red-500/30">
         {/* 아이콘 */}
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none">

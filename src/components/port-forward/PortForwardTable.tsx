@@ -63,7 +63,7 @@ function UpdateTooltip({
   direction: "up" | "down";
 }) {
   return (
-    <div className="w-72 rounded-xl border border-orange-300 bg-white p-3.5 shadow-2xl dark:border-orange-500/40 dark:bg-gray-800">
+    <div className="w-72 rounded-xl border border-orange-300 bg-(--color-surface-1) p-3.5 shadow-2xl dark:border-orange-500/40">
       <p className="mb-2.5 text-[10px] font-extrabold tracking-wider text-orange-500 uppercase">
         Pending Changes
       </p>

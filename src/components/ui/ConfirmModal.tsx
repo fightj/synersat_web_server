@@ -31,7 +31,7 @@ export default function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+      <div className="w-full max-w-sm rounded-2xl bg-(--color-surface-1) p-6 shadow-2xl">
         {/* Icon + Title */}
         <div className="mb-3 flex items-center gap-3">
           <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${isWarning ? "bg-amber-100 dark:bg-amber-500/15" : "bg-blue-50 dark:bg-blue-500/10"}`}>
