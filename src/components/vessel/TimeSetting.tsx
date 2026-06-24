@@ -12,8 +12,6 @@ import {
   isWithinInterval,
   addMonths,
   subMonths,
-  startOfDay,
-  endOfDay,
   isAfter,
   differenceInDays,
   startOfWeek,
@@ -91,7 +89,8 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
       fn: () => {
         const now = new Date();
         const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
-        return { start, end: endOfMonth(now) };
+        const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59));
+        return { start, end };
       },
       subOptions: [
         {
@@ -107,7 +106,8 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
           fn: () => {
             const now = new Date();
             const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
-            return { start, end: endOfMonth(now) };
+            const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59));
+            return { start, end };
           },
         },
       ],
@@ -144,14 +144,17 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     setActiveRange("");
     setError(null);
 
+    const utcDayStart = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0));
+    const utcDayEnd = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59));
+
     if (!range.start || (range.start && range.end)) {
-      setRange({ start: startOfDay(day), end: null });
+      setRange({ start: utcDayStart(day), end: null });
     } else {
       let start = range.start;
-      let end = endOfDay(day);
+      let end = utcDayEnd(day);
 
       if (isAfter(start, end)) {
-        [start, end] = [startOfDay(day), endOfDay(start)];
+        [start, end] = [utcDayStart(day), utcDayEnd(start)];
       }
 
       const diff = Math.abs(differenceInDays(start, end));
