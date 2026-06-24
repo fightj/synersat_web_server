@@ -167,29 +167,33 @@ export async function getVesselRoutes(
   startAt: string,
   endAt: string
 ): Promise<VesselRouteResponse> {
-  try {
-    const params = new URLSearchParams({
-      imo: String(imo),
-      startAt,
-      endAt,
-      minutes: "30",
-    });
+  const params = new URLSearchParams({
+    imo: String(imo),
+    startAt,
+    endAt,
+    minutes: "30",
+  });
 
-    const res = await fetch(`${BASE_URL}/vessels/routes?${params.toString()}`, withTestUser({
-      ...fetchOptions,
-      method: "GET",
-    }));
+  const [routesRes, antennasRes] = await Promise.all([
+    fetch(`${BASE_URL}/vessels/dataUsages/routes?${params}`, withTestUser({ ...fetchOptions, method: "GET" })),
+    fetch(`${BASE_URL}/vessels/dataUsages/antennas?${params}`, withTestUser({ ...fetchOptions, method: "GET" })),
+  ]);
 
-    if (!res.ok) {
-      const errorBody = await res.json().catch(() => ({}));
-      throw new Error(errorBody.message || "항적 데이터를 불러오지 못했습니다.");
-    }
-
-    return await res.json();
-  } catch (error) {
-    console.error("getVesselRoutes Error:", error);
-    throw error;
+  if (!routesRes.ok) {
+    const body = await routesRes.json().catch(() => ({}));
+    throw new Error(body.message || "항적 데이터를 불러오지 못했습니다.");
   }
+  if (!antennasRes.ok) {
+    const body = await antennasRes.json().catch(() => ({}));
+    throw new Error(body.message || "안테나 데이터를 불러오지 못했습니다.");
+  }
+
+  const [routesData, antennasData] = await Promise.all([routesRes.json(), antennasRes.json()]);
+
+  return {
+    coordinates: routesData.coordinates,
+    dataUsages: antennasData.dataUsages,
+  };
 }
 
 // -----------------중복 체크 api-----------------
