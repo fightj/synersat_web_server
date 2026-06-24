@@ -88,24 +88,27 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     },
     {
       label: "This Month",
-      fn: () => ({
-        start: startOfMonth(new Date()),
-        end: endOfMonth(new Date()),
-      }),
+      fn: () => {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+        return { start, end: endOfMonth(now) };
+      },
       subOptions: [
         {
           label: "This Month So Far",
-          fn: () => ({
-            start: startOfMonth(new Date()),
-            end: new Date(),
-          }),
+          fn: () => {
+            const now = new Date();
+            const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+            return { start, end: now };
+          },
         },
         {
           label: "This Month",
-          fn: () => ({
-            start: startOfMonth(new Date()),
-            end: endOfMonth(new Date()),
-          }),
+          fn: () => {
+            const now = new Date();
+            const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+            return { start, end: endOfMonth(now) };
+          },
         },
       ],
     },
