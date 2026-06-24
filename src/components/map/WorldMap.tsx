@@ -171,7 +171,7 @@ const MAP_STYLE_PREVIEWS = {
   dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
 } as const;
 
-export default function WorldMap({ vesselImo, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
+export default function WorldMap({ vesselImo, vesselId, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
@@ -462,7 +462,7 @@ export default function WorldMap({ vesselImo, coordinates, timeRange, isLive, ma
         )}
       </div>
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
-        <RedirectButtons vesselImo={vesselImo} />
+        <RedirectButtons vesselId={vesselId ?? ""} />
       </div>
       <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />
       <SatTrackingBar coordinates={coordinates} timeRange={timeRange} />
