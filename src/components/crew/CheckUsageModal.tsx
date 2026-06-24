@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import JSZip from "jszip";
-import * as XLSX from "xlsx";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
 import { getCrewOctetUsages } from "@/api/crew-account";
@@ -137,20 +136,10 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         ]),
       ];
 
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      ws["!cols"] = [
-        { wch: 24 },
-        { wch: 24 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 16 },
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Usage");
-      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.xlsx`, wbout);
+      const csv = sheetData
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.csv`, "﻿" + csv);
     });
 
     const blob = await zip.generateAsync({ type: "blob" });
