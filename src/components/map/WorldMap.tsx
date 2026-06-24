@@ -171,7 +171,7 @@ const MAP_STYLE_PREVIEWS = {
   dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
 } as const;
 
-export default function WorldMap({ vesselImo, vesselId, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
+export default function WorldMap({ vesselId, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
@@ -417,13 +417,13 @@ export default function WorldMap({ vesselImo, vesselId, coordinates, timeRange, 
 
         {/* ── Map style selector: thumbnail buttons above reset button ── */}
         {!mapOverlay && hasValidGps && (
-          <div className="absolute bottom-14 right-4 z-10 flex flex-col gap-1.5">
+          <div className="absolute bottom-36 right-4 z-10 flex flex-col gap-1.5">
             {(["light", "dark"] as MapStyle[]).map((s) => (
               <button
                 key={s}
                 onClick={() => handleStyleChange(s)}
                 title={s === "light" ? "Light map" : "Dark map"}
-                className={`h-10 w-10 overflow-hidden rounded-lg border-2 shadow-lg transition-all hover:scale-105 ${
+                className={`h-9 w-9 overflow-hidden rounded-lg border-2 shadow-lg transition-all hover:scale-105 ${
                   mapStyle === s ? "border-blue-400" : "border-white/25 hover:border-white/50"
                 }`}
               >
@@ -446,19 +446,39 @@ export default function WorldMap({ vesselImo, vesselId, coordinates, timeRange, 
         )}
 
         {hasValidGps && (
-          <button
-            onClick={() => {
-              const map = mapInstanceRef.current;
-              if (!map || !boundsRef.current) return;
-              map.fitBounds(boundsRef.current, { padding: [40, 40] });
-            }}
-            title="Reset view"
-            className="absolute bottom-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-            </svg>
-          </button>
+          <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1.5">
+            <button
+              onClick={() => mapInstanceRef.current?.zoomIn()}
+              title="Zoom in"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <button
+              onClick={() => mapInstanceRef.current?.zoomOut()}
+              title="Zoom out"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                const map = mapInstanceRef.current;
+                if (!map || !boundsRef.current) return;
+                map.fitBounds(boundsRef.current, { padding: [40, 40] });
+              }}
+              title="Reset view"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-800/80 text-gray-300 shadow-lg backdrop-blur-sm transition-all hover:bg-gray-700 hover:text-white active:scale-95"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
