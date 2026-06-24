@@ -177,6 +177,8 @@ export function useVesselMarkers({
           // hover tooltip을 잠시 숨기고 Popup(클릭 가능)으로 대체
           marker.unbindTooltip();
 
+          map.panTo([v.lat, targetLng], { animate: true, duration: 0.4 });
+
           const popup = L.popup({
             closeButton: false,
             offset: [0, -(h / 2 + 4)],

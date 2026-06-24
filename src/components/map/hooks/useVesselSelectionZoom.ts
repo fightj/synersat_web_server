@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, type RefObject } from "react";
 import { getServiceColor } from "../../common/AnntennaMapping";
 import type { DashboardVesselPosition } from "@/types/vessel";
 import { buildVesselCardHtml } from "./useVesselMarkers";
+import { getClosestLng } from "../mapUtils";
 
 interface SelectedVessel {
   id: string;
@@ -135,26 +136,24 @@ export function useVesselSelectionZoom({
     if (found) {
       const lat = found.latitude!;
       const map = mapInstanceRef.current;
-      const lng = map.getCenter().lng;
-      const candidates = [found.longitude! - 360, found.longitude!, found.longitude! + 360];
-      const closestLng = candidates.reduce((best, c) =>
-        Math.abs(c - lng) < Math.abs(best - lng) ? c : best,
-      );
+      const closestLng = getClosestLng(found.longitude!, 170);
       (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
       const pt = map.latLngToContainerPoint([lat, closestLng]);
       setPopupPos({ x: pt.x, y: pt.y });
       const color = found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName);
       setClickedVessel({ imo: found.imo, name: found.vesselName, color });
 
-      // 마커 클릭과 동일하게 팝업 열기
+      // 마커 클릭과 동일하게 중앙 이동 후 팝업 열기
       const L = leafletRef.current;
       if (L) {
+        map.panTo([lat, closestLng], { animate: true, duration: 0.4 });
+
         const popup = L.popup({
           closeButton: false,
           offset: [0, -18],
           className: "vessel-click-popup",
           maxWidth: 300,
-          autoPan: true,
+          autoPan: false,
         })
           .setContent(buildVesselCardHtml({
             lat, lng: closestLng,
