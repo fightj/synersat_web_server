@@ -146,31 +146,49 @@ export function useVesselForm(mode: Mode, vesselData?: any) {
   }, [serialNumber, mode, vesselData]);
 
   const canSubmit = useMemo(() => {
-  const requiredFilled =
-    (mode === "add" ? imo.length >= 7 : true) &&
-    vesselId.trim() !== "" &&
-    account.trim() !== "" &&   // ✅ account 필수
-    name.trim() !== "" &&      // ✅ name 필수
-    vpnIpPart3 !== "" &&
-    vpnIpPart4 !== "";
+    const requiredFilled =
+      (mode === "add" ? imo.length >= 7 : true) &&
+      vesselId.trim() !== "" &&
+      account.trim() !== "" &&
+      name.trim() !== "" &&
+      manager !== "" &&
+      logo !== "" &&
+      vpnIpPart3 !== "" &&
+      vpnIpPart4 !== "";
 
-  const duplicateOk =
-    (mode === "add" ? imoDuplicated === false : true) &&
-    vesselIdDuplicated === false &&
-    vpnDuplicated === false;
+    const duplicateOk =
+      (mode === "add" ? imoDuplicated === false : true) &&
+      vesselIdDuplicated === false &&
+      vpnDuplicated === false;
 
-  return Boolean(requiredFilled && duplicateOk && !saving);
-}, [
-  mode, imo, vesselId, account, name,  // ✅ account, name 추가
-  vpnIpPart3, vpnIpPart4,
-  imoDuplicated, vesselIdDuplicated, vpnDuplicated,
-  saving,
-]);
+    return Boolean(requiredFilled && duplicateOk && !saving);
+  }, [
+    mode, imo, vesselId, account, name, manager, logo,
+    vpnIpPart3, vpnIpPart4,
+    imoDuplicated, vesselIdDuplicated, vpnDuplicated,
+    saving,
+  ]);
 
 const handleSubmit = useCallback(async () => {
-  console.log("[submit] name 원본:", name); // ✅ 확인
-  console.log("[submit] name 변환:", name.trim().toUpperCase());
-  const payload = {
+  const missing: string[] = [];
+  if (!account.trim()) missing.push("Account");
+  if (mode === "add" && imo.length < 7) missing.push("IMO");
+  if (!vesselId.trim()) missing.push("Vessel ID");
+  if (!vpnIpPart3 || !vpnIpPart4) missing.push("VPN IP");
+  if (!name.trim()) missing.push("Name");
+  if (!manager) missing.push("Manager");
+  if (!logo) missing.push("Logo");
+
+  if (missing.length > 0) {
+    setAlertState({
+      variant: "error",
+      title: "Required fields missing",
+      message: `Please fill in: ${missing.join(", ")}`,
+    });
+    return null;
+  }
+
+  const payload: Record<string, any> = {
     imo: mode === "add" ? Number(imo) : Number(vesselData?.imo),
     id: vesselId.trim(),
     vpnIp: `10.8.${vpnIpPart3}.${vpnIpPart4}`,

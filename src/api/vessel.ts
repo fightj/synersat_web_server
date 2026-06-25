@@ -64,6 +64,7 @@ export async function addVessel(payload: any): Promise<any | null> {
     const filteredPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
+    if ("mailAddress" in payload) filteredPayload.mailAddress = payload.mailAddress || "";
 
     const res = await fetch(`${BASE_URL}/vessels`, withTestUser({
       ...fetchOptions,
@@ -88,6 +89,7 @@ export async function updateVessel(payload: UpdateVesselPayload): Promise<{ comm
     const filteredPayload = Object.fromEntries(
       Object.entries(payload).filter(([_, v]) => v !== null && v !== "" && v !== "null")
     );
+    if ("mailAddress" in payload) filteredPayload.mailAddress = (payload as any).mailAddress ?? "";
 
     const res = await fetch(`${BASE_URL}/vessels`, withTestUser({
       ...fetchOptions,

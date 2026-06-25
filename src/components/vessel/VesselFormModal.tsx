@@ -353,7 +353,7 @@ export default function VesselFormModal({
                   </div>
                 )}
                 <div>
-                  <Label className={labelStyle}>Manager</Label>
+                  <RequiredLabel>Manager</RequiredLabel>
                   <SelectWithIcon
                     options={MANAGER_OPTIONS}
                     value={form.manager}
@@ -361,7 +361,7 @@ export default function VesselFormModal({
                   />
                 </div>
                 <div>
-                  <Label className={labelStyle}>Logo</Label>
+                  <RequiredLabel>Logo</RequiredLabel>
                   <SelectWithIcon
                     options={LOGO_OPTIONS}
                     value={form.logo}
