@@ -281,7 +281,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
             </div>
             <div className="h-[250px] w-full">
               {isLoadingData
-                ? <div className="h-full w-full animate-pulse rounded-lg bg-gray-100 dark:bg-white/5" />
+                ? <div className="h-full w-full animate-pulse rounded-lg bg-gray-200 dark:bg-white/10" />
                 : <LineChartOne timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
               }
             </div>

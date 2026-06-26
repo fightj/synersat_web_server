@@ -3,7 +3,7 @@
 import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import "leaflet/dist/leaflet.css";
-import type { RouteCoordinateV2, TimeStampDataUsage, VesselDataUsagesResponse, VesselRoutesV2Response } from "@/types/vessel";
+import type { RouteCoordinateV2, VesselDataUsagesResponse, VesselRoutesV2Response } from "@/types/vessel";
 import { getVesselDataUsages, getVesselRoutesV2 } from "@/api/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import Loading from "../common/Loading";
@@ -41,16 +41,16 @@ interface WorldMapProps {
   mapOverlay?: ReactNode;
 }
 
-type MarkerEntry = { marker: any; data: RouteCoordinateV2; isLast: boolean };
+type MarkerEntry = { marker: any; data: RouteCoordinateV2; isLast: boolean; hasOffline: boolean };
 type MarkersMap = Map<number, MarkerEntry>;
 
 const MIN_CLUSTER_PX = 18;
 
 // ── Helpers (module-level, no closure deps) ───────────────────────────────
 
-function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L: any) {
+function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L: any, hasOffline = false) {
   const heading = p.vesselHeading ?? 0;
-  const available = p.available ?? false;
+  const available = (p.available ?? true) && !hasOffline;
   const color = !available
     ? "#ef4444"
     : p.antennaServiceDisplayName
@@ -94,13 +94,16 @@ function clusterByPixel(
   map: any,
   L: any,
   minPx: number,
-): RouteCoordinateV2[] {
+): { point: RouteCoordinateV2; hasOffline: boolean }[] {
   if (points.length === 0) return [];
   const minDistSq = minPx * minPx;
-  const selected: RouteCoordinateV2[] = [];
+  const selected: { point: RouteCoordinateV2; hasOffline: boolean }[] = [];
   const selPx: { x: number; y: number }[] = [];
+  let pendingOffline = false;
 
   for (const p of points) {
+    if (p.available === false) pendingOffline = true;
+
     const px = map.latLngToContainerPoint(L.latLng(p.latitude!, p.longitude!));
     const tooClose = selPx.some((ep) => {
       const dx = px.x - ep.x;
@@ -108,15 +111,16 @@ function clusterByPixel(
       return dx * dx + dy * dy < minDistSq;
     });
     if (!tooClose) {
-      selected.push(p);
+      selected.push({ point: p, hasOffline: pendingOffline });
       selPx.push({ x: px.x, y: px.y });
+      pendingOffline = false;
     }
   }
 
   // Most recent point (vessel icon) must always be visible
   const last = points[points.length - 1];
-  if (selected.length === 0 || selected[selected.length - 1] !== last) {
-    selected.push(last);
+  if (selected.length === 0 || selected[selected.length - 1].point !== last) {
+    selected.push({ point: last, hasOffline: pendingOffline || last.available === false });
   }
   return selected;
 }
@@ -126,7 +130,7 @@ function clusterByPixel(
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
 function syncMarkers(
-  visiblePoints: RouteCoordinateV2[],
+  visiblePoints: { point: RouteCoordinateV2; hasOffline: boolean }[],
   allPoints: RouteCoordinateV2[],
   zoom: number,
   L: any,
@@ -134,29 +138,35 @@ function syncMarkers(
   markersRef: { current: MarkersMap },
 ) {
   const lastTs = tsMs(allPoints[allPoints.length - 1].timeStamp);
-  const newTsToPoint = new Map<number, RouteCoordinateV2>();
-  for (const p of visiblePoints) {
-    newTsToPoint.set(tsMs(p.timeStamp), p);
+  const newTsToItem = new Map<number, { point: RouteCoordinateV2; hasOffline: boolean }>();
+  for (const item of visiblePoints) {
+    newTsToItem.set(tsMs(item.point.timeStamp), item);
   }
 
   // Remove markers no longer in the visible set
   for (const [ts, entry] of markersRef.current) {
-    if (!newTsToPoint.has(ts)) {
+    if (!newTsToItem.has(ts)) {
       entry.marker.remove();
       markersRef.current.delete(ts);
     }
   }
 
-  // Add new markers / update last marker icon (zoom-dependent size)
-  for (const [ts, p] of newTsToPoint) {
+  // Add new markers / update icons when zoom or hasOffline changes
+  for (const [ts, { point: p, hasOffline }] of newTsToItem) {
     const isLast = ts === lastTs;
     const existing = markersRef.current.get(ts);
 
     if (existing) {
-      if (isLast) existing.marker.setIcon(createArrowIcon(p, zoom, true, L));
+      if (isLast) {
+        existing.marker.setIcon(createArrowIcon(p, zoom, true, L, hasOffline));
+        existing.hasOffline = hasOffline;
+      } else if (existing.hasOffline !== hasOffline) {
+        existing.marker.setIcon(createArrowIcon(p, zoom, false, L, hasOffline));
+        existing.hasOffline = hasOffline;
+      }
     } else {
       const marker = L.marker([p.latitude!, p.longitude!], {
-        icon: createArrowIcon(p, zoom, isLast, L),
+        icon: createArrowIcon(p, zoom, isLast, L, hasOffline),
         zIndexOffset: isLast ? 1000 : 0,
       }).addTo(map);
 
@@ -166,7 +176,7 @@ function syncMarkers(
         hour12: false, timeZoneName: "short",
       }).format(new Date(ts));
 
-      const popupAvailable = p.available ?? false;
+      const popupAvailable = (p.available ?? true) && !hasOffline;
       const popupColor = !popupAvailable
         ? "#ef4444"
         : p.antennaServiceDisplayName
@@ -181,7 +191,7 @@ function syncMarkers(
         </div>`,
       );
 
-      markersRef.current.set(ts, { marker, data: p, isLast });
+      markersRef.current.set(ts, { marker, data: p, isLast, hasOffline });
     }
   }
 }
@@ -361,7 +371,15 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
       markersRef.current.clear();
 
       if (invalidateSizeTimerRef.current) clearTimeout(invalidateSizeTimerRef.current);
-      invalidateSizeTimerRef.current = setTimeout(() => map.invalidateSize(), 100);
+      invalidateSizeTimerRef.current = setTimeout(() => {
+        map.invalidateSize();
+        // invalidateSize 이후 맵이 실제 크기를 알게 되므로 latLngToContainerPoint가 정확해짐 → re-cluster
+        const pts = validPointsRef.current;
+        if (pts.length) {
+          const reVisible = clusterByPixel(pts, map, L, MIN_CLUSTER_PX);
+          syncMarkers(reVisible, pts, map.getZoom(), L, map, markersRef);
+        }
+      }, 100);
 
       if (!hasValidGps) {
         // 이전에 데이터가 없었을 때만 월드뷰로 리셋 (SWR 로딩 전환 시 setView 애니메이션 충돌 방지)
