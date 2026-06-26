@@ -29,7 +29,15 @@ function getRouteParams(startAt: string, endAt: string) {
   } else {
     coordinateCount = Math.min(1000, Math.round(720 * (diffHours / (24 * 30))));
   }
-  return { minutes: 30, coordinateCount };
+  let minutes: number;
+  if (diffHours <= 24) {
+    minutes = 30;
+  } else if (diffHours <= 24 * 7) {
+    minutes = 60;
+  } else {
+    minutes = 120;
+  }
+  return { minutes, coordinateCount };
 }
 
 interface WorldMapProps {
