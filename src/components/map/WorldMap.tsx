@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
+import useSWR from "swr";
 import "leaflet/dist/leaflet.css";
-import type { RouteCoordinateV2, TimeStampDataUsage } from "@/types/vessel";
+import type { RouteCoordinateV2, TimeStampDataUsage, VesselDataUsagesResponse, VesselRoutesV2Response } from "@/types/vessel";
+import { getVesselDataUsages, getVesselRoutesV2 } from "@/api/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import Loading from "../common/Loading";
 import RedirectButtons from "../common/RedirectButtons";
@@ -10,13 +12,30 @@ import AntennaStatusBar from "../vessel/AntennaStatusBar";
 import SatTrackingBar from "../vessel/SatTrackingBar";
 import MainRoutingBar from "../vessel/MainRoutingBar";
 
+const THREE_MINUTES = 3 * 60 * 1000;
+
+function getRouteParams(startAt: string, endAt: string) {
+  const diffMs = Math.max(0, new Date(endAt).getTime() - new Date(startAt).getTime());
+  const diffHours = diffMs / (1000 * 60 * 60);
+  let coordinateCount: number;
+  if (diffHours <= 24) {
+    coordinateCount = 300;
+  } else if (diffHours <= 24 * 7) {
+    const t = (diffHours - 24) / (24 * 7 - 24);
+    coordinateCount = Math.round(300 + t * 50);
+  } else if (diffHours <= 24 * 30) {
+    const t = (diffHours - 24 * 7) / (24 * 30 - 24 * 7);
+    coordinateCount = Math.round(350 + t * 370);
+  } else {
+    coordinateCount = Math.min(1000, Math.round(720 * (diffHours / (24 * 30))));
+  }
+  return { minutes: 30, coordinateCount };
+}
+
 interface WorldMapProps {
   vesselImo: string;
   vesselId: string | null;
-  coordinates: RouteCoordinateV2[];
-  timeStampDataUsages?: TimeStampDataUsage[];
-  isLoadingData?: boolean;
-  isLoadingRoutes?: boolean;
+  fetchTimeRange?: () => { startAt: string; endAt: string };
   timeRange?: { startAt: string; endAt: string };
   isLive?: boolean;
   mapOverlay?: ReactNode;
@@ -177,7 +196,30 @@ const MAP_STYLE_PREVIEWS = {
   dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
 } as const;
 
-export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = [], isLoadingData = false, isLoadingRoutes = false, timeRange, isLive, mapOverlay }: WorldMapProps) {
+export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRange, isLive, mapOverlay }: WorldMapProps) {
+  const swrKey = timeRange ? [vesselImo, timeRange.startAt, timeRange.endAt] : null;
+
+  const { data: dataUsagesData, isLoading: isLoadingData } = useSWR<VesselDataUsagesResponse>(
+    swrKey ? ["vesselDataUsages", ...swrKey] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      return getVesselDataUsages(vesselImo, range.startAt, range.endAt);
+    },
+    { fallbackData: { timeStampDataUsages: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+
+  const { data: routesData, isLoading: isLoadingRoutes } = useSWR<VesselRoutesV2Response>(
+    swrKey ? ["vesselRoutesV2", ...swrKey] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      const { minutes, coordinateCount } = getRouteParams(range.startAt, range.endAt);
+      return getVesselRoutesV2(vesselImo, range.startAt, range.endAt, minutes, coordinateCount);
+    },
+    { fallbackData: { coordinates: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+
+  const coordinates = routesData?.coordinates ?? [];
+  const timeStampDataUsages = dataUsagesData?.timeStampDataUsages ?? [];
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";

@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import useSWR from "swr";
-import type { TimeStampDataUsage, DataUsage } from "@/types/vessel";
-import { getVesselAntennas } from "@/api/vessel";
+import type { DataUsage, VesselDataUsagesResponse } from "@/types/vessel";
+import { getVesselAntennas, getVesselDataUsages } from "@/api/vessel";
+
+const THREE_MINUTES = 3 * 60 * 1000;
 import { getServiceColor } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
@@ -13,8 +15,8 @@ import { Modal } from "@/components/ui/modal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
-  timeStampDataUsages: TimeStampDataUsage[];
-  isLoadingData?: boolean;
+  isLive?: boolean;
+  fetchTimeRange?: () => { startAt: string; endAt: string };
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -68,14 +70,25 @@ const getBreakdownLabel = (displayName: string | null, groupName: string) => {
 
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
-  timeStampDataUsages,
-  isLoadingData = false,
+  isLive = false,
+  fetchTimeRange,
   timeRange,
   onTimeRangeChange,
   viewMode: viewModeProp,
 }) => {
   const viewMode = viewModeProp ?? "OVERVIEW";
   const [chartExpanded, setChartExpanded] = useState(false);
+
+  // ── 차트/히스토리 데이터 (라인차트 + 히스토리 바) ──────────────
+  const { data: dataUsagesData, isLoading: isLoadingData } = useSWR<VesselDataUsagesResponse>(
+    timeRange ? ["vesselDataUsages", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      return getVesselDataUsages(vesselImo, range.startAt, range.endAt);
+    },
+    { fallbackData: { timeStampDataUsages: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+  const timeStampDataUsages = dataUsagesData?.timeStampDataUsages ?? [];
 
   // ── 안테나별 집계 데이터 (카드 패널용) ────────────────────────
   const { data: antennasData, isLoading: isLoadingAntennas } = useSWR(

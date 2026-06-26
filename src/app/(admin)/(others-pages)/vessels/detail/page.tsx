@@ -4,16 +4,13 @@ import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import posthog from "posthog-js";
-import useSWR from "swr";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
 import VesselPageHeader, { type MainTab } from "@/components/vessel/VesselPageHeader";
 import WorldMap from "@/components/map/WorldMap";
 import TimeSetting from "@/components/vessel/TimeSetting";
-import { getVesselDataUsages, getVesselRoutesV2 } from "@/api/vessel";
 import { subHours } from "date-fns";
 import Loading from "@/components/common/Loading";
 import StatusPlaceholder from "@/components/common/StatusPlaceholder";
-import type { VesselDataUsagesResponse, VesselRoutesV2Response } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import { useRecentVesselsStore } from "@/store/recent-vessels.store";
 import PortForwardPageTemplate from "@/components/port-forward/PortForwardPageTemplate";
@@ -22,7 +19,6 @@ import CrewComponentCard from "@/components/crew/CrewComponentCard";
 
 const SshTerminal = dynamic(() => import("@/components/terminal/SshTerminal"), { ssr: false });
 
-const THREE_MINUTES = 3 * 60 * 1000;
 const toUTCString = (date: Date): string => date.toISOString().slice(0, 19);
 const VALID_TABS: MainTab[] = ["detail", "crew", "firewall", "manage"];
 
@@ -119,31 +115,7 @@ function VesselDetailContent({
     }, 500);
   }, []);
 
-  // ── coordinateCount 계산 (시간 범위에 따라 동적 조정) ──────────
-  const getRouteParams = useCallback((startAt: string, endAt: string) => {
-    const diffMs = Math.max(0, new Date(endAt).getTime() - new Date(startAt).getTime());
-    const diffHours = diffMs / (1000 * 60 * 60);
-
-    let coordinateCount: number;
-    if (diffHours <= 24) {
-      coordinateCount = 300;
-    } else if (diffHours <= 24 * 7) {
-      // 24h(300) → 7d(350) 선형 보간
-      const t = (diffHours - 24) / (24 * 7 - 24);
-      coordinateCount = Math.round(300 + t * 50);
-    } else if (diffHours <= 24 * 30) {
-      // 7d(350) → 30d(720) 선형 보간
-      const t = (diffHours - 24 * 7) / (24 * 30 - 24 * 7);
-      coordinateCount = Math.round(350 + t * 370);
-    } else {
-      // 30d 초과: 720 기준으로 비례 증가, 최대 1000
-      coordinateCount = Math.min(1000, Math.round(720 * (diffHours / (24 * 30))));
-    }
-
-    return { minutes: 30, coordinateCount };
-  }, []);
-
-  // ── SWR ───────────────────────────────────────────────────────
+  // ── live 모드 시 실제 fetch 범위를 동적으로 계산 ─────────────
   const resolvedRange = useCallback(() => {
     if (isLive && liveRangeFn) {
       const { start, end } = liveRangeFn();
@@ -152,42 +124,6 @@ function VesselDetailContent({
     return timeRange;
   }, [isLive, liveRangeFn, timeRange]);
 
-  const dataUsagesFetcher = useCallback(async (): Promise<VesselDataUsagesResponse> => {
-    const { startAt, endAt } = resolvedRange();
-    return await getVesselDataUsages(imo, startAt, endAt);
-  }, [imo, resolvedRange]);
-
-  const routesV2Fetcher = useCallback(async (): Promise<VesselRoutesV2Response> => {
-    const { startAt, endAt } = resolvedRange();
-    const { minutes, coordinateCount } = getRouteParams(startAt, endAt);
-    return await getVesselRoutesV2(imo, startAt, endAt, minutes, coordinateCount);
-  }, [imo, resolvedRange, getRouteParams]);
-
-  const swrKey = [imo, timeRange.startAt, timeRange.endAt];
-
-  const { data: dataUsagesData, isLoading: isLoadingUsages } = useSWR<VesselDataUsagesResponse>(
-    ["vesselDataUsages", ...swrKey],
-    dataUsagesFetcher,
-    {
-      fallbackData: { timeStampDataUsages: [] },
-      refreshInterval: isLive ? THREE_MINUTES : 0,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: THREE_MINUTES,
-    },
-  );
-
-  const { data: routesV2Data, isLoading: isLoadingRoutes } = useSWR<VesselRoutesV2Response>(
-    ["vesselRoutesV2", ...swrKey],
-    routesV2Fetcher,
-    {
-      fallbackData: { coordinates: [] },
-      refreshInterval: isLive ? THREE_MINUTES : 0,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: THREE_MINUTES,
-    },
-  );
 
   // ── 탭 바 오른쪽 슬롯 ────────────────────────────────────────
   const tabRightSlot = useMemo(() => {
@@ -287,8 +223,8 @@ function VesselDetailContent({
           <div className="w-full lg:w-1/2">
             <VesselDetailView
               vesselImo={imo}
-              timeStampDataUsages={dataUsagesData?.timeStampDataUsages ?? []}
-              isLoadingData={isLoadingUsages}
+              isLive={isLive}
+              fetchTimeRange={resolvedRange}
               timeRange={timeRange}
               onTimeRangeChange={handleChartRangeChange}
               viewMode={viewMode}
@@ -298,10 +234,7 @@ function VesselDetailContent({
             <WorldMap
               vesselImo={imo}
               vesselId={vesselId}
-              coordinates={routesV2Data?.coordinates ?? []}
-              timeStampDataUsages={dataUsagesData?.timeStampDataUsages ?? []}
-              isLoadingData={isLoadingUsages}
-              isLoadingRoutes={isLoadingRoutes}
+              fetchTimeRange={resolvedRange}
               timeRange={timeRange}
               isLive={isLive}
               mapOverlay={terminalVpnIp ? (
