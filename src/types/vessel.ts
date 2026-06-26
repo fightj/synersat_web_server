@@ -116,6 +116,10 @@ export interface VesselRouteResponse {
   dataUsages: DataUsage[];
 }
 
+export interface VesselAntennasResponse {
+  dataUsages: DataUsage[];
+}
+
 export interface TimeStampDataUsage {
   satId: number;
   timestamp: string;

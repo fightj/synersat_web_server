@@ -1,4 +1,4 @@
-import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, VesselDataUsagesResponse, VesselRoutesV2Response, DashboardVesselsResponse, VesselsLiteList } from "@/types/vessel";
+import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, VesselDataUsagesResponse, VesselRoutesV2Response, VesselAntennasResponse, DashboardVesselsResponse, VesselsLiteList } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
@@ -196,6 +196,18 @@ export async function getVesselRoutes(
     coordinates: routesData.coordinates,
     dataUsages: antennasData.dataUsages,
   };
+}
+
+export async function getVesselAntennas(
+  imo: string | number,
+  startAt: string,
+  endAt: string,
+  minutes = 30,
+): Promise<VesselAntennasResponse> {
+  const params = new URLSearchParams({ imo: String(imo), startAt, endAt, minutes: String(minutes) });
+  const res = await fetch(`${BASE_URL}/vessels/dataUsages/antennas?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+  if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.message || "안테나 데이터를 불러오지 못했습니다."); }
+  return await res.json();
 }
 
 export async function getVesselDataUsages(

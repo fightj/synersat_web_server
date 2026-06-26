@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import type { TimeStampDataUsage } from "@/types/vessel";
+import useSWR from "swr";
+import type { TimeStampDataUsage, DataUsage } from "@/types/vessel";
+import { getVesselAntennas } from "@/api/vessel";
 import { getServiceColor } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
@@ -73,16 +75,24 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const viewMode = viewModeProp ?? "OVERVIEW";
   const [chartExpanded, setChartExpanded] = useState(false);
 
+  // ── 안테나별 집계 데이터 (카드 패널용) ────────────────────────
+  const { data: antennasData } = useSWR(
+    timeRange ? ["vesselAntennas", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+    () => getVesselAntennas(vesselImo, timeRange!.startAt, timeRange!.endAt),
+    { fallbackData: { dataUsages: [] }, revalidateOnFocus: false },
+  );
+
   const [scan, setScan] = useState({ isScanning: false, key: 0 });
-  const prevDataRef = useRef<TimeStampDataUsage[] | null>(null);
+  const prevDataRef = useRef<DataUsage[] | null>(null);
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const data = antennasData?.dataUsages ?? [];
     const isFirst = prevDataRef.current === null;
-    const hasChanged = prevDataRef.current !== timeStampDataUsages;
+    const hasChanged = prevDataRef.current !== data;
     if (!isFirst && !hasChanged) return;
-    prevDataRef.current = timeStampDataUsages;
+    prevDataRef.current = data;
     if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
@@ -93,10 +103,12 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     };
-  }, [timeStampDataUsages]);
+  }, [antennasData]);
 
   const usageStats = useMemo(() => {
-    if (!timeStampDataUsages || timeStampDataUsages.length === 0) return [];
+    const dataUsages = antennasData?.dataUsages ?? [];
+    if (!dataUsages.length) return [];
+
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
       const start = parseISO(timeRange.startAt);
@@ -105,52 +117,30 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
     }
     if (totalSeconds === 0) totalSeconds = 1;
 
-    type AggEntry = {
-      name: string;
-      dataUsageAmount: number;
-      interfaces: Set<string>;
-      itemMap: Map<string, { displayName: string | null; dataUsageAmount: number }>;
-    };
-
-    const aggregated: Record<string, AggEntry> = {};
-    for (const entry of timeStampDataUsages) {
-      for (const detail of entry.dataUsages) {
-        const name = detail.antennaName || "Unknown";
-        if (!aggregated[name]) {
-          aggregated[name] = { name, dataUsageAmount: 0, interfaces: new Set<string>(), itemMap: new Map() };
-        }
-        aggregated[name].dataUsageAmount += detail.dataUsage;
-        const iface = detail.interfaceName || "Unknown";
-        aggregated[name].interfaces.add(iface);
-        const existing = aggregated[name].itemMap.get(iface);
-        if (existing) {
-          existing.dataUsageAmount += detail.dataUsage;
-        } else {
-          aggregated[name].itemMap.set(iface, { displayName: detail.antennaDisplayName, dataUsageAmount: detail.dataUsage });
-        }
-      }
+    const grouped: Record<string, { name: string; totalBytes: number; items: DataUsage[] }> = {};
+    for (const usage of dataUsages) {
+      const name = usage.name || "Unknown";
+      if (!grouped[name]) grouped[name] = { name, totalBytes: 0, items: [] };
+      grouped[name].totalBytes += usage.dataUsageAmount;
+      grouped[name].items.push(usage);
     }
 
-    return Object.values(aggregated).map((item) => {
-      const totalBytes = item.dataUsageAmount;
+    return Object.values(grouped).map(({ name, totalBytes, items }) => {
       const bps = (totalBytes * 8) / totalSeconds;
       const { raw, value, unit } = formatDataSize(totalBytes);
-      const bpsRaw = bps >= 1000000 ? bps / 1000000 : bps / 1000;
-      const bpsSuffix = bps >= 1000000 ? " Mbps" : " kbps";
       return {
-        name: item.name,
-        dataUsageAmount: item.dataUsageAmount,
-        interfaces: Array.from(item.interfaces),
-        items: Array.from(item.itemMap.values()),
+        name,
+        interfaces: items.map((i) => i.interfaceName),
+        items: items.map((i) => ({ displayName: i.antennaDisplayName, dataUsageAmount: i.dataUsageAmount })),
         usageRaw: raw,
         usageValue: value,
         usageUnit: unit,
-        bpsRaw,
-        bpsSuffix,
-        color: getServiceColor(item.name),
+        bpsRaw: bps >= 1_000_000 ? bps / 1_000_000 : bps / 1_000,
+        bpsSuffix: bps >= 1_000_000 ? " Mbps" : " kbps",
+        color: getServiceColor(name),
       };
     });
-  }, [timeStampDataUsages, timeRange]);
+  }, [antennasData, timeRange]);
 
   const showScan = scan.isScanning && usageStats.length > 0;
 
