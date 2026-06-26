@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { differenceInDays } from "date-fns";
-import type { RouteCoordinate } from "@/types/vessel";
+import type { TimeStampDataUsage } from "@/types/vessel";
 import { getServiceColor } from "../common/AnntennaMapping";
 
 const NA_COLOR = "#64748b";
@@ -34,8 +34,10 @@ function fmtFull(ms: number) {
   }).format(new Date(ms));
 }
 
-export default function MainRoutingBar({ coordinates, timeRange }: {
-  coordinates: RouteCoordinate[];
+const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
+
+export default function MainRoutingBar({ timeStampDataUsages, timeRange }: {
+  timeStampDataUsages: TimeStampDataUsage[];
   timeRange?: { startAt: string; endAt: string };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,17 +55,17 @@ export default function MainRoutingBar({ coordinates, timeRange }: {
   // 스캔 라인
   const [isScanning, setIsScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
-  const prevRef = useRef<RouteCoordinate[] | null>(null);
+  const prevRef = useRef<TimeStampDataUsage[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (prevRef.current === coordinates) return;
-    prevRef.current = coordinates;
+    if (prevRef.current === timeStampDataUsages) return;
+    prevRef.current = timeStampDataUsages;
     if (timerRef.current) clearTimeout(timerRef.current);
     setScanKey((k) => k + 1);
     setIsScanning(true);
     timerRef.current = setTimeout(() => setIsScanning(false), 1400);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [coordinates]);
+  }, [timeStampDataUsages]);
 
   const { segs, rStart, rEnd, longTerm } = useMemo(() => {
     const raw_rStart = timeRange ? new Date(timeRange.startAt + "Z").getTime() : 0;
@@ -81,9 +83,9 @@ export default function MainRoutingBar({ coordinates, timeRange }: {
 
     // timestamp → antennaServiceDisplayName 슬롯 맵
     const nameMap = new Map<number, string | null>();
-    for (const c of coordinates) {
-      const t = Math.floor(new Date(c.timeStamp + "Z").getTime() / SLOT_MS) * SLOT_MS;
-      nameMap.set(t, c.status?.antennaServiceDisplayName ?? null);
+    for (const c of timeStampDataUsages) {
+      const t = Math.floor(tsMs(c.timestamp) / SLOT_MS) * SLOT_MS;
+      nameMap.set(t, c.displayName ?? null);
     }
 
     if (nameMap.size === 0) return { segs: [], rStart: rS, rEnd: rE, longTerm: lt };
@@ -132,7 +134,7 @@ export default function MainRoutingBar({ coordinates, timeRange }: {
     }
 
     return { segs: merged, rStart: rS, rEnd: rE, longTerm: lt };
-  }, [coordinates, timeRange]);
+  }, [timeStampDataUsages, timeRange]);
 
   if (segs.length === 0) return null;
 

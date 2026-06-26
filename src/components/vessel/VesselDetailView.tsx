@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import type { DataUsage, RouteCoordinate } from "@/types/vessel";
+import type { TimeStampDataUsage } from "@/types/vessel";
 import { getServiceColor } from "../common/AnntennaMapping";
 import { differenceInSeconds, parseISO } from "date-fns";
 import LineChartOne from "../charts/line/LineChartOne";
@@ -11,8 +11,7 @@ import { Modal } from "@/components/ui/modal";
 
 interface VesselDetailViewProps {
   vesselImo: string;
-  dataUsages: DataUsage[];
-  coordinates: RouteCoordinate[];
+  timeStampDataUsages: TimeStampDataUsage[];
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -66,8 +65,7 @@ const getBreakdownLabel = (displayName: string | null, groupName: string) => {
 
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
-  dataUsages: _dataUsages,
-  coordinates,
+  timeStampDataUsages,
   timeRange,
   onTimeRangeChange,
   viewMode: viewModeProp,
@@ -76,15 +74,15 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [chartExpanded, setChartExpanded] = useState(false);
 
   const [scan, setScan] = useState({ isScanning: false, key: 0 });
-  const prevCoordinatesRef = useRef<RouteCoordinate[] | null>(null);
+  const prevDataRef = useRef<TimeStampDataUsage[] | null>(null);
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const isFirst = prevCoordinatesRef.current === null;
-    const hasChanged = prevCoordinatesRef.current !== coordinates;
+    const isFirst = prevDataRef.current === null;
+    const hasChanged = prevDataRef.current !== timeStampDataUsages;
     if (!isFirst && !hasChanged) return;
-    prevCoordinatesRef.current = coordinates;
+    prevDataRef.current = timeStampDataUsages;
     if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
@@ -95,10 +93,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     };
-  }, [coordinates]);
+  }, [timeStampDataUsages]);
 
   const usageStats = useMemo(() => {
-    if (!_dataUsages || _dataUsages.length === 0) return [];
+    if (!timeStampDataUsages || timeStampDataUsages.length === 0) return [];
     let totalSeconds = 24 * 3600;
     if (timeRange?.startAt && timeRange?.endAt) {
       const start = parseISO(timeRange.startAt);
@@ -111,22 +109,27 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       name: string;
       dataUsageAmount: number;
       interfaces: Set<string>;
-      items: Array<{ displayName: string | null; dataUsageAmount: number }>;
+      itemMap: Map<string, { displayName: string | null; dataUsageAmount: number }>;
     };
 
-    const aggregated = _dataUsages.reduce(
-      (acc, usage) => {
-        const name = usage.name || "Unknown";
-        if (!acc[name]) {
-          acc[name] = { name, dataUsageAmount: 0, interfaces: new Set<string>(), items: [] };
+    const aggregated: Record<string, AggEntry> = {};
+    for (const entry of timeStampDataUsages) {
+      for (const detail of entry.dataUsages) {
+        const name = detail.antennaName || "Unknown";
+        if (!aggregated[name]) {
+          aggregated[name] = { name, dataUsageAmount: 0, interfaces: new Set<string>(), itemMap: new Map() };
         }
-        acc[name].dataUsageAmount += usage.dataUsageAmount;
-        if (usage.interfaceName) acc[name].interfaces.add(usage.interfaceName);
-        acc[name].items.push({ displayName: usage.antennaDisplayName, dataUsageAmount: usage.dataUsageAmount });
-        return acc;
-      },
-      {} as Record<string, AggEntry>,
-    );
+        aggregated[name].dataUsageAmount += detail.dataUsage;
+        const iface = detail.interfaceName || "Unknown";
+        aggregated[name].interfaces.add(iface);
+        const existing = aggregated[name].itemMap.get(iface);
+        if (existing) {
+          existing.dataUsageAmount += detail.dataUsage;
+        } else {
+          aggregated[name].itemMap.set(iface, { displayName: detail.antennaDisplayName, dataUsageAmount: detail.dataUsage });
+        }
+      }
+    }
 
     return Object.values(aggregated).map((item) => {
       const totalBytes = item.dataUsageAmount;
@@ -135,8 +138,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       const bpsRaw = bps >= 1000000 ? bps / 1000000 : bps / 1000;
       const bpsSuffix = bps >= 1000000 ? " Mbps" : " kbps";
       return {
-        ...item,
+        name: item.name,
+        dataUsageAmount: item.dataUsageAmount,
         interfaces: Array.from(item.interfaces),
+        items: Array.from(item.itemMap.values()),
         usageRaw: raw,
         usageValue: value,
         usageUnit: unit,
@@ -145,7 +150,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         color: getServiceColor(item.name),
       };
     });
-  }, [_dataUsages, timeRange]);
+  }, [timeStampDataUsages, timeRange]);
 
   const showScan = scan.isScanning && usageStats.length > 0;
 
@@ -234,7 +239,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               </button>
             </div>
             <div className="h-[250px] w-full">
-              <LineChartOne coordinates={coordinates} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
+              <LineChartOne timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
             </div>
           </div>
 
@@ -254,7 +259,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                 </button>
               </div>
               <div className="min-h-0 flex-1 p-6">
-                <LineChartOne coordinates={coordinates} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
+                <LineChartOne timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
               </div>
             </div>
           </Modal>

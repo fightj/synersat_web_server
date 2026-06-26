@@ -116,6 +116,38 @@ export interface VesselRouteResponse {
   dataUsages: DataUsage[];
 }
 
+export interface TimeStampDataUsage {
+  satId: number;
+  timestamp: string;
+  insertedAt: string;
+  antennaStatus: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
+  currentRoute: string | null;
+  satType: string | null;
+  displayName: string | null;
+  available: boolean;
+  dataUsages: DataUsageDetail[];
+}
+
+export interface VesselDataUsagesResponse {
+  timeStampDataUsages: TimeStampDataUsage[];
+}
+
+export interface RouteCoordinateV2 {
+  latitude: number | null;
+  longitude: number | null;
+  vesselSpeed: number | null;
+  vesselHeading: number | null;
+  satSignalStrength: number | null;
+  satId: number | null;
+  timeStamp: string;
+  antennaServiceDisplayName: string | null;
+  available: boolean;
+}
+
+export interface VesselRoutesV2Response {
+  coordinates: RouteCoordinateV2[];
+}
+
 export interface DashboardVesselPosition {
   imo: number;
   vesselName: string;

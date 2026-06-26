@@ -9,6 +9,7 @@ import {
   addVessel,
   updateVessel,
 } from "@/api/vessel";
+import type { UpdateVesselPayload } from "@/types/vessel";
 
 type Mode = "add" | "edit";
 
@@ -210,7 +211,7 @@ const handleSubmit = useCallback(async () => {
     setSaving(true);
     const result = mode === "add"
       ? await addVessel(payload)
-      : await updateVessel(payload);
+      : await updateVessel(payload as UpdateVesselPayload);
 
     if (result) {
       if (mode === "add") mutate("vesselsLite");

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
-import type { RouteCoordinate } from "@/types/vessel";
+import type { RouteCoordinateV2, TimeStampDataUsage } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import RedirectButtons from "../common/RedirectButtons";
 import AntennaStatusBar from "../vessel/AntennaStatusBar";
@@ -12,26 +12,27 @@ import MainRoutingBar from "../vessel/MainRoutingBar";
 interface WorldMapProps {
   vesselImo: string;
   vesselId: string | null;
-  coordinates: RouteCoordinate[];
+  coordinates: RouteCoordinateV2[];
+  timeStampDataUsages?: TimeStampDataUsage[];
   timeRange?: { startAt: string; endAt: string };
   isLive?: boolean;
   mapOverlay?: ReactNode;
 }
 
-type MarkerEntry = { marker: any; data: RouteCoordinate; isLast: boolean };
+type MarkerEntry = { marker: any; data: RouteCoordinateV2; isLast: boolean };
 type MarkersMap = Map<number, MarkerEntry>;
 
 const MIN_CLUSTER_PX = 18;
 
 // ── Helpers (module-level, no closure deps) ───────────────────────────────
 
-function createArrowIcon(p: RouteCoordinate, zoom: number, isLast: boolean, L: any) {
+function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L: any) {
   const heading = p.vesselHeading ?? 0;
-  const available = p.status?.available ?? false;
+  const available = p.available ?? false;
   const color = !available
     ? "#ef4444"
-    : p.status?.antennaServiceName
-      ? getServiceColor(p.status.antennaServiceName)
+    : p.antennaServiceDisplayName
+      ? getServiceColor(p.antennaServiceDisplayName)
       : "#94a3b8";
 
   if (!isLast) {
@@ -67,14 +68,14 @@ function createArrowIcon(p: RouteCoordinate, zoom: number, isLast: boolean, L: a
 // Pixel-distance clustering: hides points that are within minPx of an already-selected point.
 // Processing order is oldest→newest so the most recent point is always visible (forced last).
 function clusterByPixel(
-  points: RouteCoordinate[],
+  points: RouteCoordinateV2[],
   map: any,
   L: any,
   minPx: number,
-): RouteCoordinate[] {
+): RouteCoordinateV2[] {
   if (points.length === 0) return [];
   const minDistSq = minPx * minPx;
-  const selected: RouteCoordinate[] = [];
+  const selected: RouteCoordinateV2[] = [];
   const selPx: { x: number; y: number }[] = [];
 
   for (const p of points) {
@@ -100,18 +101,20 @@ function clusterByPixel(
 
 // Diff-based marker sync: only removes/adds what changed between renders.
 // Non-last dot icons are zoom-independent — only the vessel (last) icon is updated on zoom.
+const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
+
 function syncMarkers(
-  visiblePoints: RouteCoordinate[],
-  allPoints: RouteCoordinate[],
+  visiblePoints: RouteCoordinateV2[],
+  allPoints: RouteCoordinateV2[],
   zoom: number,
   L: any,
   map: any,
   markersRef: { current: MarkersMap },
 ) {
-  const lastTs = new Date(allPoints[allPoints.length - 1].timeStamp + "Z").getTime();
-  const newTsToPoint = new Map<number, RouteCoordinate>();
+  const lastTs = tsMs(allPoints[allPoints.length - 1].timeStamp);
+  const newTsToPoint = new Map<number, RouteCoordinateV2>();
   for (const p of visiblePoints) {
-    newTsToPoint.set(new Date(p.timeStamp + "Z").getTime(), p);
+    newTsToPoint.set(tsMs(p.timeStamp), p);
   }
 
   // Remove markers no longer in the visible set
@@ -141,16 +144,16 @@ function syncMarkers(
         hour12: false, timeZoneName: "short",
       }).format(new Date(ts));
 
-      const popupAvailable = p.status?.available ?? false;
+      const popupAvailable = p.available ?? false;
       const popupColor = !popupAvailable
         ? "#ef4444"
-        : p.status?.antennaServiceName
-          ? getServiceColor(p.status.antennaServiceName)
+        : p.antennaServiceDisplayName
+          ? getServiceColor(p.antennaServiceDisplayName)
           : "#94a3b8";
 
       marker.bindPopup(
         `<div class="text-[11px] font-sans">
-          <strong style="color:${popupColor}">${popupAvailable ? (p.status?.antennaServiceName ?? "N/A") : "N/A"}</strong><br/>
+          <strong style="color:${popupColor}">${popupAvailable ? (p.antennaServiceDisplayName ?? "N/A") : "N/A"}</strong><br/>
           <span class="text-gray-500">Time:</span> ${formattedTime}<br/>
           <span class="text-gray-500">Signal:</span> ${p.satSignalStrength ?? 0}
         </div>`,
@@ -171,7 +174,7 @@ const MAP_STYLE_PREVIEWS = {
   dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
 } as const;
 
-export default function WorldMap({ vesselId, coordinates, timeRange, isLive, mapOverlay }: WorldMapProps) {
+export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = [], timeRange, isLive, mapOverlay }: WorldMapProps) {
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
@@ -188,7 +191,8 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
   const tileLayersRef = useRef<any[]>([]);
   const boundsRef = useRef<any>(null);
   const invalidateSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const validPointsRef = useRef<RouteCoordinate[]>([]);
+  const validPointsRef = useRef<RouteCoordinateV2[]>([]);
+  const prevContainerSizeRef = useRef({ w: 0, h: 0 });
 
   const handleStyleChange = (style: MapStyle) => {
     mapStyleRef.current = style;
@@ -207,6 +211,27 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
       markersRef.current.clear();
       tileLayersRef.current = [];
     };
+  }, []);
+
+  // hidden → visible 전환 시 타일 재로딩 + bounds 재적용 (탭 전환 대응)
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+      const { width, height } = entries[0].contentRect;
+      const prev = prevContainerSizeRef.current;
+      map.invalidateSize();
+      // 컨테이너가 0 크기(hidden)에서 실제 크기로 전환된 경우 bounds 재적용
+      if ((prev.w === 0 || prev.h === 0) && width > 0 && height > 0 && boundsRef.current) {
+        map.stop();
+        map.fitBounds(boundsRef.current, { padding: [40, 40] });
+      }
+      prevContainerSizeRef.current = { w: width, h: height };
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   // ── Tile layer: mapStyle 변경 시에만 교체 (맵 생성 후) ──────────────────
@@ -294,22 +319,24 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
       invalidateSizeTimerRef.current = setTimeout(() => map.invalidateSize(), 100);
 
       if (!hasValidGps) {
-        map.setView([20, 0], 2);
+        // 이전에 데이터가 없었을 때만 월드뷰로 리셋 (SWR 로딩 전환 시 setView 애니메이션 충돌 방지)
+        if (validPointsRef.current.length === 0) {
+          map.setView([20, 0], 2);
+        }
         validPointsRef.current = [];
         return;
       }
 
       const validPoints = coordinates
         .filter((p) => p.latitude !== null && p.longitude !== null)
-        .sort((a, b) => new Date(a.timeStamp + "Z").getTime() - new Date(b.timeStamp + "Z").getTime());
+        .sort((a, b) => tsMs(a.timeStamp) - tsMs(b.timeStamp));
 
       validPointsRef.current = validPoints;
 
       // ── Polylines: max 2 L.polyline objects (blue + red multi-segment) ──
       // Previously: one L.polyline per segment → O(n) DOM nodes
       // Now: group consecutive same-color segments → always ≤ 2 DOM nodes
-      const GAP_MS = 5 * 60 * 1000;
-      const isRed = (p: RouteCoordinate) => (p.status?.available ?? true) === false;
+      const isRed = (p: RouteCoordinateV2) => (p.available ?? true) === false;
 
       const blueGroups: [number, number][][] = [];
       const redGroups: [number, number][][] = [];
@@ -319,9 +346,7 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
       for (let i = 0; i < validPoints.length - 1; i++) {
         const a = validPoints[i];
         const b = validPoints[i + 1];
-        const tA = new Date(a.timeStamp + "Z").getTime();
-        const tB = new Date(b.timeStamp + "Z").getTime();
-        const segRed = Math.abs(tB - tA) > GAP_MS || isRed(a) || isRed(b);
+        const segRed = isRed(a) || isRed(b);
         const color = segRed ? "red" : "blue";
 
         if (color !== curColor) {
@@ -354,6 +379,7 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
         const bounds = L.latLngBounds(allLatLngs);
         if (bounds.isValid()) {
           boundsRef.current = bounds;
+          map.stop(); // 진행 중인 애니메이션 취소 후 fitBounds
           map.fitBounds(bounds, { padding: [40, 40] });
         }
       }
@@ -484,9 +510,9 @@ export default function WorldMap({ vesselId, coordinates, timeRange, isLive, map
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
         <RedirectButtons vesselId={vesselId ?? ""} />
       </div>
-      <AntennaStatusBar coordinates={coordinates} timeRange={timeRange} />
-      <SatTrackingBar coordinates={coordinates} timeRange={timeRange} />
-      <MainRoutingBar coordinates={coordinates} timeRange={timeRange} />
+      <AntennaStatusBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
+      <SatTrackingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
+      <MainRoutingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
 
     </>
   );

@@ -4,15 +4,17 @@ import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { differenceInDays } from "date-fns";
-import type { RouteCoordinate } from "@/types/vessel";
+import type { TimeStampDataUsage } from "@/types/vessel";
 import { getServiceColor } from "../../common/AnntennaMapping";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
+const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
+
 interface LineChartOneProps {
-  coordinates: RouteCoordinate[];
+  timeStampDataUsages: TimeStampDataUsage[];
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -21,7 +23,7 @@ interface LineChartOneProps {
 }
 
 export default function LineChartOne({
-  coordinates,
+  timeStampDataUsages,
   timeRange,
   onTimeRangeChange,
 }: LineChartOneProps) {
@@ -58,7 +60,7 @@ export default function LineChartOne({
     const rMin = timeRange ? new Date(timeRange.startAt + "Z").getTime() : null;
     const rMax = timeRange ? new Date(timeRange.endAt + "Z").getTime() : null;
 
-    if (!coordinates || coordinates.length === 0) {
+    if (!timeStampDataUsages || timeStampDataUsages.length === 0) {
       // 데이터 없으면 전체 구간이 갭
       const phantomGap =
         rMin !== null && rMax !== null
@@ -71,18 +73,16 @@ export default function LineChartOne({
     const antennaNames = new Set<string>();
     const timeMap: Record<string, Record<string, number>> = {};
 
-    const sortedCoords = [...coordinates].sort(
-      (a, b) =>
-        new Date(a.timeStamp + "Z").getTime() -
-        new Date(b.timeStamp + "Z").getTime(),
+    const sortedCoords = [...timeStampDataUsages].sort(
+      (a, b) => tsMs(a.timestamp) - tsMs(b.timestamp),
     );
 
     const unavailMap: Record<number, boolean> = {};
 
     sortedCoords.forEach((coord) => {
-      const timeMs = new Date(coord.timeStamp + "Z").getTime();
+      const timeMs = tsMs(coord.timestamp);
       if (!timeMap[timeMs]) timeMap[timeMs] = {};
-      if (coord.status?.available === false) unavailMap[timeMs] = true;
+      if (!coord.available) unavailMap[timeMs] = true;
       coord.dataUsages.forEach((usage) => {
         const name = usage.antennaName || "Unknown";
         antennaNames.add(name);
@@ -199,7 +199,7 @@ export default function LineChartOne({
         : [];
 
     return { allSeries: chartSeries, unavailSeries: builtUnavailSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
-  }, [coordinates, timeRange]);
+  }, [timeStampDataUsages, timeRange]);
 
   // phantom series: x축 범위 강제용 (데이터 없을 때)
   const phantomSeries = useMemo(

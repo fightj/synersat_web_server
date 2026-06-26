@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { differenceInDays } from "date-fns";
-import type { RouteCoordinate } from "@/types/vessel";
+import type { TimeStampDataUsage } from "@/types/vessel";
 
 // satId → 표시 레이블
 const SAT_LABEL: Record<number, string> = {
@@ -75,8 +75,10 @@ function fmtFull(ms: number) {
   }).format(new Date(ms));
 }
 
-export default function SatTrackingBar({ coordinates, timeRange }: {
-  coordinates: RouteCoordinate[];
+const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
+
+export default function SatTrackingBar({ timeStampDataUsages, timeRange }: {
+  timeStampDataUsages: TimeStampDataUsage[];
   timeRange?: { startAt: string; endAt: string };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,17 +96,17 @@ export default function SatTrackingBar({ coordinates, timeRange }: {
   // 스캔 라인
   const [isScanning, setIsScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
-  const prevRef = useRef<RouteCoordinate[] | null>(null);
+  const prevRef = useRef<TimeStampDataUsage[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (prevRef.current === coordinates) return;
-    prevRef.current = coordinates;
+    if (prevRef.current === timeStampDataUsages) return;
+    prevRef.current = timeStampDataUsages;
     if (timerRef.current) clearTimeout(timerRef.current);
     setScanKey((k) => k + 1);
     setIsScanning(true);
     timerRef.current = setTimeout(() => setIsScanning(false), 1400);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [coordinates]);
+  }, [timeStampDataUsages]);
 
   const { segs, rStart, rEnd, longTerm, dynamicColorMap } = useMemo(() => {
     const raw_rStart = timeRange ? new Date(timeRange.startAt + "Z").getTime() : 0;
@@ -122,8 +124,8 @@ export default function SatTrackingBar({ coordinates, timeRange }: {
 
     // satId 슬롯 맵 구성
     const idMap = new Map<number, number | null>();
-    for (const c of coordinates) {
-      const t = Math.floor(new Date(c.timeStamp + "Z").getTime() / SLOT_MS) * SLOT_MS;
+    for (const c of timeStampDataUsages) {
+      const t = Math.floor(tsMs(c.timestamp) / SLOT_MS) * SLOT_MS;
       idMap.set(t, normId(c.satId));
     }
 
@@ -183,7 +185,7 @@ export default function SatTrackingBar({ coordinates, timeRange }: {
     }
 
     return { segs: merged, rStart: rS, rEnd: rE, longTerm: lt, dynamicColorMap: colorMap };
-  }, [coordinates, timeRange]);
+  }, [timeStampDataUsages, timeRange]);
 
   if (segs.length === 0) return null;
 
