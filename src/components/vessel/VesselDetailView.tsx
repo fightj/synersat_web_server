@@ -14,6 +14,7 @@ import { Modal } from "@/components/ui/modal";
 interface VesselDetailViewProps {
   vesselImo: string;
   timeStampDataUsages: TimeStampDataUsage[];
+  isLoadingData?: boolean;
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -68,6 +69,7 @@ const getBreakdownLabel = (displayName: string | null, groupName: string) => {
 const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   vesselImo,
   timeStampDataUsages,
+  isLoadingData = false,
   timeRange,
   onTimeRangeChange,
   viewMode: viewModeProp,
@@ -76,7 +78,7 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [chartExpanded, setChartExpanded] = useState(false);
 
   // ── 안테나별 집계 데이터 (카드 패널용) ────────────────────────
-  const { data: antennasData } = useSWR(
+  const { data: antennasData, isLoading: isLoadingAntennas } = useSWR(
     timeRange ? ["vesselAntennas", vesselImo, timeRange.startAt, timeRange.endAt] : null,
     () => getVesselAntennas(vesselImo, timeRange!.startAt, timeRange!.endAt),
     { fallbackData: { dataUsages: [] }, revalidateOnFocus: false },
@@ -150,65 +152,101 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
         <>
           {/* 데이터 사용량 카드 */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {usageStats.map((item) => (
-              <div
-                key={item.name}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-(--color-surface-1) p-5 transition-all hover:shadow-md dark:border-white/5"
-              >
-                <ScanLine isScanning={showScan} scanKey={scan.key} />
-                <div className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]" />
-                <div className="relative">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
-                      <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">{item.name}</span>
-                    </div>
-                    <span className="font-mono text-[11px] text-gray-400">{item.interfaces.join(" · ")}</span>
-                  </div>
-                  <div className="mb-4">
-                    <p className="text-[12px] font-bold text-blue-500 uppercase">Total Data Usage</p>
-                    <div className="flex items-baseline gap-1">
-                      <AnimatedCounter
-                        value={item.usageRaw}
-                        duration={1200}
-                        formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
-                        className="text-4xl font-black text-gray-900 dark:text-white"
-                      />
-                      <span className="text-md font-bold text-gray-400 uppercase">{item.usageUnit}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 border-t border-gray-50 pt-3 dark:border-white/5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-medium text-gray-400 uppercase">Avg. Speed</span>
-                      <AnimatedCounter
-                        value={item.bpsRaw}
-                        duration={1200}
-                        suffix={item.bpsSuffix}
-                        formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
-                        className="text-md font-bold text-gray-700 dark:text-gray-300"
-                      />
-                    </div>
-                    {item.items.length > 1 && (
-                      <div className="flex flex-col items-end gap-0.5">
-                        {item.items.map((sub, idx) => {
-                          const { value: subVal, unit: subUnit } = formatDataSize(sub.dataUsageAmount);
-                          const label = getBreakdownLabel(sub.displayName, item.name);
-                          return (
-                            <span key={idx} className="font-mono text-[10px] text-gray-400">
-                              <span className="font-semibold text-gray-500">{label}</span>
-                              {": "}
-                              {subVal} {subUnit}
-                            </span>
-                          );
-                        })}
+            {isLoadingAntennas
+              ? Array.from({ length: 2 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-(--color-surface-1) p-5 dark:border-white/5"
+                  >
+                    <div className="relative">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 animate-pulse rounded-sm bg-gray-200 dark:bg-white/10" />
+                          <div className="h-3.5 w-20 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        </div>
+                        <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
                       </div>
-                    )}
+                      <div className="mb-4">
+                        <p className="text-[12px] font-bold text-blue-500 uppercase">Total Data Usage</p>
+                        <div className="mt-1 flex items-baseline gap-2">
+                          <div className="h-9 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                          <div className="h-4 w-8 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 border-t border-gray-50 pt-3 dark:border-white/5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-medium text-gray-400 uppercase">Avg. Speed</span>
+                          <div className="h-4 w-16 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="h-3 w-28 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                          <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                ))
+              : usageStats.map((item) => (
+                  <div
+                    key={item.name}
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-gray-100 bg-(--color-surface-1) p-5 transition-all hover:shadow-md dark:border-white/5"
+                  >
+                    <ScanLine isScanning={showScan} scanKey={scan.key} />
+                    <div className="absolute -top-4 -right-4 h-24 w-24 opacity-[0.03]" />
+                    <div className="relative">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                          <span className="text-sm font-extrabold tracking-widest text-gray-500 uppercase">{item.name}</span>
+                        </div>
+                        <span className="font-mono text-[11px] text-gray-400">{item.interfaces.join(" · ")}</span>
+                      </div>
+                      <div className="mb-4">
+                        <p className="text-[12px] font-bold text-blue-500 uppercase">Total Data Usage</p>
+                        <div className="flex items-baseline gap-1">
+                          <AnimatedCounter
+                            value={item.usageRaw}
+                            duration={1200}
+                            formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
+                            className="text-4xl font-black text-gray-900 dark:text-white"
+                          />
+                          <span className="text-md font-bold text-gray-400 uppercase">{item.usageUnit}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 border-t border-gray-50 pt-3 dark:border-white/5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-medium text-gray-400 uppercase">Avg. Speed</span>
+                          <AnimatedCounter
+                            value={item.bpsRaw}
+                            duration={1200}
+                            suffix={item.bpsSuffix}
+                            formatOptions={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
+                            className="text-md font-bold text-gray-700 dark:text-gray-300"
+                          />
+                        </div>
+                        {item.items.length > 1 && (
+                          <div className="flex flex-col items-end gap-0.5">
+                            {item.items.map((sub, idx) => {
+                              const { value: subVal, unit: subUnit } = formatDataSize(sub.dataUsageAmount);
+                              const label = getBreakdownLabel(sub.displayName, item.name);
+                              return (
+                                <span key={idx} className="font-mono text-[10px] text-gray-400">
+                                  <span className="font-semibold text-gray-500">{label}</span>
+                                  {": "}
+                                  {subVal} {subUnit}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
           </div>
 
           {/* 데이터 사용량 히스토리 차트 */}
@@ -229,7 +267,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
               </button>
             </div>
             <div className="h-[250px] w-full">
-              <LineChartOne timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
+              {isLoadingData
+                ? <div className="h-full w-full animate-pulse rounded-lg bg-gray-100 dark:bg-white/5" />
+                : <LineChartOne timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
+              }
             </div>
           </div>
 

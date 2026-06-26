@@ -189,8 +189,6 @@ function VesselDetailContent({
     },
   );
 
-  const isLoading = isLoadingUsages || isLoadingRoutes;
-
   // ── 탭 바 오른쪽 슬롯 ────────────────────────────────────────
   const tabRightSlot = useMemo(() => {
     if (mainTab === "detail") {
@@ -285,16 +283,12 @@ function VesselDetailContent({
 
       {/* Detail 탭 */}
       <div className={mainTab !== "detail" ? "hidden" : "relative flex flex-col gap-6"}>
-        {isLoading && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-black/20">
-            <Loading message="Loading..." />
-          </div>
-        )}
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="w-full lg:w-1/2">
             <VesselDetailView
               vesselImo={imo}
               timeStampDataUsages={dataUsagesData?.timeStampDataUsages ?? []}
+              isLoadingData={isLoadingUsages}
               timeRange={timeRange}
               onTimeRangeChange={handleChartRangeChange}
               viewMode={viewMode}
@@ -306,6 +300,8 @@ function VesselDetailContent({
               vesselId={vesselId}
               coordinates={routesV2Data?.coordinates ?? []}
               timeStampDataUsages={dataUsagesData?.timeStampDataUsages ?? []}
+              isLoadingData={isLoadingUsages}
+              isLoadingRoutes={isLoadingRoutes}
               timeRange={timeRange}
               isLive={isLive}
               mapOverlay={terminalVpnIp ? (

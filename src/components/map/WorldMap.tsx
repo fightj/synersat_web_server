@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
 import type { RouteCoordinateV2, TimeStampDataUsage } from "@/types/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
+import Loading from "../common/Loading";
 import RedirectButtons from "../common/RedirectButtons";
 import AntennaStatusBar from "../vessel/AntennaStatusBar";
 import SatTrackingBar from "../vessel/SatTrackingBar";
@@ -14,6 +15,8 @@ interface WorldMapProps {
   vesselId: string | null;
   coordinates: RouteCoordinateV2[];
   timeStampDataUsages?: TimeStampDataUsage[];
+  isLoadingData?: boolean;
+  isLoadingRoutes?: boolean;
   timeRange?: { startAt: string; endAt: string };
   isLive?: boolean;
   mapOverlay?: ReactNode;
@@ -174,7 +177,7 @@ const MAP_STYLE_PREVIEWS = {
   dark: "https://a.basemaps.cartocdn.com/dark_all/0/0/0.png",
 } as const;
 
-export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = [], timeRange, isLive, mapOverlay }: WorldMapProps) {
+export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = [], isLoadingData = false, isLoadingRoutes = false, timeRange, isLive, mapOverlay }: WorldMapProps) {
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
@@ -420,7 +423,12 @@ export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = 
           </div>
         )}
 
-        {!hasValidGps && (
+        {!hasValidGps && isLoadingRoutes && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/30 backdrop-blur-[2px] dark:bg-black/30">
+            <Loading />
+          </div>
+        )}
+        {!hasValidGps && !isLoadingRoutes && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/20 grayscale backdrop-blur-md transition-all duration-700 dark:bg-black/20">
             <div className="animate-in fade-in zoom-in rounded-2xl bg-white/90 px-10 py-6 text-center shadow-2xl duration-300 dark:border dark:border-white/10 dark:bg-black/80">
               <p className="text-2xl font-black tracking-tighter text-gray-800 uppercase dark:text-white">
@@ -510,9 +518,9 @@ export default function WorldMap({ vesselId, coordinates, timeStampDataUsages = 
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
         <RedirectButtons vesselId={vesselId ?? ""} />
       </div>
-      <AntennaStatusBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
-      <SatTrackingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
-      <MainRoutingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} />
+      <AntennaStatusBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
+      <SatTrackingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
+      <MainRoutingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
 
     </>
   );

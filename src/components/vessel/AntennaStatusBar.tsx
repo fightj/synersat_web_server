@@ -50,9 +50,10 @@ function fmtFull(ms: number) {
 
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
-export default function AntennaStatusBar({ timeStampDataUsages, timeRange }: {
+export default function AntennaStatusBar({ timeStampDataUsages, timeRange, isLoading = false }: {
   timeStampDataUsages: TimeStampDataUsage[];
   timeRange?: { startAt: string; endAt: string };
+  isLoading?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(300);
@@ -159,6 +160,17 @@ export default function AntennaStatusBar({ timeStampDataUsages, timeRange }: {
     return { segs: merged, rStart: rS, rEnd: rE, longTerm: lt };
   }, [timeStampDataUsages, timeRange]);
 
+  if (isLoading) return (
+    <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-4 dark:border-white/5">
+      <div className="mb-4 h-3.5 w-36 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+      <div className="h-8 w-full animate-pulse rounded-sm bg-gray-200 dark:bg-white/10" />
+      <div className="mt-1 flex justify-between">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-3 w-8 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+        ))}
+      </div>
+    </div>
+  );
   if (segs.length === 0) return null;
 
   const ticks = Array.from({ length: TICK_COUNT }, (_, i) =>
