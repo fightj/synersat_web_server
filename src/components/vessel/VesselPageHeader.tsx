@@ -53,6 +53,7 @@ export default function VesselPageHeader({
   tabRightSlot,
 }: VesselPageHeaderProps) {
   const [data, setData] = useState<VesselDetail | null>(null);
+  const [isHeaderLoading, setIsHeaderLoading] = useState(true);
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -88,6 +89,9 @@ export default function VesselPageHeader({
     abortRef.current = new AbortController();
     const { signal } = abortRef.current;
 
+    setData(null);
+    setIsHeaderLoading(true);
+
     const load = async () => {
       try {
         const result = await getVesselDetail(vesselImo);
@@ -99,6 +103,8 @@ export default function VesselPageHeader({
         setNotification(result.imo, false);
       } catch {
         // 헤더 로드 실패는 조용히 처리
+      } finally {
+        if (!signal.aborted) setIsHeaderLoading(false);
       }
     };
     if (vesselImo) load();
@@ -225,20 +231,34 @@ export default function VesselPageHeader({
           {/* 왼쪽: 로고 + 선박명 + 상태 + 설명 */}
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              {data?.logo === "sktelink" && <SktelinkIcon className="h-6 w-auto" />}
-              {data?.logo === "synersat" && (
+              {isHeaderLoading ? (
+                <div className="h-7 w-7 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+              ) : (
                 <>
-                  <Image src="/images/logo/logo_black.png" alt="Synersat" width={28} height={28} className="h-[27px] w-auto dark:hidden" />
-                  <Image src="/images/logo/logo_intro.png" alt="Synersat" width={28} height={28} className="hidden h-[27px] w-auto dark:block" />
+                  {data?.logo === "sktelink" && <SktelinkIcon className="h-6 w-auto" />}
+                  {data?.logo === "synersat" && (
+                    <>
+                      <Image src="/images/logo/logo_black.png" alt="Synersat" width={28} height={28} className="h-[27px] w-auto dark:hidden" />
+                      <Image src="/images/logo/logo_intro.png" alt="Synersat" width={28} height={28} className="hidden h-[27px] w-auto dark:block" />
+                    </>
+                  )}
                 </>
               )}
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">
-                {data?.name ?? "—"}
-              </h2>
-              {statusBadge}
-              {lastConnectedText && (
-                <span className="text-xs text-gray-400 dark:text-gray-500">{lastConnectedText}</span>
+              {isHeaderLoading ? (
+                <div className="h-7 w-40 animate-pulse rounded bg-gray-200 dark:bg-white/10" />
+              ) : (
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white/90">
+                  {data?.name ?? "—"}
+                </h2>
               )}
+              {isHeaderLoading ? (
+                <div className="h-6 w-20 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
+              ) : statusBadge}
+              {isHeaderLoading ? (
+                <div className="h-3.5 w-16 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+              ) : (lastConnectedText && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">{lastConnectedText}</span>
+              ))}
             </div>
             {data?.description && (
               <p className="text-sm text-gray-500">{data.description}</p>
