@@ -30,12 +30,12 @@ const STAT_CATEGORIES = [
 
 export default function VesselComponentCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<typeof STAT_CATEGORIES[number]["key"] | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<string>("");
   const [showScrollTop, setShowScrollTop] = useState(false);
   const vessels = useVesselStore((s) => s.vessels);
-  const user = useAuthStore((s) => s.user)
+  const { searchTerm, categoryFilter, companyFilter } = useVesselStore((s) => s.vesselListFilter);
+  const setVesselListFilter = useVesselStore((s) => s.setVesselListFilter);
+  const resetVesselListFilter = useVesselStore((s) => s.resetVesselListFilter);
+  const user = useAuthStore((s) => s.user);
   const { data: accounts = [] } = useSWR("accounts", getAccounts, {
     revalidateOnFocus: false,
     dedupingInterval: 60 * 60 * 1000,
@@ -88,7 +88,10 @@ export default function VesselComponentCard() {
               {/* 선박명 검색 */}
               <div className="flex flex-col gap-1.5">
                 <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Vessel</label>
-                <VesselFiltering onFilter={(name) => { setSearchTerm(name); setCategoryFilter(null); }} />
+                <VesselFiltering
+                  value={searchTerm}
+                  onFilter={(name) => setVesselListFilter({ searchTerm: name, categoryFilter: null, companyFilter: "" })}
+                />
               </div>
 
               {/* Company 필터 */}
@@ -96,7 +99,7 @@ export default function VesselComponentCard() {
                 <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Company</label>
                 <NativeSelectWithIcon
                   value={companyFilter}
-                  onChange={(e) => setCompanyFilter(e.target.value)}
+                  onChange={(e) => setVesselListFilter({ companyFilter: e.target.value, searchTerm: "", categoryFilter: null })}
                   className="h-10 w-[200px] appearance-none cursor-pointer rounded-lg border border-gray-200 bg-white pl-3 pr-8 text-sm font-medium outline-none transition-all hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">All Companies</option>
@@ -109,7 +112,7 @@ export default function VesselComponentCard() {
               {/* 리셋 */}
               {(searchTerm || companyFilter) && (
                 <button
-                  onClick={() => { setSearchTerm(""); setCompanyFilter(""); setCategoryFilter(null); }}
+                  onClick={resetVesselListFilter}
                   className="mb-0.5 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-gray-400 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +137,7 @@ export default function VesselComponentCard() {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setCategoryFilter(isSelected ? null : key)}
+                  onClick={() => setVesselListFilter({ categoryFilter: isSelected ? null : key })}
                   className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${isSelected
                     ? "border-transparent text-white"
                     : "border-gray-100 bg-gray-50 text-gray-600 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"

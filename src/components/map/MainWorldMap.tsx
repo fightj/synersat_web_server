@@ -27,7 +27,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
   const vesselsRef = useRef(vessels);
-  const prevVesselsLengthRef = useRef<number | null>(null);
+  const hasInitialDataRef = useRef(false);
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
@@ -95,64 +95,62 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     onViewDetail: (imo) => handleListViewDetail(imo),
   });
 
-  // ── 카테고리별 통계 ───────────────────────────────────────────────
-  const stats = useMemo(() => {
+  // ── 통계 + 파생 목록 (단일 순회) ─────────────────────────────────
+  const { counts: stats, noGpsVessels, offlineVessels, offlineNoGpsDiscardFalseCount } = useMemo(() => {
     const list = vessels ?? [];
     const counts = {
       all: list.length,
       starlink: 0, nexuswave: 0, oneweb: 0, vsat: 0,
       fbb: 0, "4g": 0, iridium: 0, none: 0, offline: 0,
     };
-    const seenOffline = new Set<number>();
+    const seenOfflineStats = new Set<number>();
+    const seenNoGps = new Set<number>();
+    const seenOfflineVessels = new Set<number>();
+    const noGpsVessels: DashboardVesselPosition[] = [];
+    const offlineVessels: DashboardVesselPosition[] = [];
+    let offlineNoGpsDiscardFalseCount = 0;
 
     for (const v of list) {
-      if (v.latitude === null || v.longitude === null) continue;
+      const hasGps = v.latitude !== null && v.longitude !== null;
       const connected = v.connected !== false;
-      const name = v.antennaDisplayName;
 
-      if (matchFilter(name, connected, "starlink")) counts.starlink++;
-      else if (matchFilter(name, connected, "nexuswave")) counts.nexuswave++;
-      else if (matchFilter(name, connected, "oneweb")) counts.oneweb++;
-      else if (matchFilter(name, connected, "vsat")) counts.vsat++;
-      else if (matchFilter(name, connected, "fbb")) counts.fbb++;
-      else if (matchFilter(name, connected, "4g")) counts["4g"]++;
-      else if (matchFilter(name, connected, "iridium")) counts.iridium++;
-      else if (matchFilter(name, connected, "none")) counts.none++;
+      // 카테고리별 카운트 + offline 통계 (GPS 있는 선박만)
+      if (hasGps) {
+        const name = v.antennaDisplayName;
+        if (matchFilter(name, connected, "starlink")) counts.starlink++;
+        else if (matchFilter(name, connected, "nexuswave")) counts.nexuswave++;
+        else if (matchFilter(name, connected, "oneweb")) counts.oneweb++;
+        else if (matchFilter(name, connected, "vsat")) counts.vsat++;
+        else if (matchFilter(name, connected, "fbb")) counts.fbb++;
+        else if (matchFilter(name, connected, "4g")) counts["4g"]++;
+        else if (matchFilter(name, connected, "iridium")) counts.iridium++;
+        else if (matchFilter(name, connected, "none")) counts.none++;
 
-      if (!connected && v.discard !== true && !seenOffline.has(v.imo)) {
-        seenOffline.add(v.imo);
-        counts.offline++;
+        if (!connected && v.discard !== true && !seenOfflineStats.has(v.imo)) {
+          seenOfflineStats.add(v.imo);
+          counts.offline++;
+        }
+      }
+
+      // 오프라인 + GPS 있음 + discard 아님 카운트 (중복 허용)
+      if (v.connected === false && v.discard !== true && v.latitude !== null) {
+        offlineNoGpsDiscardFalseCount++;
+      }
+
+      // 온라인인데 GPS 없는 선박 목록 (IMO 기준 중복 제거)
+      if (v.connected === true && !hasGps && !seenNoGps.has(v.imo)) {
+        seenNoGps.add(v.imo);
+        noGpsVessels.push(v);
+      }
+
+      // 오프라인이고 GPS 없는 선박 목록 (IMO 기준 중복 제거)
+      if (v.connected === false && !hasGps && !seenOfflineVessels.has(v.imo)) {
+        seenOfflineVessels.add(v.imo);
+        offlineVessels.push(v);
       }
     }
-    return counts;
-  }, [vessels]);
 
-
-  const offlineNoGpsDiscardFalseCount = useMemo(() => {
-    return (vessels ?? []).filter(
-      (v) => v.connected === false && v.discard !== true &&
-        v.latitude !== null,
-    ).length;
-  }, [vessels]);
-
-  const noGpsVessels = useMemo(() => {
-    const seen = new Set<number>();
-    return (vessels ?? []).filter((v) => {
-      if (v.connected !== true || (v.latitude !== null && v.longitude !== null)) return false;
-      if (seen.has(v.imo)) return false;
-      seen.add(v.imo);
-      return true;
-    });
-  }, [vessels]);
-
-  const offlineVessels = useMemo(() => {
-    const seen = new Set<number>();
-    return (vessels ?? []).filter((v) => {
-      if (v.connected !== false || (v.latitude !== null && v.longitude !== null)) return false;
-      if (seen.has(v.imo)) return false;
-      seen.add(v.imo);
-      return true;
-    });
+    return { counts, noGpsVessels, offlineVessels, offlineNoGpsDiscardFalseCount };
   }, [vessels]);
 
   // ── vesselsRef 최신화 ─────────────────────────────────────────────
@@ -160,15 +158,15 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   // ── 데이터 갱신 감지 → 스캔 라인 트리거 ─────────────────────────
   useEffect(() => {
-    const len = vessels?.length ?? 0;
-    if (prevVesselsLengthRef.current === null) {
-      prevVesselsLengthRef.current = len;
+    if (!vessels) return;
+    // 첫 데이터 도착 시엔 스캔 없이 초기화만
+    if (!hasInitialDataRef.current) {
+      hasInitialDataRef.current = true;
       return;
     }
-    prevVesselsLengthRef.current = len;
-    const tStart = setTimeout(() => setIsRefreshing(true), 0);
-    const tEnd = setTimeout(() => setIsRefreshing(false), 1400);
-    return () => { clearTimeout(tStart); clearTimeout(tEnd); };
+    const tOn = setTimeout(() => setIsRefreshing(true), 0);
+    const tOff = setTimeout(() => setIsRefreshing(false), 1400);
+    return () => { clearTimeout(tOn); clearTimeout(tOff); };
   }, [vessels]);
 
   const handleListViewDetail = (imo: number) => {

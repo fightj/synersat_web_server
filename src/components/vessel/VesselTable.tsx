@@ -16,11 +16,10 @@ import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
-type CategoryKey = "total" | "starlink" | "nexuswave" | "vsat" | "fbb" | "oneweb" | "fourgee" | "iridium" | "offline" | "inactive" | "na";
 
 interface VesselTableProps {
   searchTerm?: string;
-  categoryFilter?: CategoryKey | null;
+  categoryFilter?: string | null;
   companyFilter?: string | null;
 }
 

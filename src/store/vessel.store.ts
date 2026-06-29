@@ -5,6 +5,12 @@ import { getVessels } from "@/api/vessel";
 
 type SelectedVessel = Pick<Vessel, "id" | "imo" | "name" | "vpnIp"> & { prepaidEnabled?: boolean };
 
+type VesselListFilter = {
+  searchTerm: string;
+  categoryFilter: string | null;
+  companyFilter: string;
+};
+
 type VesselStore = {
   vessels: Vessel[];
   loading: boolean;
@@ -15,6 +21,10 @@ type VesselStore = {
   setSelectedVessel: (v: SelectedVessel | null) => void;
   clearSelectedVessel: () => void;
   updateVesselPrepaid: (imo: number, enabled: boolean) => void;
+
+  vesselListFilter: VesselListFilter;
+  setVesselListFilter: (filter: Partial<VesselListFilter>) => void;
+  resetVesselListFilter: () => void;
 
   fetchVessels: () => Promise<void>;
   refreshVessels: () => Promise<void>;
@@ -49,6 +59,12 @@ export const useVesselStore = create<VesselStore>()(
       searchTrigger: 0,
       setSelectedVessel: (v) => set((state) => ({ selectedVessel: v, searchTrigger: state.searchTrigger + 1 })),
       clearSelectedVessel: () => set({ selectedVessel: null }),
+
+      vesselListFilter: { searchTerm: "", categoryFilter: null, companyFilter: "" },
+      setVesselListFilter: (filter) =>
+        set((state) => ({ vesselListFilter: { ...state.vesselListFilter, ...filter } })),
+      resetVesselListFilter: () =>
+        set({ vesselListFilter: { searchTerm: "", categoryFilter: null, companyFilter: "" } }),
 
       updateVesselPrepaid: (imo, enabled) =>
         set((state) => ({
