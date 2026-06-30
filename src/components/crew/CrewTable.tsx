@@ -31,14 +31,16 @@ function UsageBar({ current, max, onTopUp }: { current: string | null; max: stri
   const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
 
   const barColor =
-    pct >= 90 ? "bg-red-500"
-      : pct >= 70 ? "bg-amber-400"
-        : "bg-blue-500";
+    pct >= 100 ? "bg-gray-500"
+      : pct >= 90 ? "bg-red-500"
+        : pct >= 70 ? "bg-amber-400"
+          : "bg-blue-500";
 
   const textColor =
-    pct >= 90 ? "text-red-500 dark:text-red-400"
-      : pct >= 70 ? "text-amber-500 dark:text-amber-400"
-        : "text-blue-500 dark:text-blue-400";
+    pct >= 100 ? "text-gray-500 dark:text-gray-400"
+      : pct >= 90 ? "text-red-500 dark:text-red-400"
+        : pct >= 70 ? "text-amber-500 dark:text-amber-400"
+          : "text-blue-500 dark:text-blue-400";
 
   return (
     <div className="flex min-w-40 items-center gap-2">
@@ -192,14 +194,14 @@ export default function CrewTable({
                 <TableRow
                   key={u.userId}
                   className={`group transition-all duration-200 ${isPending
-                      ? u.updateType === "UPDATE"
-                        ? "cursor-not-allowed bg-orange-50/60 opacity-60 dark:bg-orange-500/5"
-                        : u.updateType === "DELETE"
-                          ? "cursor-not-allowed bg-red-50/60 opacity-60 dark:bg-red-500/5"
-                          : "cursor-not-allowed bg-blue-50/60 opacity-60 dark:bg-blue-500/5"
-                      : isChecked
-                        ? "bg-blue-50/50 dark:bg-blue-500/5"
-                        : "hover:bg-gray-50/80 dark:hover:bg-white/2"
+                    ? u.updateType === "UPDATE"
+                      ? "cursor-not-allowed bg-orange-50/60 opacity-60 dark:bg-orange-500/5"
+                      : u.updateType === "DELETE"
+                        ? "cursor-not-allowed bg-red-50/60 opacity-60 dark:bg-red-500/5"
+                        : "cursor-not-allowed bg-blue-50/60 opacity-60 dark:bg-blue-500/5"
+                    : isChecked
+                      ? "bg-blue-50/50 dark:bg-blue-500/5"
+                      : "hover:bg-gray-50/80 dark:hover:bg-white/2"
                     }`}
                 >
                   <TableCell className="px-5 py-4 text-center">
