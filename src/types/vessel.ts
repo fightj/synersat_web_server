@@ -187,6 +187,7 @@ export interface UpdateVesselPayload {
   fireWallId?: string;
   fireWallPassword?: string;
   serialNumber?: string;
+  manager?: string;
 }
 
 export interface GetVesselsLite {

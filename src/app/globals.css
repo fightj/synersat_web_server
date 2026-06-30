@@ -878,6 +878,11 @@ span.flatpickr-weekday,
   /* Firefox */
 }
 
+/* Fix subpixel gaps between Leaflet tiles (GPU compositing artifact) */
+.leaflet-tile {
+  outline: 1px solid transparent;
+}
+
 /* Leaflet Popup Custom Styling */
 .leaflet-popup-content-wrapper {
   background: rgba(31, 41, 55, 0.9) !important;
