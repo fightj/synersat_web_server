@@ -114,12 +114,14 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       const pad = (n: number) => String(n).padStart(2, "0");
       return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}`;
     };
+    // Excel이 날짜 문자열을 자동 변환해 ######으로 표시하는 것을 방지
+    const csvDate = (iso: string | null | undefined) => `="${toKST(iso)}"`;
 
     selectedCrew.forEach((crew) => {
       const data = usageMap[crew.userId];
 
       const sheetData: (string | number)[][] = [
-        ["Time Range (KST)", toKST(appliedRange?.startAt), toKST(appliedRange?.endAt)],
+        ["Time Range (KST)", csvDate(appliedRange?.startAt), csvDate(appliedRange?.endAt)],
         ["Username", crew.userId],
         ["Total Usage (MB)", data ? Number(toMB(data.totalOctets)) : 0],
         ["Total Download (MB)", data ? Number(toMB(data.totalInputOctets)) : 0],
@@ -127,8 +129,8 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         [],
         ["Start (KST)", "End (KST)", "Duration", "Total (MB)", "Download (MB)", "Upload (MB)"],
         ...(data?.usages ?? []).map((s) => [
-          toKST(s.startAt),
-          toKST(s.endAt),
+          csvDate(s.startAt),
+          csvDate(s.endAt),
           formatDuration(s.sessionTime),
           Number(toMB(s.totalOctets)),
           Number(toMB(s.inputOctets)),
@@ -141,6 +143,27 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         .join("\r\n");
       zip.file(`${safe(vesselName)}_${safe(crew.userId)}.csv`, "﻿" + csv);
     });
+
+    // summary 파일: 선택된 유저 전체의 in/out/total 합산
+    const summaryData: (string | number)[][] = [
+      ["Time Range (KST)", csvDate(appliedRange?.startAt), csvDate(appliedRange?.endAt)],
+      ["Vessel", vesselName],
+      [],
+      ["Username", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
+      ...selectedCrew.map((crew) => {
+        const d = usageMap[crew.userId];
+        return [
+          crew.userId,
+          d ? Number(toMB(d.totalInputOctets)) : 0,
+          d ? Number(toMB(d.totalOutputOctets)) : 0,
+          d ? Number(toMB(d.totalOctets)) : 0,
+        ];
+      }),
+    ];
+    const summaryCsv = summaryData
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    zip.file(`${safe(vesselName)}_summary.csv`, "﻿" + summaryCsv);
 
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
