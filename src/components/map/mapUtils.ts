@@ -3,10 +3,12 @@ export const MAP_STYLES: {
   label: string;
   url: string;
   preview: string;
-  /** tile pane에 적용할 CSS filter (없으면 ''). OSM 타일을 다크로 변환할 때 사용 */
+  /** tile pane에 적용할 CSS filter */
   tileFilter?: string;
   /** 베이스 타일 위에 덧씌울 영문 지명 레이어 URL */
   overlayUrl?: string;
+  /** tileLayer subdomains 옵션 (기본 "abc") */
+  subdomains?: string;
 }[] = [
     {
       id: "default",
@@ -18,10 +20,9 @@ export const MAP_STYLES: {
     {
       id: "dark",
       label: "Dark",
-      url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
-      preview: "https://a.tile.openstreetmap.org/2/2/1.png",
-      tileFilter: "invert(100%) hue-rotate(180deg) brightness(0.9) contrast(1.1)",
-      overlayUrl: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      preview: "https://a.basemaps.cartocdn.com/dark_all/2/2/1.png",
+      subdomains: "abcd",
     },
     {
       id: "light",

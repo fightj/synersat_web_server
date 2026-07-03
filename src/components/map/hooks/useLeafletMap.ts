@@ -52,7 +52,8 @@ export function useLeafletMap(
         noWrap: false,
         keepBuffer: 4,
         updateWhenIdle: false,
-        subdomains: initialStyle.url.includes("{s}") ? "abc" : "",
+        updateWhenZooming: false,
+        subdomains: initialStyle.subdomains ?? (initialStyle.url.includes("{s}") ? "abc" : ""),
       }).addTo(map);
 
       if (initialStyle.overlayUrl) {
@@ -141,7 +142,7 @@ export function useLeafletMap(
       keepBuffer: 4,
       updateWhenZooming: false,
       updateWhenIdle: false,
-      subdomains: style.url.includes("{s}") ? "abc" : "",
+      subdomains: style.subdomains ?? (style.url.includes("{s}") ? "abc" : ""),
     }).addTo(map);
     tileLayerRef.current.bringToBack();
 
