@@ -61,6 +61,8 @@ export function useLeafletMap(
           noWrap: false,
           subdomains: "abcd",
           zIndex: 10,
+          keepBuffer: 4,
+          updateWhenZooming: false,
         }).addTo(map);
       }
 
@@ -151,6 +153,8 @@ export function useLeafletMap(
         noWrap: false,
         subdomains: "abcd",
         zIndex: 10,
+        keepBuffer: 4,
+        updateWhenZooming: false,
       }).addTo(map);
     }
 

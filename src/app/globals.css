@@ -879,6 +879,34 @@ span.flatpickr-weekday,
 }
 
 
+/* 타일 갭으로 보이는 배경색을 타일 색과 맞춰 격자 최소화
+   !important: leaflet.css가 컴포넌트 import로 나중에 로드되어 덮어쓰는 것을 방지 */
+.leaflet-container {
+  background: #aad3df !important;
+}
+[data-map-style="dark"] .leaflet-container {
+  background: #0f1117 !important;
+}
+[data-map-style="light"] .leaflet-container {
+  background: #b3d1e0 !important;
+}
+[data-map-style="satellite"] .leaflet-container {
+  background: #071020 !important;
+}
+
+/* Leaflet 타일 격자선 제거:
+   - backface-visibility: hidden → GPU 레이어 분리로 서브픽셀 렌더링 아티팩트 방지
+   - outline: 1px solid transparent → 타일 간 미세 간격을 투명 아웃라인으로 덮음
+   - image-rendering: pixelated → 비정수 DPR에서 nearest-neighbor 스케일링 강제 */
+.leaflet-tile {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  outline: 1px solid transparent;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
 /* Leaflet Popup Custom Styling */
 .leaflet-popup-content-wrapper {
   background: rgba(31, 41, 55, 0.9) !important;

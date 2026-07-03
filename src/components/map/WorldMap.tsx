@@ -479,7 +479,7 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
   return (
     <>
       <div className="relative h-[550px] w-full overflow-hidden rounded-xl border border-gray-200 bg-[#aad3df] shadow-inner dark:border-white/10 dark:bg-[#121212]">
-        <div ref={mapRef} className="absolute inset-0 z-0" />
+        <div ref={mapRef} className="absolute inset-0 z-0" data-map-style={mapStyle} />
         {mapOverlay && (
           <div className="absolute inset-0 z-50 overflow-hidden rounded-xl">
             {mapOverlay}
