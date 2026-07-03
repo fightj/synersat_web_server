@@ -61,24 +61,35 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
     },
     {
       label: "This Week",
-      fn: () => ({
-        start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-        end: endOfWeek(new Date(), { weekStartsOn: 1 }),
-      }),
+      fn: () => {
+        const ws = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const we = endOfWeek(new Date(), { weekStartsOn: 1 });
+        return {
+          start: new Date(Date.UTC(ws.getFullYear(), ws.getMonth(), ws.getDate(), 0, 0, 0)),
+          end: new Date(Date.UTC(we.getFullYear(), we.getMonth(), we.getDate(), 23, 59, 59)),
+        };
+      },
       subOptions: [
         {
           label: "This Week So Far",
-          fn: () => ({
-            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-            end: new Date(),
-          }),
+          fn: () => {
+            const ws = startOfWeek(new Date(), { weekStartsOn: 1 });
+            return {
+              start: new Date(Date.UTC(ws.getFullYear(), ws.getMonth(), ws.getDate(), 0, 0, 0)),
+              end: new Date(),
+            };
+          },
         },
         {
           label: "This Week",
-          fn: () => ({
-            start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-            end: endOfWeek(new Date(), { weekStartsOn: 1 }),
-          }),
+          fn: () => {
+            const ws = startOfWeek(new Date(), { weekStartsOn: 1 });
+            const we = endOfWeek(new Date(), { weekStartsOn: 1 });
+            return {
+              start: new Date(Date.UTC(ws.getFullYear(), ws.getMonth(), ws.getDate(), 0, 0, 0)),
+              end: new Date(Date.UTC(we.getFullYear(), we.getMonth(), we.getDate(), 23, 59, 59)),
+            };
+          },
         },
       ],
     },
@@ -270,7 +281,7 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
                   </button>
 
                   {r.subOptions && isSubOpen && (
-                    <div className="absolute top-full left-0 z-[10000] mt-1.5 min-w-max overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
+                    <div className="absolute top-full left-0 z-10000 mt-1.5 min-w-max overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#1e1e1e]">
                       {r.subOptions.map((sub, idx) => (
                         <button
                           key={sub.label}
