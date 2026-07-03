@@ -97,6 +97,7 @@ export function useVesselMarkers({
   const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
   const onViewDetailRef = useRef(onViewDetail);
+
   useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
 
   useEffect(() => {
@@ -269,7 +270,6 @@ export function useVesselMarkers({
         existing._vesselData = vessel;
       }
     });
-
   }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
 
   return { markersRef: markerMapRef };

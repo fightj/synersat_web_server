@@ -39,7 +39,7 @@ export function useLeafletMap(
         maxZoom: 10,
         zoomControl: false,
         attributionControl: false,
-        maxBounds: L.latLngBounds(L.latLng(-85, -Infinity), L.latLng(85, Infinity)),
+        maxBounds: L.latLngBounds(L.latLng(-85, -540), L.latLng(85, 540)),
         maxBoundsViscosity: 1.0,
       });
       mapInstanceRef.current = map;

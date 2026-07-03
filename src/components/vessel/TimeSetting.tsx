@@ -8,8 +8,6 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameDay,
-  isWithinInterval,
   addMonths,
   subMonths,
   isAfter,
@@ -183,12 +181,17 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
   };
 
   const getDayStyles = (day: Date) => {
-    const isStart = range.start && isSameDay(day, range.start);
-    const isEnd = range.end && isSameDay(day, range.end);
-    const inRange =
-      range.start &&
-      range.end &&
-      isWithinInterval(day, { start: range.start, end: range.end });
+    // UTC 기준으로 비교: range.start/end는 UTC midnight/end-of-day로 저장되므로
+    // 로컬(KST) isSameDay 비교 시 +9h 오프셋으로 하루가 밀리는 문제를 방지
+    const toUtcDay = (d: Date) =>
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const dayUtc = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate());
+
+    const isStart = range.start && dayUtc === toUtcDay(range.start);
+    const isEnd = range.end && dayUtc === toUtcDay(range.end);
+    const startUtc = range.start ? toUtcDay(range.start) : null;
+    const endUtc = range.end ? toUtcDay(range.end) : null;
+    const inRange = startUtc !== null && endUtc !== null && dayUtc >= startUtc && dayUtc <= endUtc;
 
     if (isStart && isEnd) return "bg-blue-600 text-white rounded-md";
     if (isStart) return "bg-blue-600 text-white rounded-l-md transition-none";
@@ -209,8 +212,8 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
             <TimeSettingIcon className="h-5 w-5 text-blue-600" />
           </div>
           <span className="whitespace-nowrap text-gray-700 dark:text-gray-200">
-            {range.start ? format(range.start, "yyyy.MM.dd") : "Start"} ~{" "}
-            {range.end ? format(range.end, "yyyy.MM.dd") : "End"}
+            {range.start ? `${range.start.getUTCFullYear()}.${String(range.start.getUTCMonth() + 1).padStart(2, "0")}.${String(range.start.getUTCDate()).padStart(2, "0")}` : "Start"} ~{" "}
+            {range.end ? `${range.end.getUTCFullYear()}.${String(range.end.getUTCMonth() + 1).padStart(2, "0")}.${String(range.end.getUTCDate()).padStart(2, "0")}` : "End"}
           </span>
         </button>
 
