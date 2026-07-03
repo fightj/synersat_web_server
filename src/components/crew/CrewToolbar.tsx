@@ -56,6 +56,12 @@ export default function CrewToolbar({
           onClick={onExportCSV} disabled={crewCount === 0 || isLoading}>
           Export CSV
         </Button>
+        {mode === "prepay" && (
+          <Button size="compact" variant="outline"
+            onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
+            Check Usage
+          </Button>
+        )}
         {mode === "normal" && (
           <>
 
