@@ -166,15 +166,14 @@ function syncMarkers(
 
     if (existing) {
       if (isLast) {
-        existing.marker.setIcon(createArrowIcon(p, zoom, true, L, hasOffline));
-        existing.hasOffline = hasOffline;
+        existing.marker.setIcon(createArrowIcon(p, zoom, true, L, false));
       } else if (existing.hasOffline !== hasOffline) {
         existing.marker.setIcon(createArrowIcon(p, zoom, false, L, hasOffline));
         existing.hasOffline = hasOffline;
       }
     } else {
       const marker = L.marker([p.latitude!, p.longitude!], {
-        icon: createArrowIcon(p, zoom, isLast, L, hasOffline),
+        icon: createArrowIcon(p, zoom, isLast, L, isLast ? false : hasOffline),
         zIndexOffset: isLast ? 1000 : 0,
       }).addTo(map);
 
@@ -184,7 +183,7 @@ function syncMarkers(
         hour12: false, timeZoneName: "short",
       }).format(new Date(ts));
 
-      const popupAvailable = (p.available ?? true) && !hasOffline;
+      const popupAvailable = p.available ?? true;
       const popupColor = !popupAvailable
         ? "#ef4444"
         : p.antennaServiceDisplayName
@@ -227,7 +226,7 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
     { fallbackData: { coordinates: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
   );
 
-  const coordinates = routesData?.coordinates ?? [];
+  const coordinates = useMemo(() => routesData?.coordinates ?? [], [routesData]);
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
