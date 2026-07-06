@@ -1,4 +1,4 @@
-import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, VesselDataUsagesResponse, VesselRoutesV2Response, VesselAntennasResponse, DashboardVesselsResponse, VesselsLiteList } from "@/types/vessel";
+import type { Vessel, UpdateVesselPayload, VesselDetail, VesselRouteResponse, VesselDataUsagesResponse, VesselDataUsagesV2Response, VesselRoutesV2Response, VesselAntennasResponse, DashboardVesselsResponse, VesselsLiteList, VesselSatIdsResponse, VesselCurrentRoutesResponse, VesselAntennaStatusesResponse } from "@/types/vessel";
 import type { AccountApiResponse } from "@/types/account";
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
@@ -233,11 +233,77 @@ export async function getVesselDataUsages(
   return await res.json();
 }
 
+export async function getVesselDataUsagesV2(
+  imo: string | number,
+  startAt: string,
+  endAt: string,
+  minutes = 6,
+): Promise<VesselDataUsagesV2Response> {
+  const params = new URLSearchParams({
+    imo: String(imo),
+    startAt,
+    endAt,
+    minutes: String(minutes),
+  });
+
+  const res = await fetch(`${BASE_URL}/v2/vessels/dataUsages?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "데이터 사용량을 불러오지 못했습니다.");
+  }
+
+  return await res.json();
+}
+
+export async function getVesselSatIds(
+  imo: string | number,
+  startAt: string,
+  endAt: string,
+): Promise<VesselSatIdsResponse> {
+  const params = new URLSearchParams({ imo: String(imo), startAt, endAt });
+  const res = await fetch(`${BASE_URL}/v1/vessels/dataUsages/satIds?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "SAT ID 데이터를 불러오지 못했습니다.");
+  }
+  return await res.json();
+}
+
+export async function getVesselCurrentRoutes(
+  imo: string | number,
+  startAt: string,
+  endAt: string,
+): Promise<VesselCurrentRoutesResponse> {
+  const params = new URLSearchParams({ imo: String(imo), startAt, endAt });
+  const res = await fetch(`${BASE_URL}/v1/vessels/dataUsages/currentRoutes?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "라우팅 히스토리 데이터를 불러오지 못했습니다.");
+  }
+  return await res.json();
+}
+
+export async function getVesselAntennaStatuses(
+  imo: string | number,
+  startAt: string,
+  endAt: string,
+  minutes = 6,
+): Promise<VesselAntennaStatusesResponse> {
+  const params = new URLSearchParams({ imo: String(imo), startAt, endAt, minutes: String(minutes) });
+  const res = await fetch(`${BASE_URL}/v1/vessels/dataUsages/antennaStatuses?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "안테나 상태 데이터를 불러오지 못했습니다.");
+  }
+  return await res.json();
+}
+
 export async function getVesselRoutesV2(
   imo: string | number,
   startAt: string,
   endAt: string,
-  minutes = 30,
+  minutes = 6,
   coordinateCount = 500,
 ): Promise<VesselRoutesV2Response> {
   const params = new URLSearchParams({

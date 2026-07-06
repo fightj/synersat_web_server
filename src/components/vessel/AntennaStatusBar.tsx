@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import { differenceInDays } from "date-fns";
-import type { TimeStampDataUsage } from "@/types/vessel";
+import type { AntennaStatusEntry, VesselAntennaStatusesResponse } from "@/types/vessel";
+import { getVesselAntennaStatuses } from "@/api/vessel";
+
+const THREE_MINUTES = 3 * 60 * 1000;
 
 type AntennaStatus = "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE";
 
@@ -50,11 +54,33 @@ function fmtFull(ms: number) {
 
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
-export default function AntennaStatusBar({ timeStampDataUsages, timeRange, isLoading = false }: {
-  timeStampDataUsages: TimeStampDataUsage[];
+export default function AntennaStatusBar({ vesselImo, timeRange, isLive = false, fetchTimeRange }: {
+  vesselImo: string;
   timeRange?: { startAt: string; endAt: string };
-  isLoading?: boolean;
+  isLive?: boolean;
+  fetchTimeRange?: () => { startAt: string; endAt: string };
 }) {
+  const { data: rawData, isLoading } = useSWR<VesselAntennaStatusesResponse>(
+    timeRange ? ["vesselAntennaStatuses", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      return getVesselAntennaStatuses(vesselImo, range.startAt, range.endAt);
+    },
+    { refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+
+  const timeStampDataUsages = useMemo((): AntennaStatusEntry[] => {
+    if (!rawData) return [];
+    const arr: any[] = Array.isArray(rawData)
+      ? rawData
+      : (Object.values(rawData as object) as any[]).find(Array.isArray) ?? [];
+    console.log("[AntennaStatusBar] rawData:", rawData, "→ arr.length:", arr.length);
+    return arr.map((item: any) => ({
+      timeStamp: item.timeStamp ?? item.timestamp ?? "",
+      antennaStatus: item.antennaStatus ?? null,
+    }));
+  }, [rawData]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(300);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -70,7 +96,7 @@ export default function AntennaStatusBar({ timeStampDataUsages, timeRange, isLoa
   // 스캔 라인
   const [isScanning, setIsScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
-  const prevRef = useRef<TimeStampDataUsage[] | null>(null);
+  const prevRef = useRef<AntennaStatusEntry[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (prevRef.current === timeStampDataUsages) return;
@@ -101,7 +127,7 @@ export default function AntennaStatusBar({ timeStampDataUsages, timeRange, isLoa
     const statusMap = new Map<number, AntennaStatus>();
     for (const c of timeStampDataUsages) {
       if (!c.antennaStatus) continue;
-      const t = Math.floor(tsMs(c.timestamp) / SLOT_MS) * SLOT_MS;
+      const t = Math.floor(tsMs(c.timeStamp) / SLOT_MS) * SLOT_MS;
       statusMap.set(t, c.antennaStatus as AntennaStatus);
     }
 

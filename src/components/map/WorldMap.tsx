@@ -3,8 +3,8 @@
 import { useEffect, useRef, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import "leaflet/dist/leaflet.css";
-import type { RouteCoordinateV2, VesselDataUsagesResponse, VesselRoutesV2Response } from "@/types/vessel";
-import { getVesselDataUsages, getVesselRoutesV2 } from "@/api/vessel";
+import type { RouteCoordinateV2, VesselRoutesV2Response } from "@/types/vessel";
+import { getVesselRoutesV2 } from "@/api/vessel";
 import { getServiceColor, LEGEND_ITEMS } from "../common/AnntennaMapping";
 import Loading from "../common/Loading";
 import RedirectButtons from "../common/RedirectButtons";
@@ -31,11 +31,11 @@ function getRouteParams(startAt: string, endAt: string) {
   }
   let minutes: number;
   if (diffHours <= 24) {
-    minutes = 30;
+    minutes = 6;
   } else if (diffHours <= 24 * 7) {
-    minutes = 60;
+    minutes = 6;
   } else {
-    minutes = 120;
+    minutes = 6;
   }
   return { minutes, coordinateCount };
 }
@@ -217,15 +217,6 @@ const MAP_STYLE_PREVIEWS = {
 export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRange, isLive, mapOverlay }: WorldMapProps) {
   const swrKey = timeRange ? [vesselImo, timeRange.startAt, timeRange.endAt] : null;
 
-  const { data: dataUsagesData, isLoading: isLoadingData } = useSWR<VesselDataUsagesResponse>(
-    swrKey ? ["vesselDataUsages", ...swrKey] : null,
-    () => {
-      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
-      return getVesselDataUsages(vesselImo, range.startAt, range.endAt);
-    },
-    { fallbackData: { timeStampDataUsages: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
-  );
-
   const { data: routesData, isLoading: isLoadingRoutes } = useSWR<VesselRoutesV2Response>(
     swrKey ? ["vesselRoutesV2", ...swrKey] : null,
     () => {
@@ -237,7 +228,6 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
   );
 
   const coordinates = routesData?.coordinates ?? [];
-  const timeStampDataUsages = dataUsagesData?.timeStampDataUsages ?? [];
   // lazy init: localStorage에서 읽어 첫 렌더부터 올바른 값으로 시작
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => {
     if (typeof window === "undefined") return "light";
@@ -525,9 +515,8 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
                 key={s}
                 onClick={() => handleStyleChange(s)}
                 title={s === "light" ? "Light map" : "Dark map"}
-                className={`h-9 w-9 overflow-hidden rounded-lg border-2 shadow-lg transition-all hover:scale-105 ${
-                  mapStyle === s ? "border-blue-400" : "border-white/25 hover:border-white/50"
-                }`}
+                className={`h-9 w-9 overflow-hidden rounded-lg border-2 shadow-lg transition-all hover:scale-105 ${mapStyle === s ? "border-blue-400" : "border-white/25 hover:border-white/50"
+                  }`}
               >
                 <img
                   src={MAP_STYLE_PREVIEWS[s]}
@@ -586,9 +575,9 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
         <RedirectButtons vesselId={vesselId ?? ""} />
       </div>
-      <AntennaStatusBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
-      <SatTrackingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
-      <MainRoutingBar timeStampDataUsages={timeStampDataUsages} timeRange={timeRange} isLoading={isLoadingData} />
+      <AntennaStatusBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
+      <SatTrackingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
+      <MainRoutingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
 
     </>
   );

@@ -4,7 +4,7 @@ import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { differenceInDays } from "date-fns";
-import type { TimeStampDataUsage } from "@/types/vessel";
+import type { TimeStampDataUsageV2 } from "@/types/vessel";
 import { getServiceColor } from "../../common/AnntennaMapping";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -14,7 +14,7 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
 interface LineChartOneProps {
-  timeStampDataUsages: TimeStampDataUsage[];
+  timeStampDataUsages: TimeStampDataUsageV2[];
   timeRange?: {
     startAt: string;
     endAt: string;
@@ -73,17 +73,13 @@ export default function LineChartOne({
     const antennaNames = new Set<string>();
     const timeMap: Record<string, Record<string, number>> = {};
 
-    const sortedCoords = [...timeStampDataUsages].sort(
-      (a, b) => tsMs(a.timestamp) - tsMs(b.timestamp),
-    );
-
     const unavailMap: Record<number, boolean> = {};
 
-    sortedCoords.forEach((coord) => {
-      const timeMs = tsMs(coord.timestamp);
+    timeStampDataUsages.forEach((coord) => {
+      const timeMs = tsMs(coord.timeStamp);
       if (!timeMap[timeMs]) timeMap[timeMs] = {};
       if (!coord.available) unavailMap[timeMs] = true;
-      coord.dataUsages.forEach((usage) => {
+      coord.antennaDataUsages.forEach((usage) => {
         const name = usage.antennaName || "Unknown";
         antennaNames.add(name);
         const mbps = (usage.dataUsage * 8) / 300 / 1000000;
@@ -91,7 +87,7 @@ export default function LineChartOne({
       });
     });
 
-    const timeKeys = Object.keys(timeMap).sort((a, b) => Number(a) - Number(b));
+    const timeKeys = Object.keys(timeMap);
     const antennaList = Array.from(antennaNames);
 
     // ── 메인 시리즈 (갭 구간에 null 삽입) ──────────────────────────

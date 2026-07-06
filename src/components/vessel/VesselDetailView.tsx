@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import useSWR from "swr";
-import type { DataUsage, VesselDataUsagesResponse } from "@/types/vessel";
-import { getVesselAntennas, getVesselDataUsages } from "@/api/vessel";
+import type { DataUsage, VesselDataUsagesV2Response } from "@/types/vessel";
+import { getVesselAntennas, getVesselDataUsagesV2 } from "@/api/vessel";
 
 const THREE_MINUTES = 3 * 60 * 1000;
 import { getServiceColor } from "../common/AnntennaMapping";
@@ -80,11 +80,11 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
   const [chartExpanded, setChartExpanded] = useState(false);
 
   // ── 차트/히스토리 데이터 (라인차트 + 히스토리 바) ──────────────
-  const { data: dataUsagesData, isLoading: isLoadingData } = useSWR<VesselDataUsagesResponse>(
-    timeRange ? ["vesselDataUsages", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+  const { data: dataUsagesData, isLoading: isLoadingData } = useSWR<VesselDataUsagesV2Response>(
+    timeRange ? ["vesselDataUsagesV2", vesselImo, timeRange.startAt, timeRange.endAt] : null,
     () => {
       const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
-      return getVesselDataUsages(vesselImo, range.startAt, range.endAt);
+      return getVesselDataUsagesV2(vesselImo, range.startAt, range.endAt);
     },
     { fallbackData: { timeStampDataUsages: [] }, refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
   );

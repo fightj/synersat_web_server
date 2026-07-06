@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import { differenceInDays } from "date-fns";
-import type { TimeStampDataUsage } from "@/types/vessel";
+import type { SatIdEntry, VesselSatIdsResponse } from "@/types/vessel";
+import { getVesselSatIds } from "@/api/vessel";
+
+const THREE_MINUTES = 3 * 60 * 1000;
 
 // satId → 표시 레이블
 const SAT_LABEL: Record<number, string> = {
@@ -77,11 +81,33 @@ function fmtFull(ms: number) {
 
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
-export default function SatTrackingBar({ timeStampDataUsages, timeRange, isLoading = false }: {
-  timeStampDataUsages: TimeStampDataUsage[];
+export default function SatTrackingBar({ vesselImo, timeRange, isLive = false, fetchTimeRange }: {
+  vesselImo: string;
   timeRange?: { startAt: string; endAt: string };
-  isLoading?: boolean;
+  isLive?: boolean;
+  fetchTimeRange?: () => { startAt: string; endAt: string };
 }) {
+  const { data: rawData, isLoading } = useSWR<VesselSatIdsResponse>(
+    timeRange ? ["vesselSatIds", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      return getVesselSatIds(vesselImo, range.startAt, range.endAt);
+    },
+    { refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+
+  const timeStampDataUsages = useMemo((): SatIdEntry[] => {
+    if (!rawData) return [];
+    const arr: any[] = Array.isArray(rawData)
+      ? rawData
+      : (Object.values(rawData as object) as any[]).find(Array.isArray) ?? [];
+    console.log("[SatTrackingBar] rawData:", rawData, "→ arr.length:", arr.length);
+    return arr.map((item: any) => ({
+      timeStamp: item.timeStamp ?? item.timestamp ?? "",
+      satId: item.satId ?? null,
+    }));
+  }, [rawData]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(300);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -97,7 +123,7 @@ export default function SatTrackingBar({ timeStampDataUsages, timeRange, isLoadi
   // 스캔 라인
   const [isScanning, setIsScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
-  const prevRef = useRef<TimeStampDataUsage[] | null>(null);
+  const prevRef = useRef<SatIdEntry[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (prevRef.current === timeStampDataUsages) return;
@@ -126,7 +152,7 @@ export default function SatTrackingBar({ timeStampDataUsages, timeRange, isLoadi
     // satId 슬롯 맵 구성
     const idMap = new Map<number, number | null>();
     for (const c of timeStampDataUsages) {
-      const t = Math.floor(tsMs(c.timestamp) / SLOT_MS) * SLOT_MS;
+      const t = Math.floor(tsMs(c.timeStamp) / SLOT_MS) * SLOT_MS;
       idMap.set(t, normId(c.satId));
     }
 

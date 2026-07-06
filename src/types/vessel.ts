@@ -152,6 +152,43 @@ export interface VesselRoutesV2Response {
   coordinates: RouteCoordinateV2[];
 }
 
+export interface TimeStampDataUsageV2 {
+  timeStamp: string;
+  available: boolean;
+  antennaDataUsages: DataUsageDetail[];
+}
+
+export interface VesselDataUsagesV2Response {
+  timeStampDataUsages: TimeStampDataUsageV2[];
+}
+
+export interface SatIdEntry {
+  timeStamp: string;
+  satId: number | null;
+}
+
+export interface VesselSatIdsResponse {
+  timeStampSatIds: SatIdEntry[];
+}
+
+export interface CurrentRouteEntry {
+  timeStamp: string;
+  displayName: string | null;
+}
+
+export interface VesselCurrentRoutesResponse {
+  timeStampCurrentRoutes: CurrentRouteEntry[];
+}
+
+export interface AntennaStatusEntry {
+  timeStamp: string;
+  antennaStatus: "TRACKING" | "SEARCHING" | "BLOCKING" | "COMMUNICATION_ERROR" | "NOT_AVAILABLE" | null;
+}
+
+export interface VesselAntennaStatusesResponse {
+  timeStampAntennaStatuses: AntennaStatusEntry[];
+}
+
 export interface DashboardVesselPosition {
   imo: number;
   vesselName: string;

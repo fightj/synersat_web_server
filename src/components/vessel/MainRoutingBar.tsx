@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import { differenceInDays } from "date-fns";
-import type { TimeStampDataUsage } from "@/types/vessel";
+import type { CurrentRouteEntry, VesselCurrentRoutesResponse } from "@/types/vessel";
 import { getServiceColor } from "../common/AnntennaMapping";
+import { getVesselCurrentRoutes } from "@/api/vessel";
+
+const THREE_MINUTES = 3 * 60 * 1000;
 
 const NA_COLOR = "#64748b";
 const NA_LABEL = "N/A";
@@ -36,11 +40,33 @@ function fmtFull(ms: number) {
 
 const tsMs = (ts: string) => new Date(ts.endsWith("Z") ? ts : ts + "Z").getTime();
 
-export default function MainRoutingBar({ timeStampDataUsages, timeRange, isLoading = false }: {
-  timeStampDataUsages: TimeStampDataUsage[];
+export default function MainRoutingBar({ vesselImo, timeRange, isLive = false, fetchTimeRange }: {
+  vesselImo: string;
   timeRange?: { startAt: string; endAt: string };
-  isLoading?: boolean;
+  isLive?: boolean;
+  fetchTimeRange?: () => { startAt: string; endAt: string };
 }) {
+  const { data: rawData, isLoading } = useSWR<VesselCurrentRoutesResponse>(
+    timeRange ? ["vesselCurrentRoutes", vesselImo, timeRange.startAt, timeRange.endAt] : null,
+    () => {
+      const range = fetchTimeRange ? fetchTimeRange() : { startAt: timeRange!.startAt, endAt: timeRange!.endAt };
+      return getVesselCurrentRoutes(vesselImo, range.startAt, range.endAt);
+    },
+    { refreshInterval: isLive ? THREE_MINUTES : 0, revalidateOnFocus: false, revalidateOnReconnect: true, dedupingInterval: THREE_MINUTES },
+  );
+
+  const timeStampDataUsages = useMemo((): CurrentRouteEntry[] => {
+    if (!rawData) return [];
+    const arr: any[] = Array.isArray(rawData)
+      ? rawData
+      : (Object.values(rawData as object) as any[]).find(Array.isArray) ?? [];
+    console.log("[MainRoutingBar] rawData:", rawData, "→ arr.length:", arr.length);
+    return arr.map((item: any) => ({
+      timeStamp: item.timeStamp ?? item.timestamp ?? "",
+      displayName: item.displayName ?? item.currentRoute ?? item.antennaServiceDisplayName ?? null,
+    }));
+  }, [rawData]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(300);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -56,7 +82,7 @@ export default function MainRoutingBar({ timeStampDataUsages, timeRange, isLoadi
   // 스캔 라인
   const [isScanning, setIsScanning] = useState(false);
   const [scanKey, setScanKey] = useState(0);
-  const prevRef = useRef<TimeStampDataUsage[] | null>(null);
+  const prevRef = useRef<CurrentRouteEntry[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (prevRef.current === timeStampDataUsages) return;
@@ -85,7 +111,7 @@ export default function MainRoutingBar({ timeStampDataUsages, timeRange, isLoadi
     // timestamp → antennaServiceDisplayName 슬롯 맵
     const nameMap = new Map<number, string | null>();
     for (const c of timeStampDataUsages) {
-      const t = Math.floor(tsMs(c.timestamp) / SLOT_MS) * SLOT_MS;
+      const t = Math.floor(tsMs(c.timeStamp) / SLOT_MS) * SLOT_MS;
       nameMap.set(t, c.displayName ?? null);
     }
 
