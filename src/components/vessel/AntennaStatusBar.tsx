@@ -74,7 +74,6 @@ export default function AntennaStatusBar({ vesselImo, timeRange, isLive = false,
     const arr: any[] = Array.isArray(rawData)
       ? rawData
       : (Object.values(rawData as object) as any[]).find(Array.isArray) ?? [];
-    console.log("[AntennaStatusBar] rawData:", rawData, "→ arr.length:", arr.length);
     return arr.map((item: any) => ({
       timeStamp: item.timeStamp ?? item.timestamp ?? "",
       antennaStatus: item.antennaStatus ?? null,

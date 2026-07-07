@@ -246,7 +246,7 @@ export async function getVesselDataUsagesV2(
     minutes: String(minutes),
   });
 
-  const res = await fetch(`${BASE_URL}/v2/vessels/dataUsages?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
+  const res = await fetch(`${BASE_URL}/v3/vessels/dataUsages?${params}`, withTestUser({ ...fetchOptions, method: "GET" }));
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

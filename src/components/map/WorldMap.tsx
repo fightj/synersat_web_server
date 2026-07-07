@@ -56,6 +56,9 @@ const MIN_CLUSTER_PX = 18;
 
 // ── Helpers (module-level, no closure deps) ───────────────────────────────
 
+// dot 아이콘 HTML은 color만으로 결정되므로 문자열 캐시 (zoom 불변)
+const _dotIconHtmlCache = new Map<string, string>();
+
 function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L: any, hasOffline = false) {
   const heading = p.vesselHeading ?? 0;
   const available = (p.available ?? true) && !hasOffline;
@@ -67,12 +70,12 @@ function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L:
 
   if (!isLast) {
     const dot = 8;
-    return L.divIcon({
-      className: "",
-      html: `<div style="width:${dot}px;height:${dot}px;border-radius:50%;background:${color};opacity:0.7;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3);"></div>`,
-      iconSize: [dot, dot],
-      iconAnchor: [dot / 2, dot / 2],
-    });
+    let html = _dotIconHtmlCache.get(color);
+    if (!html) {
+      html = `<div style="width:${dot}px;height:${dot}px;border-radius:50%;background:${color};opacity:0.7;border:1.5px solid white;box-shadow:0 0 2px rgba(0,0,0,0.3);"></div>`;
+      _dotIconHtmlCache.set(color, html);
+    }
+    return L.divIcon({ className: "", html, iconSize: [dot, dot], iconAnchor: [dot / 2, dot / 2] });
   }
 
   const h = Math.min(Math.max(zoom * 2.5, 12), 32) * 1.5;
@@ -95,8 +98,10 @@ function createArrowIcon(p: RouteCoordinateV2, zoom: number, isLast: boolean, L:
   });
 }
 
-// Pixel-distance clustering: hides points that are within minPx of an already-selected point.
-// Processing order is oldest→newest so the most recent point is always visible (forced last).
+// Pixel-distance clustering: hides points within minPx of an already-selected point.
+// Grid-based O(n): each new point checks only the 3×3 neighboring grid cells instead of all
+// previously-selected points, giving O(n) average vs the prior O(n²).
+// Distance check formula is identical to the old approach — results are mathematically equivalent.
 function clusterByPixel(
   points: RouteCoordinateV2[],
   map: any,
@@ -106,21 +111,37 @@ function clusterByPixel(
   if (points.length === 0) return [];
   const minDistSq = minPx * minPx;
   const selected: { point: RouteCoordinateV2; hasOffline: boolean }[] = [];
-  const selPx: { x: number; y: number }[] = [];
+  // grid: cell "cx,cy" → array of pixel coords of selected points in that cell
+  const grid = new Map<string, Array<{ x: number; y: number }>>();
   let pendingOffline = false;
 
   for (const p of points) {
     if (p.available === false) pendingOffline = true;
 
     const px = map.latLngToContainerPoint(L.latLng(p.latitude!, p.longitude!));
-    const tooClose = selPx.some((ep) => {
-      const dx = px.x - ep.x;
-      const dy = px.y - ep.y;
-      return dx * dx + dy * dy < minDistSq;
-    });
+    const cx = Math.floor(px.x / minPx);
+    const cy = Math.floor(px.y / minPx);
+
+    // Any selected point within minPx distance must lie in the 3×3 neighboring cells
+    let tooClose = false;
+    outer: for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const neighbors = grid.get(`${cx + dx},${cy + dy}`);
+        if (!neighbors) continue;
+        for (const ep of neighbors) {
+          const ddx = px.x - ep.x;
+          const ddy = px.y - ep.y;
+          if (ddx * ddx + ddy * ddy < minDistSq) { tooClose = true; break outer; }
+        }
+      }
+    }
+
     if (!tooClose) {
       selected.push({ point: p, hasOffline: pendingOffline });
-      selPx.push({ x: px.x, y: px.y });
+      const key = `${cx},${cy}`;
+      const cell = grid.get(key);
+      if (cell) cell.push({ x: px.x, y: px.y });
+      else grid.set(key, [{ x: px.x, y: px.y }]);
       pendingOffline = false;
     }
   }
@@ -167,9 +188,16 @@ function syncMarkers(
     if (existing) {
       if (isLast) {
         existing.marker.setIcon(createArrowIcon(p, zoom, true, L, false));
-      } else if (existing.hasOffline !== hasOffline) {
-        existing.marker.setIcon(createArrowIcon(p, zoom, false, L, hasOffline));
-        existing.hasOffline = hasOffline;
+      } else {
+        // isLast true→false 전환 시 점 아이콘으로 강등
+        if (existing.isLast) {
+          existing.marker.setIcon(createArrowIcon(p, zoom, false, L, hasOffline));
+          existing.isLast = false;
+          existing.hasOffline = hasOffline;
+        } else if (existing.hasOffline !== hasOffline) {
+          existing.marker.setIcon(createArrowIcon(p, zoom, false, L, hasOffline));
+          existing.hasOffline = hasOffline;
+        }
       }
     } else {
       const marker = L.marker([p.latitude!, p.longitude!], {
@@ -214,6 +242,13 @@ const MAP_STYLE_PREVIEWS = {
 } as const;
 
 export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRange, isLive, mapOverlay }: WorldMapProps) {
+  // 메인 콘텐츠(지도+차트) 초기 렌더 완료 후 bar chart 마운트 — SWR 7개 동시 발화 분산
+  const [barsReady, setBarsReady] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setBarsReady(true), 300);
+    return () => clearTimeout(id);
+  }, []);
+
   const swrKey = timeRange ? [vesselImo, timeRange.startAt, timeRange.endAt] : null;
 
   const { data: routesData, isLoading: isLoadingRoutes } = useSWR<VesselRoutesV2Response>(
@@ -574,9 +609,9 @@ export default function WorldMap({ vesselImo, vesselId, fetchTimeRange, timeRang
       <div className="mt-3 rounded-xl border border-gray-200 bg-(--color-surface-1) p-2 dark:border-white/5">
         <RedirectButtons vesselId={vesselId ?? ""} />
       </div>
-      <AntennaStatusBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
-      <SatTrackingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
-      <MainRoutingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />
+      {barsReady && <AntennaStatusBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />}
+      {barsReady && <SatTrackingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />}
+      {barsReady && <MainRoutingBar vesselImo={vesselImo} timeRange={timeRange} isLive={isLive} fetchTimeRange={fetchTimeRange} />}
 
     </>
   );

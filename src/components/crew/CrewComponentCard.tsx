@@ -282,6 +282,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
         isOpen={checkPwOpen}
         onClose={() => setCheckPwOpen(false)}
         entries={checkPwEntries}
+        vesselName={selectedVessel?.name ?? "vessel"}
       />
 
       {imo && (

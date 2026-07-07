@@ -69,7 +69,6 @@ export default function LineChartOne({
       return { allSeries: [], unavailSeries: [], gapSeries: phantomGap, isLongTerm: longTerm, dayDiff: diff };
     }
 
-    const GAP_THRESHOLD_MS = 10 * 60 * 1000;
     const antennaNames = new Set<string>();
     const timeMap: Record<string, Record<string, number>> = {};
 
@@ -89,6 +88,15 @@ export default function LineChartOne({
 
     const timeKeys = Object.keys(timeMap);
     const antennaList = Array.from(antennaNames);
+
+    // 데이터 평균 간격의 2배를 gap threshold로 사용 (최소 10분)
+    // → 30분 간격 데이터: threshold 60분 / 5분 간격 데이터: threshold 10분
+    const GAP_THRESHOLD_MS = timeKeys.length > 1
+      ? Math.max(
+          10 * 60 * 1000,
+          ((Number(timeKeys[timeKeys.length - 1]) - Number(timeKeys[0])) / (timeKeys.length - 1)) * 2,
+        )
+      : 10 * 60 * 1000;
 
     // ── 메인 시리즈 (갭 구간에 null 삽입) ──────────────────────────
     const chartSeries = antennaList.map((name) => {
@@ -194,7 +202,24 @@ export default function LineChartOne({
         ? [{ name: "Offline", data: gapData, color: "#ef4444" }]
         : [];
 
-    return { allSeries: chartSeries, unavailSeries: builtUnavailSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
+    // 대용량 데이터(3일↑) ApexCharts SVG 렌더링 부하 감소 — null 포인트(갭 마커)는 반드시 유지
+    const MAX_PTS = 500;
+    const decimatedChartSeries = chartSeries.map((s) => {
+      if (s.data.length <= MAX_PTS) return s;
+      const stride = Math.ceil(s.data.length / MAX_PTS);
+      return {
+        ...s,
+        data: s.data.filter((pt, i, arr) =>
+          pt.y === null ||                          // 갭 마커 유지
+          i === 0 || i === arr.length - 1 ||        // 양 끝점 유지
+          arr[i - 1]?.y === null ||                 // 갭 직후 첫 포인트 유지
+          arr[i + 1]?.y === null ||                 // 갭 직전 마지막 포인트 유지
+          i % stride === 0,                         // stride 샘플링
+        ),
+      };
+    });
+
+    return { allSeries: decimatedChartSeries, unavailSeries: builtUnavailSeries, gapSeries: builtGapSeries, isLongTerm: longTerm, dayDiff: diff };
   }, [timeStampDataUsages, timeRange]);
 
   // phantom series: x축 범위 강제용 (데이터 없을 때)
@@ -208,7 +233,7 @@ export default function LineChartOne({
 
   // 실제 렌더할 main 시리즈 수 (options per-series 배열 길이 계산용)
   const mainSeriesForDisplay = useMemo(() => {
-    if (showOfflineOnly) return phantomSeries; // offline only: main 숨김, phantom만 x축용
+    if (showOfflineOnly) return phantomSeries;
     if (allSeries.length === 0) return phantomSeries;
     return selectedAntenna ? allSeries.filter((s) => s.name === selectedAntenna) : allSeries;
   }, [allSeries, phantomSeries, selectedAntenna, showOfflineOnly]);

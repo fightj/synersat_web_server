@@ -60,7 +60,6 @@ export default function MainRoutingBar({ vesselImo, timeRange, isLive = false, f
     const arr: any[] = Array.isArray(rawData)
       ? rawData
       : (Object.values(rawData as object) as any[]).find(Array.isArray) ?? [];
-    console.log("[MainRoutingBar] rawData:", rawData, "→ arr.length:", arr.length);
     return arr.map((item: any) => ({
       timeStamp: item.timeStamp ?? item.timestamp ?? "",
       displayName: item.displayName ?? item.currentRoute ?? item.antennaServiceDisplayName ?? null,
