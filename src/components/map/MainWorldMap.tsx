@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import type { DashboardVesselPosition } from "@/types/vessel";
@@ -14,6 +14,7 @@ import GpsAlert from "./components/GpsAlert";
 import NoGpsPanel from "./components/NoGpsPanel";
 import MapBottomBar from "./components/MapBottomBar";
 import GxCoveragePanel from "./components/GxCoveragePanel";
+import WeatherOverlayPanel from "./components/WeatherOverlayPanel";
 
 interface MainWorldMapProps {
   vessels?: DashboardVesselPosition[];
@@ -169,22 +170,22 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     return () => { clearTimeout(tOn); clearTimeout(tOff); };
   }, [vessels]);
 
-  const handleListViewDetail = (imo: number) => {
+  const handleListViewDetail = useCallback((imo: number) => {
     const matched = useVesselStore.getState().vessels.find(v => v.imo === imo);
     if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
     router.push(`/vessels/detail?imo=${imo}`);
-  };
+  }, [setSelectedVessel, router]);
 
-  const handleGpsAlertViewDetail = () => {
+  const handleGpsAlertViewDetail = useCallback(() => {
     if (!selectedVessel) return;
     const matched = useVesselStore.getState().vessels.find(v => v.imo === selectedVessel.imo);
     if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
     router.push(`/vessels/detail?imo=${selectedVessel.imo}`);
-  };
+  }, [selectedVessel, setSelectedVessel, router]);
 
-  const handleListPanelToggle = (mode: "online" | "offline") => {
+  const handleListPanelToggle = useCallback((mode: "online" | "offline") => {
     setActiveListPanel((v) => (v === mode ? null : mode));
-  };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
@@ -210,6 +211,14 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
       {/* GX Coverage 버튼 + 빔 셀렉터 */}
       <GxCoveragePanel
+        mapInstanceRef={mapInstanceRef}
+        leafletRef={leafletRef}
+        mapReady={mapReady}
+        bottomOffset={bottomBarH || undefined}
+      />
+
+      {/* 날씨 오버레이 버튼 + 범례 */}
+      <WeatherOverlayPanel
         mapInstanceRef={mapInstanceRef}
         leafletRef={leafletRef}
         mapReady={mapReady}

@@ -119,28 +119,28 @@ export function useVesselMarkers({
       return;
     }
 
-    // 새 vessel 맵 구성
+    // 새 vessel 맵 구성 (단일 순회)
     const seenImos = new Set<number>();
     const nextMap = new Map<number, VesselPoint>();
-    vessels
-      .filter((v) => v.latitude !== null && v.longitude !== null)
-      .filter((v) => !(v.connected === false && v.discard === true))
-      .filter((v) => { if (seenImos.has(v.imo)) return false; seenImos.add(v.imo); return true; })
-      .filter((v) => matchFilter(v.antennaDisplayName, v.connected !== false, activeFilter))
-      .forEach((v) => {
-        nextMap.set(v.imo, {
-          lat: v.latitude!,
-          lng: v.longitude!,
-          name: v.vesselName,
-          heading: v.vesselHeading ?? 0,
-          imo: v.imo,
-          color: v.connected === false ? "#ef4444" : getServiceColor(v.antennaDisplayName),
-          connected: v.connected !== false,
-          antennaDisplayName: v.antennaDisplayName,
-          satType: v.satType,
-          vesselSpeed: v.vesselSpeed,
-        });
+    for (const v of vessels) {
+      if (v.latitude === null || v.longitude === null) continue;
+      if (v.connected === false && v.discard === true) continue;
+      if (seenImos.has(v.imo)) continue;
+      seenImos.add(v.imo);
+      if (!matchFilter(v.antennaDisplayName, v.connected !== false, activeFilter)) continue;
+      nextMap.set(v.imo, {
+        lat: v.latitude,
+        lng: v.longitude,
+        name: v.vesselName,
+        heading: v.vesselHeading ?? 0,
+        imo: v.imo,
+        color: v.connected === false ? "#ef4444" : getServiceColor(v.antennaDisplayName),
+        connected: v.connected !== false,
+        antennaDisplayName: v.antennaDisplayName,
+        satType: v.satType,
+        vesselSpeed: v.vesselSpeed,
       });
+    }
 
     const prevMap = markerMapRef.current;
 

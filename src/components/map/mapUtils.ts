@@ -362,6 +362,19 @@ export async function loadBeams(gxKey: GxKey): Promise<GxBeam[]> {
 /** 하위 호환용 타입 별칭 */
 export type Gx1Beam = GxBeam;
 
+const _vesselSvgCache = new Map<string, string>();
+
+function getVesselSvgHtml(w: number, h: number, color: string): string {
+  const key = `${color}|${w}|${h}`;
+  let html = _vesselSvgCache.get(key);
+  if (!html) {
+    const fill = color + "66";
+    html = `<svg width="${w}" height="${h}" viewBox="0 -5 16 33" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 -4C9 -2 14 1.5 14 5.5V21C14 22.65 12.65 24 11 24H5C3.35 24 2 22.65 2 21V5.5C2 1.5 7 -2 8 -4Z" fill="${fill}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/><rect x="4" y="5.5" width="8" height="4" rx="1" fill="${color}"/><rect x="4" y="11.5" width="8" height="4" rx="1" fill="${color}"/><rect x="4" y="17.5" width="8" height="4" rx="1" fill="${color}"/></svg>`;
+    _vesselSvgCache.set(key, html);
+  }
+  return html;
+}
+
 export function makeVesselIcon(
   L: any,
   w: number,
@@ -371,39 +384,15 @@ export function makeVesselIcon(
   name = "",
   showName = false,
 ) {
-  const fill = color + "66";
+  const svgHtml = getVesselSvgHtml(w, h, color);
   const label =
     showName && name
-      ? `<div style="
-          position:absolute;
-          top:${h + 2}px;
-          left:50%;
-          transform:translateX(-50%);
-          white-space:nowrap;
-          font-size:9px;
-          font-weight:700;
-          color:#fff;
-          text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);
-          pointer-events:none;
-          letter-spacing:0.03em;
-        ">${name}</div>`
+      ? `<div style="position:absolute;top:${h + 2}px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:9px;font-weight:700;color:#fff;text-shadow:0 0 4px rgba(0,0,0,0.9),0 0 8px rgba(0,0,0,0.7);pointer-events:none;letter-spacing:0.03em;">${name}</div>`
       : "";
 
   return L.divIcon({
     className: "",
-    html: `
-      <div style="position:relative; width:${w}px; height:${h}px;">
-        <div style="transform:rotate(${heading}deg); width:${w}px; height:${h}px;">
-          <svg width="${w}" height="${h}" viewBox="0 -5 16 33" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 -4C9 -2 14 1.5 14 5.5V21C14 22.65 12.65 24 11 24H5C3.35 24 2 22.65 2 21V5.5C2 1.5 7 -2 8 -4Z" fill="${fill}" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>
-            <rect x="4" y="5.5" width="8" height="4" rx="1" fill="${color}"/>
-            <rect x="4" y="11.5" width="8" height="4" rx="1" fill="${color}"/>
-            <rect x="4" y="17.5" width="8" height="4" rx="1" fill="${color}"/>
-          </svg>
-        </div>
-        ${label}
-      </div>
-    `,
+    html: `<div style="position:relative;width:${w}px;height:${h}px;"><div style="transform:rotate(${heading}deg);width:${w}px;height:${h}px;">${svgHtml}</div>${label}</div>`,
     iconSize: [w, h],
     iconAnchor: [w / 2, h / 2],
   });
