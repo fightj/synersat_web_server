@@ -26,6 +26,11 @@ export async function fetchWindGrid(): Promise<object[]> {
     "current=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=UTC";
 
   const res = await fetch(url);
+  if (res.status === 429) {
+    const err = new Error("rate_limit") as any;
+    err.status = 429;
+    throw err;
+  }
   if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
 
   const results: any[] = await res.json();

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState, type RefObject } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { fetchWindGrid } from "../utils/fetchWindGrid";
 
 const OWM_API_KEY = "44be8401943e8308b7ab61e7329fa198";
@@ -23,46 +23,55 @@ const PIXEL_MAPPERS: Partial<Record<string, PixelMapper>> = {
   clouds_new: mapCloudsPixels,
 };
 
-// ── OWM 캔버스 타일 레이어 (색상 리매핑 지원) ────────────────────────
-function createWeatherLayer(L: any, layerKey: string) {
+// ── OWM 캔버스 타일 레이어 — fetch() 기반으로 HTTP 상태 감지 가능 ──
+function createWeatherLayer(L: any, layerKey: string, onRateLimit: () => void) {
   const tileUrl = `https://tile.openweathermap.org/map/${layerKey}/{z}/{x}/{y}.png?appid=${OWM_API_KEY}`;
   const mapper  = PIXEL_MAPPERS[layerKey];
 
-  if (!mapper) {
-    return L.tileLayer(tileUrl, { opacity: 0.75, zIndex: 5 });
-  }
-
   const CanvasLayer = L.GridLayer.extend({
-    createTile(coords: { x: number; y: number; z: number }, done: (e: Error | null, t: HTMLCanvasElement) => void) {
+    createTile(
+      coords: { x: number; y: number; z: number },
+      done: (e: Error | null, tile: HTMLCanvasElement) => void
+    ) {
       const canvas  = document.createElement("canvas");
       const size    = this.getTileSize();
       canvas.width  = size.x;
       canvas.height = size.y;
       const ctx = canvas.getContext("2d")!;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          ctx.drawImage(img, 0, 0);
-          const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          mapper(id.data);
-          ctx.putImageData(id, 0, 0);
-        } catch {
-          ctx.globalAlpha = 0.75;
-          ctx.drawImage(img, 0, 0);
-        }
-        done(null, canvas);
-      };
-      img.onerror = () => done(new Error("tile load failed"), canvas);
-      img.src = tileUrl
+
+      const src = tileUrl
         .replace("{x}", String(coords.x))
         .replace("{y}", String(coords.y))
         .replace("{z}", String(coords.z));
+
+      fetch(src)
+        .then(async (res) => {
+          if (res.status === 429) { onRateLimit(); done(null, canvas); return; }
+          if (!res.ok) { done(new Error(`tile ${res.status}`), canvas); return; }
+          const objUrl = URL.createObjectURL(await res.blob());
+          const img    = new Image();
+          img.onload = () => {
+            try {
+              ctx.drawImage(img, 0, 0);
+              if (mapper) {
+                const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                mapper(id.data);
+                ctx.putImageData(id, 0, 0);
+              }
+            } catch { /* tainted canvas — tile stays blank */ }
+            URL.revokeObjectURL(objUrl);
+            done(null, canvas);
+          };
+          img.onerror = () => { URL.revokeObjectURL(objUrl); done(new Error("img decode"), canvas); };
+          img.src = objUrl;
+        })
+        .catch((err) => done(err, canvas));
+
       return canvas;
     },
   });
 
-  return new CanvasLayer({ opacity: 1, zIndex: 5 });
+  return new CanvasLayer({ opacity: mapper ? 1 : 0.75, zIndex: 5 });
 }
 
 // ── 레이어 정의 ───────────────────────────────────────────────────────
@@ -147,6 +156,15 @@ export default memo(function WeatherOverlayPanel({
   const [isLoadingWind, setIsLoadingWind] = useState(false);
   const weatherLayerRef                 = useRef<any>(null);
   const windLayerRef                    = useRef<any>(null);
+  const rateLimitAlertedRef             = useRef(false);
+
+  // 429 에러 시 alert — 동일 세션에서 중복 호출 방지
+  const handleRateLimit = useCallback(() => {
+    if (rateLimitAlertedRef.current) return;
+    rateLimitAlertedRef.current = true;
+    alert("Too many requests. Please try again in a moment.");
+    setTimeout(() => { rateLimitAlertedRef.current = false; }, 60_000);
+  }, []);
 
   // ── 기상 타일 레이어 ────────────────────────────────────────────────
   useEffect(() => {
@@ -160,7 +178,7 @@ export default memo(function WeatherOverlayPanel({
     }
     if (!activeLayer) return;
 
-    weatherLayerRef.current = createWeatherLayer(L, activeLayer).addTo(map);
+    weatherLayerRef.current = createWeatherLayer(L, activeLayer, handleRateLimit).addTo(map);
 
     return () => {
       if (weatherLayerRef.current) {
@@ -210,8 +228,9 @@ export default memo(function WeatherOverlayPanel({
           particleMultiplier: 0.0025,
           opacity: 0.9,
         }).addTo(map);
-      } catch (err) {
+      } catch (err: any) {
         console.error("[WeatherOverlay] Wind particles error:", err);
+        if (err?.status === 429 || err?.message === "rate_limit") handleRateLimit();
         if (!cancelled) setWindParticles(false);
       } finally {
         if (!cancelled) setIsLoadingWind(false);
@@ -226,7 +245,7 @@ export default memo(function WeatherOverlayPanel({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [windParticles, mapReady]);
+  }, [windParticles, mapReady, handleRateLimit]);
 
   const currentLayer  = BASE_LAYERS.find((l) => l.key === activeLayer);
   const legendLayer   = currentLayer ?? (windParticles && !isLoadingWind ? WIND_PARTICLES_LEGEND : null);

@@ -33,24 +33,6 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
-const XIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M18 6L6 18M6 6l12 12"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -97,6 +79,7 @@ export default function VesselSearch({ className = "" }: Props) {
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const allMatches = useMemo(() => {
     const sorted = [...liteVessels].sort((a, b) =>
@@ -127,6 +110,7 @@ export default function VesselSearch({ className = "" }: Props) {
     });
     addRecent({ imo: v.imo, name: v.name });
     setQuery("");
+    setIsFocused(false);
     setOpen(false);
     inputRef.current?.blur();
     if (pathname !== "/") {
@@ -203,22 +187,22 @@ export default function VesselSearch({ className = "" }: Props) {
           <input
             ref={inputRef}
             type="text"
-            value={query}
+            value={isFocused ? query : (selectedVessel?.name ?? "")}
             onChange={(e) => {
               setQuery(e.target.value);
               setVisibleCount(INITIAL_BATCH);
               setActiveIndex(0);
               setOpen(true);
             }}
-            onFocus={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
-            onClick={() => { setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
+            onFocus={() => { setIsFocused(true); setQuery(""); setOpen(true); setVisibleCount(INITIAL_BATCH); setActiveIndex(0); }}
+            onBlur={() => { setIsFocused(false); setQuery(""); }}
             onKeyDown={onKeyDown}
-            placeholder={selectedVessel?.name || "Select vessel..."}
-            className="text-md h-9.5 w-full rounded-full border border-gray-200 bg-(--color-surface-1) py-2.5 pr-25 pl-8 font-medium text-black transition-all placeholder:text-black focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:text-white dark:placeholder:text-white max-[400px]:pr-16"
+            placeholder={selectedVessel ? "" : "Search vessel..."}
+            className="text-md h-9.5 w-full rounded-full border border-gray-200 bg-(--color-surface-1) py-2.5 pr-25 pl-8 font-medium text-black transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none dark:border-gray-800 dark:text-white dark:placeholder:text-gray-500 max-[400px]:pr-16"
           />
 
           <div className="absolute right-3 flex items-center gap-1">
-            {query ? (
+            {isFocused && query ? (
               <button
                 type="button"
                 onMouseDown={(e) => {
@@ -232,7 +216,7 @@ export default function VesselSearch({ className = "" }: Props) {
                 <CloseLineIcon className="h-4 w-4" />
               </button>
             ) : (
-              selectedVessel && (
+              !isFocused && selectedVessel && (
                 <button
                   type="button"
                   onMouseDown={(e) => {
