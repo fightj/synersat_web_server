@@ -15,6 +15,8 @@ import NoGpsPanel from "./components/NoGpsPanel";
 import MapBottomBar from "./components/MapBottomBar";
 import GxCoveragePanel from "./components/GxCoveragePanel";
 import WeatherOverlayPanel from "./components/WeatherOverlayPanel";
+import DistancePanel from "./components/DistancePanel";
+import VesselActionBar from "./components/VesselActionBar";
 
 interface MainWorldMapProps {
   vessels?: DashboardVesselPosition[];
@@ -34,7 +36,26 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const showName = true;
   const [clickedVessel, setClickedVessel] = useState<ClickedVessel | null>(null);
   const [, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  const [distanceTarget, setDistanceTarget] = useState<{ lat: number; lng: number } | null>(null);
+  const [measuringMode, setMeasuringMode] = useState(false);
+  const clickedVesselRef = useRef(clickedVessel);
+  const measuringModeRef = useRef(measuringMode);
   const [gpsAlert, setGpsAlert] = useState(false);
+
+  // stale closure 방지용 ref 최신화
+  useEffect(() => { clickedVesselRef.current = clickedVessel; }, [clickedVessel]);
+  useEffect(() => { measuringModeRef.current = measuringMode; }, [measuringMode]);
+
+  // 다른 선박 클릭 시 이전 측정 결과 초기화
+  const prevClickedImoRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!clickedVessel) { prevClickedImoRef.current = null; return; }
+    if (prevClickedImoRef.current !== null && prevClickedImoRef.current !== clickedVessel.imo) {
+      setDistanceTarget(null);
+      setMeasuringMode(false);
+    }
+    prevClickedImoRef.current = clickedVessel.imo;
+  }, [clickedVessel]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeListPanel, setActiveListPanel] = useState<"online" | "offline" | null>(null);
   const bottomBarRef = useRef<HTMLDivElement>(null);
@@ -58,10 +79,30 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     handleResetView,
     handleStyleChange,
   } = useLeafletMap(
-    () => { setClickedVessel(null); setPopupPos(null); },
+    (latlng) => {
+      if (measuringModeRef.current && clickedVesselRef.current) {
+        // 측정 모드: 목적지 지점 확정
+        setDistanceTarget(latlng);
+        setMeasuringMode(false);
+      } else {
+        // 일반 클릭: 선박 선택 해제
+        setClickedVessel(null);
+        setPopupPos(null);
+        setDistanceTarget(null);
+        setMeasuringMode(false);
+      }
+    },
     (pt) => setPopupPos(pt),
     clickedLatLngRef,
   );
+
+  // 측정 모드일 때 지도 커서를 크로스헤어로 변경
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.getContainer().style.cursor = measuringMode ? "crosshair" : "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuringMode, mapReady]);
 
   // ── VesselSearch 선택 → 줌인 + ping 마커 ─────────────────────────
   const { setSelectedVesselFromMarker } = useVesselSelectionZoom({
@@ -187,6 +228,17 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setActiveListPanel((v) => (v === mode ? null : mode));
   }, []);
 
+  const handleToggleMeasure = useCallback(() => {
+    setMeasuringMode((m) => !m);
+  }, []);
+
+  const handleVesselClose = useCallback(() => {
+    setClickedVessel(null);
+    setPopupPos(null);
+    setDistanceTarget(null);
+    setMeasuringMode(false);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -216,6 +268,31 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
         mapReady={mapReady}
         bottomOffset={bottomBarH || undefined}
       />
+
+      {/* 선박 선택 액션 바 — 거리측정 버튼 포함 */}
+      {clickedVessel && !distanceTarget && (
+        <VesselActionBar
+          vessel={clickedVessel}
+          measuringMode={measuringMode}
+          onToggleMeasure={handleToggleMeasure}
+          onClose={handleVesselClose}
+          bottomOffset={bottomBarH || undefined}
+        />
+      )}
+
+      {/* 거리 측정 결과 패널 */}
+      {clickedVessel && distanceTarget && vessels && (
+        <DistancePanel
+          vesselImo={clickedVessel.imo}
+          vesselName={clickedVessel.name}
+          vessels={vessels}
+          target={distanceTarget}
+          mapInstanceRef={mapInstanceRef}
+          leafletRef={leafletRef}
+          onClose={() => setDistanceTarget(null)}
+          bottomOffset={bottomBarH || undefined}
+        />
+      )}
 
       {/* 날씨 오버레이 버튼 + 범례 */}
       <WeatherOverlayPanel

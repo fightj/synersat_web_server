@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { MAP_STYLES } from "../mapUtils";
 
 export function useLeafletMap(
-  onMapClick: () => void,
+  onMapClick: (latlng: { lat: number; lng: number }) => void,
   onMapMove: (pt: { x: number; y: number } | null) => void,
   clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>,
 ) {
@@ -79,9 +79,9 @@ export function useLeafletMap(
         }
       });
 
-      map.on("click", () => {
+      map.on("click", (e: any) => {
         clickedLatLngRef.current = null;
-        onMapClick();
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
       });
 
       const handleResize = () => {

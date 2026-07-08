@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { fetchWindGrid } from "../utils/fetchWindGrid";
 
-const OWM_API_KEY = "44be8401943e8308b7ab61e7329fa198";
+const OWM_API_KEY = process.env.NEXT_PUBLIC_OWM_API_KEY ?? "";
 
 // ── 구름 픽셀 리매핑: alpha → 흰색(옅음)~빨강(짙음) ──────────────────
 function mapCloudsPixels(data: Uint8ClampedArray) {
@@ -156,6 +156,7 @@ export default memo(function WeatherOverlayPanel({
   const [isLoadingWind, setIsLoadingWind] = useState(false);
   const weatherLayerRef                 = useRef<any>(null);
   const windLayerRef                    = useRef<any>(null);
+  const darkOverlayRef                  = useRef<HTMLDivElement | null>(null);
   const rateLimitAlertedRef             = useRef(false);
 
   // 429 에러 시 alert — 동일 세션에서 중복 호출 방지
@@ -198,7 +199,20 @@ export default memo(function WeatherOverlayPanel({
       map.removeLayer(windLayerRef.current);
       windLayerRef.current = null;
     }
+    if (darkOverlayRef.current) {
+      darkOverlayRef.current.remove();
+      darkOverlayRef.current = null;
+    }
     if (!windParticles) return;
+
+    // 타일(z-200)과 파티클 오버레이(z-400) 사이에 어두운 배경 삽입
+    const mapContainer = map.getContainer() as HTMLElement;
+    const dim = document.createElement("div");
+    dim.style.cssText =
+      "position:absolute;inset:0;z-index:300;background:rgba(0,5,20,0.5);pointer-events:none;opacity:0;transition:opacity 0.35s ease";
+    mapContainer.appendChild(dim);
+    darkOverlayRef.current = dim;
+    requestAnimationFrame(() => { dim.style.opacity = "1"; });
 
     let cancelled = false;
     setIsLoadingWind(true);
@@ -242,6 +256,10 @@ export default memo(function WeatherOverlayPanel({
       if (windLayerRef.current) {
         map.removeLayer(windLayerRef.current);
         windLayerRef.current = null;
+      }
+      if (darkOverlayRef.current) {
+        darkOverlayRef.current.remove();
+        darkOverlayRef.current = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
