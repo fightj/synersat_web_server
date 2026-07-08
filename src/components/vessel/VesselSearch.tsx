@@ -118,6 +118,23 @@ export default function VesselSearch({ className = "" }: Props) {
     }
   };
 
+  // Detail 버튼 — 현재 페이지 무관하게 항상 상세 페이지로 이동
+  const viewDetail = (v: GetVesselsLite) => {
+    setSelectedVessel({
+      id: v.vesselId,
+      imo: v.imo,
+      name: v.name,
+      vpnIp: v.vpnIp,
+      prepaidEnabled: v.prepaidEnabled,
+    });
+    addRecent({ imo: v.imo, name: v.name });
+    setQuery("");
+    setIsFocused(false);
+    setOpen(false);
+    inputRef.current?.blur();
+    router.push(`/vessels/detail?imo=${v.imo}`);
+  };
+
   // ✅ 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -277,6 +294,7 @@ export default function VesselSearch({ className = "" }: Props) {
                           id={`vessel-option-${idx}`}
                           type="button"
                           onMouseEnter={() => setActiveIndex(idx)}
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => selectVessel(v)}
                           className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${isActive ? "bg-gray-100 dark:bg-white/10" : ""
                             } ${isSelected ? "font-bold text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-white"}`}
@@ -295,10 +313,10 @@ export default function VesselSearch({ className = "" }: Props) {
                           <div
                             role="button"
                             tabIndex={-1}
-                            onMouseDown={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              selectVessel(v);
+                              viewDetail(v);
                             }}
                             className="group flex shrink-0 items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2 py-0.5 transition-colors hover:border-blue-300 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/20"
                           >
@@ -333,6 +351,7 @@ export default function VesselSearch({ className = "" }: Props) {
                     <li key={r.imo}>
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           const found = liteVessels.find((v) => v.imo === r.imo);
                           if (found) selectVessel(found);
@@ -351,7 +370,7 @@ export default function VesselSearch({ className = "" }: Props) {
                         <div
                           role="button"
                           tabIndex={-1}
-                          onMouseDown={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                           onClick={(e) => {
                             e.stopPropagation();
                             const found = liteVessels.find((v) => v.imo === r.imo);
