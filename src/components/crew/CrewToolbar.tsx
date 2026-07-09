@@ -58,7 +58,7 @@ export default function CrewToolbar({
         </Button>
         {mode === "prepay" && (
           <Button size="compact" variant="outline"
-            onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
+            onClick={() => onAction("CHECK_USAGE")} disabled={isLoading}>
             Check Usage
           </Button>
         )}
@@ -70,7 +70,7 @@ export default function CrewToolbar({
               Check PW
             </Button>
             <Button size="compact" variant="outline"
-              onClick={() => onAction("CHECK_USAGE")} disabled={noneSelected || isLoading}>
+              onClick={() => onAction("CHECK_USAGE")} disabled={isLoading}>
               Check Usage
             </Button>
             <Button size="compact" variant="outline" startIcon={<EditIcon />}

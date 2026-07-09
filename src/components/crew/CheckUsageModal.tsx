@@ -70,11 +70,15 @@ const getDefault24hRange = () => {
 
 export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName }: CheckUsageModalProps) {
   const [usageMap, setUsageMap] = useState<Record<string, CrewUsageData>>({});
+  // Apply 후 실제로 표시할 유저 목록 (선택 없으면 API 응답 기반으로 채워짐)
+  const [resolvedCrews, setResolvedCrews] = useState<Pick<CrewEntry, "userId">[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [pendingRange, setPendingRange] = useState(getDefault24hRange);
   const [appliedRange, setAppliedRange] = useState<{ startAt: string; endAt: string } | null>(null);
+  const [sortKey, setSortKey] = useState<"id" | "in" | "out" | "total">("id");
+  const [sortAsc, setSortAsc] = useState(true);
 
   const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
     setPendingRange({ startAt, endAt });
@@ -92,11 +96,17 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       const map: Record<string, CrewUsageData> = {};
       dataUsages.forEach((d) => { map[d.crewId] = d; });
       setUsageMap(map);
+      // 사전 선택이 없으면 API 응답 기반으로 표시 목록 구성
+      const crews = selectedCrew.length > 0
+        ? selectedCrew
+        : dataUsages.map((d) => ({ userId: d.crewId }));
+      setResolvedCrews(crews);
       if (!selectedUserId && dataUsages.length > 0) {
         setSelectedUserId(dataUsages[0].crewId);
       }
     } catch {
       setUsageMap({});
+      setResolvedCrews([]);
     } finally {
       setLoading(false);
     }
@@ -117,7 +127,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     // Excel이 날짜 문자열을 자동 변환해 ######으로 표시하는 것을 방지
     const csvDate = (iso: string | null | undefined) => `="${toKST(iso)}"`;
 
-    selectedCrew.forEach((crew) => {
+    resolvedCrews.forEach((crew) => {
       const data = usageMap[crew.userId];
 
       const sheetData: (string | number)[][] = [
@@ -150,7 +160,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       ["Vessel", vesselName],
       [],
       ["Username", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
-      ...selectedCrew.map((crew) => {
+      ...resolvedCrews.map((crew) => {
         const d = usageMap[crew.userId];
         return [
           crew.userId,
@@ -172,10 +182,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     a.download = `${safe(vesselName)}_usage_${new Date().toISOString().slice(0, 10)}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [selectedCrew, usageMap, vesselName, appliedRange]);
+  }, [resolvedCrews, usageMap, vesselName, appliedRange]);
 
   const handleClose = () => {
     setUsageMap({});
+    setResolvedCrews([]);
     setSelectedUserId(null);
     setHasApplied(false);
     setPendingRange(getDefault24hRange());
@@ -184,6 +195,22 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
 
   const selectedData = selectedUserId ? usageMap[selectedUserId] : null;
 
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortAsc((v) => !v);
+    else { setSortKey(key); setSortAsc(key === "id"); }
+  };
+
+  const sortedCrews = [...resolvedCrews].sort((a, b) => {
+    const da = usageMap[a.userId];
+    const db = usageMap[b.userId];
+    let diff = 0;
+    if (sortKey === "id") diff = a.userId.localeCompare(b.userId);
+    else if (sortKey === "in")    diff = (da?.totalInputOctets  ?? 0) - (db?.totalInputOctets  ?? 0);
+    else if (sortKey === "out")   diff = (da?.totalOutputOctets ?? 0) - (db?.totalOutputOctets ?? 0);
+    else if (sortKey === "total") diff = (da?.totalOctets       ?? 0) - (db?.totalOctets       ?? 0);
+    return sortAsc ? diff : -diff;
+  });
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1400px] overflow-hidden p-0">
       <div className="flex h-[85vh] flex-col">
@@ -191,7 +218,9 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         <div className="relative flex flex-wrap items-center gap-3 border-b border-gray-100 px-6 py-4 pr-14 dark:border-white/10">
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Check Usage</h3>
-            <p className="text-xs text-gray-400">{selectedCrew.length} user{selectedCrew.length > 1 ? "s" : ""} selected</p>
+            <p className="text-xs text-gray-400">
+              {selectedCrew.length === 0 ? "All crew" : `${selectedCrew.length} user${selectedCrew.length > 1 ? "s" : ""} selected`}
+            </p>
           </div>
           <div className="mr-2 flex items-center gap-2">
             {hasApplied && Object.keys(usageMap).length > 0 && (
@@ -236,20 +265,31 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
               <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Users</p>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {selectedCrew.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-gray-400">No users selected.</p>
+              {!hasApplied ? (
+                <p className="px-4 py-8 text-center text-xs text-gray-400">Apply to load user list.</p>
+              ) : loading ? null : resolvedCrews.length === 0 ? (
+                <p className="px-4 py-8 text-center text-xs text-gray-400">No usage data found.</p>
               ) : (
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-100 dark:border-white/5 dark:bg-white/2">
-                      <th className="px-4 py-2 text-left font-bold text-gray-500">ID</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">Total</th>
+                      {(["id", "in", "out", "total"] as const).map((key) => {
+                        const labels: Record<string, string> = { id: "ID", in: "↓ In", out: "↑ Out", total: "Total" };
+                        const active = sortKey === key;
+                        return (
+                          <th
+                            key={key}
+                            onClick={() => handleSort(key)}
+                            className={`cursor-pointer select-none px-4 py-2 text-xs font-bold transition-colors ${key === "id" ? "text-left" : "text-right"} ${active ? "text-blue-500 dark:text-blue-400" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"}`}
+                          >
+                            {labels[key]}{active ? (sortAsc ? " ↑" : " ↓") : ""}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    {selectedCrew.map((crew) => {
+                    {sortedCrews.map((crew) => {
                       const data = usageMap[crew.userId];
                       const isSelected = selectedUserId === crew.userId;
                       return (

@@ -32,14 +32,16 @@ export function useLeafletMap(
       const initialZoom =
         width >= 1920 ? 3 : width >= 1280 ? 2.5 : width >= 768 ? 2 : 1.5;
 
+      // maxBounds: 좌측을 -180 으로 제한 → 서쪽 복사본(3번째 타일셋) 요청 제거
+      // 2카피(-180~540)가 화면을 채우려면 zoom ≥ log2(viewport/512) → minZoom 2 고정
       const map = L.map(mapRef.current, {
         center: [20, 170],
         zoom: initialZoom,
-        minZoom: Math.max(1, initialZoom - 1.5),
+        minZoom: 2,
         maxZoom: 10,
         zoomControl: false,
         attributionControl: false,
-        maxBounds: L.latLngBounds(L.latLng(-85, -540), L.latLng(85, 540)),
+        maxBounds: L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 540)),
         maxBoundsViscosity: 1.0,
       });
       mapInstanceRef.current = map;
@@ -87,7 +89,7 @@ export function useLeafletMap(
       const handleResize = () => {
         const w = window.innerWidth;
         const baseZoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
-        const newMinZoom = Math.max(1, baseZoom - 1.5);
+        const newMinZoom = 2; // 2카피 bounds에서 빈 공간 없이 채우려면 최소 2
         map.setMinZoom(newMinZoom);
         if (map.getZoom() < newMinZoom) map.setZoom(newMinZoom);
         map.invalidateSize();
