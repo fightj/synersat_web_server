@@ -137,14 +137,14 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         ["Total Download (MB)", data ? Number(toMB(data.totalInputOctets)) : 0],
         ["Total Upload (MB)", data ? Number(toMB(data.totalOutputOctets)) : 0],
         [],
-        ["Start (KST)", "End (KST)", "Duration", "Total (MB)", "Download (MB)", "Upload (MB)"],
+        ["Start (KST)", "End (KST)", "Duration", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
         ...(data?.usages ?? []).map((s) => [
           csvDate(s.startAt),
           csvDate(s.endAt),
           formatDuration(s.sessionTime),
-          Number(toMB(s.totalOctets)),
           Number(toMB(s.inputOctets)),
           Number(toMB(s.outputOctets)),
+          Number(toMB(s.totalOctets)),
         ]),
       ];
 
