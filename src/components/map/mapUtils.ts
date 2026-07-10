@@ -90,6 +90,7 @@ export type GxKey = "all" | "gx1" | "gx2" | "gx3" | "gx4" | "gx5" | "oneweb";
 export interface GxCoverage {
   key: string;
   label: string;
+  satellite?: string;
   color: string;
   /** 위성 아이콘을 표시할 중심 좌표 */
   center: [number, number];
@@ -109,6 +110,7 @@ export const GX_COVERAGES: GxCoverage[] = [
   {
     key: "gx1",
     label: "GX1",
+    satellite: "I5-IOR",
     color: "#22c55e",
     center: [0, 63],
     points: [
@@ -149,6 +151,7 @@ export const GX_COVERAGES: GxCoverage[] = [
   {
     key: "gx2",
     label: "GX2",
+    satellite: "I5-AOR",
     color: "#38bdf8",
     center: [0, -55],
     points: [
@@ -189,6 +192,7 @@ export const GX_COVERAGES: GxCoverage[] = [
   {
     key: "gx3",
     label: "GX3",
+    satellite: "I5-POR",
     color: "#475569",
     center: [0, 180],
     points: [
@@ -229,6 +233,7 @@ export const GX_COVERAGES: GxCoverage[] = [
   {
     key: "gx4",
     label: "GX4",
+    satellite: "I5-INR",
     color: "#ef4444",
     center: [0, 56],
     points: [
