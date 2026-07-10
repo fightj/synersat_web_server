@@ -76,6 +76,7 @@ interface NativeSelectWithIconProps {
   children: React.ReactNode;
   className?: string;
   onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
 }
 
 export function NativeSelectWithIcon({
@@ -84,6 +85,7 @@ export function NativeSelectWithIcon({
   children,
   className,
   onBlur,
+  disabled,
 }: NativeSelectWithIconProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -92,6 +94,7 @@ export function NativeSelectWithIcon({
       <select
         value={value}
         onChange={onChange}
+        disabled={disabled}
         onFocus={() => setIsOpen(true)}
         onBlur={(e) => {
           setIsOpen(false);
