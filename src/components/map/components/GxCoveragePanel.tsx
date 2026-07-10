@@ -27,11 +27,11 @@ export default memo(function GxCoveragePanel({
   const gxCacheBuiltRef = useRef(false);
   const beamLayersRef = useRef<any[]>([]);
 
-  // ── GX Coverage 레이어 캐시 빌드 (mapReady 시 1회) ──────────────────
+  // ── GX Coverage 레이어 캐시 빌드 (showCoverage 첫 활성화 시 1회) ────
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
-    if (!mapReady || !L || !map || gxCacheBuiltRef.current) return;
+    if (!showCoverage || !mapReady || !L || !map || gxCacheBuiltRef.current) return;
 
     const makeSatelliteIcon = (label: string) => L.divIcon({
       className: "",
@@ -103,7 +103,7 @@ export default memo(function GxCoveragePanel({
       gxCacheBuiltRef.current = false;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady]);
+  }, [showCoverage, mapReady]);
 
   // ── showCoverage / activeGx 변경 시 show/hide 토글 ──────────────────
   useEffect(() => {

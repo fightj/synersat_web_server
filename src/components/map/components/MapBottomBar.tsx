@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { FILTER_CATEGORIES, FilterKey, MAP_STYLES } from "../mapUtils";
 import AntennaFilterBar from "@/components/common/AntennaFilterBar";
 
@@ -53,7 +53,7 @@ interface MapBottomBarProps {
   isRefreshing?: boolean;
 }
 
-export default function MapBottomBar({
+export default memo(function MapBottomBar({
   stats,
   activeFilter,
   onFilterChange,
@@ -345,4 +345,4 @@ export default function MapBottomBar({
       </div>
     </div>
   );
-}
+});

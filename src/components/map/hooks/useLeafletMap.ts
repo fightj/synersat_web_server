@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { MAP_STYLES } from "../mapUtils";
 
 export function useLeafletMap(
@@ -129,7 +129,7 @@ export function useLeafletMap(
     if (tilePane) tilePane.style.filter = filter;
   };
 
-  const handleStyleChange = async (styleId: string) => {
+  const handleStyleChange = useCallback(async (styleId: string) => {
     const style = MAP_STYLES.find((s) => s.id === styleId);
     if (!style || !mapInstanceRef.current || !tileLayerRef.current) return;
     const L = await import("leaflet");
@@ -164,7 +164,8 @@ export function useLeafletMap(
     map.invalidateSize();
     setActiveStyle(styleId);
     localStorage.setItem("map-style", styleId);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     mapRef,

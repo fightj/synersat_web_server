@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import ViewDetailButton from "./ViewDetailButton";
 
 interface GpsAlertProps {
@@ -8,7 +9,7 @@ interface GpsAlertProps {
   onViewDetail: () => void;
 }
 
-export default function GpsAlert({ show, vesselName, onViewDetail }: GpsAlertProps) {
+export default memo(function GpsAlert({ show, vesselName, onViewDetail }: GpsAlertProps) {
   return (
     <div
       className={`pointer-events-none absolute bottom-[calc(10vh+16px)] left-1/2 z-1000 -translate-x-1/2 transition-all duration-300 ${
@@ -36,4 +37,4 @@ export default function GpsAlert({ show, vesselName, onViewDetail }: GpsAlertPro
       </div>
     </div>
   );
-}
+});

@@ -239,6 +239,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setMeasuringMode(false);
   }, []);
 
+  const handleDistancePanelClose = useCallback(() => setDistanceTarget(null), []);
+
   return (
     <div className="fixed inset-0 z-0 flex flex-col overflow-hidden">
       {/* 지도 영역 */}
@@ -289,7 +291,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           target={distanceTarget}
           mapInstanceRef={mapInstanceRef}
           leafletRef={leafletRef}
-          onClose={() => setDistanceTarget(null)}
+          onClose={handleDistancePanelClose}
           bottomOffset={bottomBarH || undefined}
         />
       )}

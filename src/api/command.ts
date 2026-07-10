@@ -50,6 +50,14 @@ export async function failCommand(commandId: number): Promise<void> {
   }
 }
 
+export async function getCommandTypes(): Promise<string[]> {
+  const url = `${BASE_URL}/vessels/commands/types`;
+  const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
+  if (!res.ok) throw new Error(`Failed to fetch command types: ${res.status}`);
+  const data = await res.json();
+  return Array.isArray(data?.commandTypes) ? data.commandTypes : [];
+}
+
 export async function getCommandDetail(commandId: number): Promise<CommandDetailContent> {
   try {
     const url = `${BASE_URL}/vessels/commands/${commandId}`;

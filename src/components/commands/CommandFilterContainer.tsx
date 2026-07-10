@@ -1,34 +1,18 @@
 "use client";
 
 import React from "react";
+import useSWR from "swr";
 import VesselFiltering from "../vessel/VesselFiltering";
 import { useVesselStore } from "@/store/vessel.store";
 import { CommandType, CommandStatus, GetCommandsParams } from "@/types/command";
 import { NativeSelectWithIcon } from "@/components/form/SelectWithIcon";
+import { getCommandTypes } from "@/api/command";
 
 interface CommandFilterContainerProps {
   onFilterChange: (newFilters: Partial<GetCommandsParams>) => void;
   currentFilters: GetCommandsParams;
   stats: Record<CommandStatus, number>;
 }
-
-const COMMAND_TYPES: CommandType[] = [
-  "UPDATE_VESSEL_FIRE_WALL",
-  "UPDATE_VESSEL_VSAT",
-  "UPDATE_VESSEL_FBB",
-  "UPDATE_VESSEL_VLAN",
-  "GET_SETTING",
-  "RESET_CORE",
-  "RESET_ALL_AUTO_ID",
-  "RESET_ALL_FX_CREW_ID",
-  "RUN_UPDATE",
-  "RUN_RSYNC",
-  "UPDATE_MULTI_CREW_ACCOUNT",
-  "CREATE_CREW_ACCOUNT",
-  "REGISTER_NAT",
-  "UPDATE_NAT",
-  "REMOVE_NAT",
-];
 const COMMAND_STATUSES: CommandStatus[] = [
   "READY",
   "RUNNING",
@@ -42,6 +26,11 @@ export default function CommandFilterContainer({
   stats,
 }: CommandFilterContainerProps) {
   const vessels = useVesselStore((s) => s.vessels);
+  const { data: commandTypes = [], isLoading: typesLoading } = useSWR(
+    "command-types",
+    getCommandTypes,
+    { revalidateOnFocus: false },
+  );
 
   const handleVesselSelect = (vesselName: string) => {
     const targetVessel = vessels.find((v) => v.name === vesselName);
@@ -106,10 +95,11 @@ export default function CommandFilterContainer({
                   commandType: (e.target.value as CommandType) || undefined,
                 })
               }
+              disabled={typesLoading}
               className={`w-[200px] ${selectBaseClass}`}
             >
-              <option value="">All Types</option>
-              {COMMAND_TYPES.map((t) => (
+              <option value="">{typesLoading ? "Loading…" : "All Types"}</option>
+              {commandTypes.map((t) => (
                 <option key={t} value={t}>
                   {t.replace(/_/g, " ")}
                 </option>
