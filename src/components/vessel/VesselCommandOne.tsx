@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { getCommands, failCommand } from "@/api/command";
+import { getCommands, failCommand, getCommandDetail } from "@/api/command";
 import ErrorAlertModal from "../ui/ErrorAlertModal";
 import type {
   CommandContent,
   CommandStatus,
+  CommandDetailContent,
   GetCommandsParams,
 } from "@/types/command";
 import Loading from "../common/Loading";
@@ -31,6 +32,9 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [cancelledIds, setCancelledIds] = useState<Set<number>>(new Set());
   const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: "" });
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<CommandDetailContent | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
 
   // ✅ 초기 파라미터 설정 (pageIndex: 1, pageSize: 5, imo: props로 받은 값)
   const [params, setParams] = useState<GetCommandsParams>({
@@ -82,6 +86,31 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
       { ...initialStats },
     );
   }, [commands]);
+
+  const toKST = (dateStr: string) => {
+    const date = new Date(dateStr);
+    date.setHours(date.getHours() + 9);
+    return date;
+  };
+
+  const handleRowDoubleClick = async (commandId: number) => {
+    setSelectedId(commandId);
+    setIsDetailLoading(true);
+    try {
+      const data = await getCommandDetail(commandId);
+      setDetail(data);
+    } catch (error) {
+      console.error("Failed to load detail:", error);
+      setSelectedId(null);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedId(null);
+    setDetail(null);
+  };
 
   const handleCancel = async (e: React.MouseEvent, commandId: number) => {
     e.stopPropagation();
@@ -183,7 +212,8 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
                 commands.map((cmd) => (
                   <tr
                     key={cmd.commandId}
-                    className="transition-colors hover:bg-gray-50/50 dark:hover:bg-white/2"
+                    onDoubleClick={() => handleRowDoubleClick(cmd.commandId)}
+                    className="cursor-pointer transition-colors hover:bg-gray-50/50 dark:hover:bg-white/2"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-200">
                       <div className="flex items-center gap-3">
@@ -264,6 +294,75 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
         </div>
       )}
 
+      {/* Command detail modal */}
+      {selectedId !== null && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
+            <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-white/5">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Command Detail</h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              {isDetailLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <Loading />
+                </div>
+              ) : detail ? (
+                <div className="space-y-4">
+                  <DetailItem label="Vessel Name" value={detail.vesselName} />
+                  <DetailItem label="Command Type" value={detail.commandType} />
+                  <DetailItem
+                    label="Status"
+                    value={
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                        detail.commandStatus === "SUCCESS"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                          : detail.commandStatus === "FAILED"
+                            ? "bg-red-50 text-red-500 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+                            : detail.commandStatus === "RUNNING"
+                              ? "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                              : "bg-gray-50 text-gray-700 border-gray-100 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
+                      }`}>
+                        {detail.commandStatus}
+                      </span>
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <DetailItem label="Created At" value={format(toKST(detail.createdAt), "yyyy-MM-dd HH:mm:ss")} />
+                    <DetailItem
+                      label="Started At"
+                      value={detail.startAt ? format(toKST(detail.startAt), "yyyy-MM-dd HH:mm:ss") : "-"}
+                    />
+                  </div>
+                  <DetailItem
+                    label="Reason"
+                    value={
+                      <div className="mt-1 rounded-lg border bg-gray-50 p-3 text-sm text-gray-600 dark:border-white/5 dark:bg-white/5 dark:text-gray-300">
+                        {detail.reason || "No specific reason provided."}
+                      </div>
+                    }
+                  />
+                </div>
+              ) : (
+                <p className="text-center text-gray-500">No detail available.</p>
+              )}
+            </div>
+            <div className="bg-gray-50 p-4 text-right dark:bg-white/2">
+              <button
+                onClick={closeModal}
+                className="rounded-lg bg-gray-900 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ErrorAlertModal
         isOpen={errorModal.isOpen}
         message={errorModal.message}
@@ -272,5 +371,14 @@ const VesselCommandOne: React.FC<VesselCommandOneProps> = ({ imo }) => {
     </div>
   );
 };
+
+function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-bold tracking-wider text-gray-400 uppercase">{label}</p>
+      <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-200">{value}</div>
+    </div>
+  );
+}
 
 export default VesselCommandOne;
