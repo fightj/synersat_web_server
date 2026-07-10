@@ -210,7 +210,7 @@ export default memo(function GxCoveragePanel({
                 <span className="h-2 w-2 rounded-full" style={{ background: gx.color }} />
                 <span>{gx.label}</span>
                 {gx.satellite && (
-                  <span className="text-[10px] font-normal text-gray-400">/ {gx.satellite}</span>
+                  <span className="text-[10px] font-normal text-gray-300">/ {gx.satellite}</span>
                 )}
                 {gx.points.length === 0 && (
                   <span className="ml-1 text-[9px] text-gray-600">TBD</span>
