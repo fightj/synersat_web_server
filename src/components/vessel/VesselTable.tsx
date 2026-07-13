@@ -6,12 +6,13 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import useSWR from "swr";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
-import { getAccounts } from "@/api/vessel";
+import { getAccounts, resetCore } from "@/api/vessel";
 import Loading from "../common/Loading";
 import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import RedirectButtons from "../common/RedirectButtons";
 import GrafanaDashModal from "./GrafanaDashModal";
+import ErrorAlertModal from "../ui/ErrorAlertModal";
 import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
@@ -82,6 +83,27 @@ const VesselRow = memo(
         onToggleExpand(String(vessel.id));
       }, [vessel.id, onToggleExpand]);
 
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      const [isResetting, setIsResetting] = useState(false);
+      const [resetError, setResetError] = useState<string | null>(null);
+
+      const handleGpsClick = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setConfirmOpen(true);
+      }, []);
+
+      const handleConfirmReset = useCallback(async () => {
+        setConfirmOpen(false);
+        setIsResetting(true);
+        try {
+          await resetCore(vessel.imo);
+        } catch (err) {
+          setResetError(err instanceof Error ? err.message : "Reset Core failed");
+        } finally {
+          setIsResetting(false);
+        }
+      }, [vessel.imo]);
+
       const available = vessel.status?.available;
       const discard = vessel.status?.discard;
       const displayName = vessel.status?.antennaServiceDisplayName ?? null;
@@ -104,6 +126,7 @@ const VesselRow = memo(
           : "bg-gray-400";
 
       return (
+        <>
         <tbody ref={ref} {...tbodyProps}>
           <tr
             onClick={handleToggle}
@@ -151,12 +174,14 @@ const VesselRow = memo(
               )}
             </td>
             <td className="px-3 py-4 text-start">
-              <span
-                title={gpsStatus ?? "unknown"}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md ${gpsBadgeClass}`}
+              <button
+                title={`GPS: ${gpsStatus ?? "unknown"} — Click to Reset Core`}
+                onClick={handleGpsClick}
+                disabled={isResetting}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all hover:scale-110 hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${gpsBadgeClass}`}
               >
-                GPS
-              </span>
+                {isResetting ? "…" : "GPS"}
+              </button>
             </td>
             <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
               {vessel.id}
@@ -212,7 +237,44 @@ const VesselRow = memo(
               </div>
             </td>
           </tr>
+
+          {confirmOpen && (
+            <tr>
+              <td colSpan={10}>
+                <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
+                    <div className="p-5">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">Reset Core</h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Are you sure you want to reset the core of <span className="font-semibold text-gray-800 dark:text-gray-200">{vessel.name}</span>?
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2 bg-gray-50 px-5 py-3 dark:bg-white/2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmOpen(false); }}
+                        className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleConfirmReset(); }}
+                        className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          )}
         </tbody>
+        <ErrorAlertModal
+          isOpen={resetError !== null}
+          message={resetError ?? ""}
+          onClose={() => setResetError(null)}
+        />
+        </>
       );
     },
   ),
