@@ -1,7 +1,10 @@
+export type GpsStatus = "live" | "old" | "no_gps";
+
 export interface VesselStatus {
   available: boolean;
   antennaServiceDisplayName: string | null;
   discard?: boolean | null;
+  gpsStatus?: GpsStatus | null;
 }
 
 export interface Vessel {

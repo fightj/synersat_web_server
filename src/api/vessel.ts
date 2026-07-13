@@ -34,6 +34,7 @@ export async function getVessels(): Promise<Vessel[]> {
         available: v.status?.available,
         antennaServiceDisplayName: v.status?.antennaServiceDisplayName,
         discard: v.status?.discard,
+        gpsStatus: v.gpsStatus ? (v.gpsStatus as string).toLowerCase() : null,
       },
     }));
   } catch (error) {

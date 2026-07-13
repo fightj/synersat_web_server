@@ -85,6 +85,7 @@ const VesselRow = memo(
       const available = vessel.status?.available;
       const discard = vessel.status?.discard;
       const displayName = vessel.status?.antennaServiceDisplayName ?? null;
+      const gpsStatus = vessel.status?.gpsStatus ?? null;
       const isInactive = !available && discard === true;
       const isOffline = !available && !isInactive;
       const isNA = available === true && !displayName;
@@ -96,6 +97,11 @@ const VesselRow = memo(
           : isNA
             ? "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
             : getServiceBadgeStyles(displayName);
+      const gpsBadgeClass = gpsStatus === "live"
+        ? "bg-emerald-500"
+        : gpsStatus === "old"
+          ? "bg-red-500"
+          : "bg-gray-400";
 
       return (
         <tbody ref={ref} {...tbodyProps}>
@@ -144,6 +150,14 @@ const VesselRow = memo(
                 </span>
               )}
             </td>
+            <td className="px-3 py-4 text-start">
+              <span
+                title={gpsStatus ?? "unknown"}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md ${gpsBadgeClass}`}
+              >
+                GPS
+              </span>
+            </td>
             <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
               {vessel.id}
             </td>
@@ -181,7 +195,7 @@ const VesselRow = memo(
           </tr>
 
           <tr>
-            <td colSpan={9} className="p-0">
+            <td colSpan={10} className="p-0">
               <div
                 className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                   }`}
@@ -344,15 +358,16 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
         >
           {/* colgroup: table-layout:fixed에서 열 너비 고정 */}
           <colgroup>
-            <col style={{ width: "7%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "13%" }} />
             <col style={{ width: "13%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "9%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "7%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "4%" }} />
           </colgroup>
 
           <thead className="border-b border-gray-100 bg-blue-50/50 dark:border-white/[0.05] dark:bg-slate-800/50">
@@ -370,6 +385,9 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
                 Configuration
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
+                Antenna
+              </th>
+              <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 Status
               </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
@@ -385,7 +403,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
           {paddingTop > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={9} style={{ height: paddingTop, padding: 0 }} />
+                <td colSpan={10} style={{ height: paddingTop, padding: 0 }} />
               </tr>
             </tbody>
           )}
@@ -412,7 +430,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
           {paddingBottom > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={9} style={{ height: paddingBottom, padding: 0 }} />
+                <td colSpan={10} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
             </tbody>
           )}
