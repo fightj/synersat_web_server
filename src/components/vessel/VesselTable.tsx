@@ -175,10 +175,10 @@ const VesselRow = memo(
             </td>
             <td className="px-3 py-4 text-start">
               <button
-                title={`GPS: ${gpsStatus ?? "unknown"} — Click to Reset Core`}
+                title={gpsStatus === "old" ? "GPS: old — Click to Reset Core" : `GPS: ${gpsStatus ?? "unknown"}`}
                 onClick={handleGpsClick}
-                disabled={isResetting}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all hover:scale-110 hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${gpsBadgeClass}`}
+                disabled={gpsStatus !== "old" || isResetting}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all ${gpsStatus === "old" ? "hover:scale-110 hover:shadow-lg active:scale-95" : ""} ${gpsBadgeClass}`}
               >
                 {isResetting ? "…" : "GPS"}
               </button>
