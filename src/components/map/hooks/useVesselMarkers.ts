@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import type { DashboardVesselPosition } from "@/types/vessel";
+import type { DashboardVesselPosition, GetVesselsLite } from "@/types/vessel";
 import { getServiceColor } from "../../common/AnntennaMapping";
 import { useVesselStore } from "@/store/vessel.store";
 import { getClosestLng, matchFilter, makeVesselIcon, FilterKey } from "../mapUtils";
@@ -17,6 +17,7 @@ interface UseVesselMarkersOptions {
   setPopupPos: (pos: { x: number; y: number } | null) => void;
   onDoubleClick?: (imo: number) => void;
   onViewDetail?: (imo: number) => void;
+  liteVessels?: GetVesselsLite[];
 }
 
 interface VesselPoint {
@@ -90,6 +91,7 @@ export function useVesselMarkers({
   setPopupPos,
   onDoubleClick,
   onViewDetail,
+  liteVessels,
 }: UseVesselMarkersOptions) {
   const ICON_H = 28;
   const ICON_W = 20;
@@ -97,8 +99,10 @@ export function useVesselMarkers({
   const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
   const onViewDetailRef = useRef(onViewDetail);
+  const liteVesselsRef = useRef<GetVesselsLite[]>(liteVessels ?? []);
 
   useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
+  useEffect(() => { liteVesselsRef.current = liteVessels ?? []; }, [liteVessels]);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -223,6 +227,11 @@ export function useVesselMarkers({
           const stored = useVesselStore.getState().vessels.find((sv) => sv.imo === v.imo);
           if (stored) {
             setSelectedVessel({ id: stored.id, imo: stored.imo, name: stored.name, vpnIp: stored.vpnIp, prepaidEnabled: stored.prepaidEnabled });
+          } else {
+            const lite = liteVesselsRef.current.find((l) => l.imo === v.imo);
+            if (lite) {
+              setSelectedVessel({ id: lite.vesselId, imo: lite.imo, name: lite.name, vpnIp: lite.vpnIp, prepaidEnabled: lite.prepaidEnabled });
+            }
           }
         });
 

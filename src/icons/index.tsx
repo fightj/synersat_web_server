@@ -65,6 +65,7 @@ import EarthIcon from "./planet-earth.svg";
 import CommandSidebar from "./command-sidebar.svg";
 import ManagementIcon from "./management.svg";
 import GrafanaDashIcon from "./dashboard-report-icon.svg"
+import FleetChartIcon from "./fleet-chart.svg"
 
 export {
   DownloadIcon,
@@ -133,5 +134,6 @@ export {
   EarthIcon,
   CommandSidebar,
   ManagementIcon,
-  GrafanaDashIcon
+  GrafanaDashIcon,
+  FleetChartIcon
 };

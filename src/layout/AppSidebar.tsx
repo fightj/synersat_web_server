@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { EarthIcon, VesselIcon, CommandSidebar, GridIcon } from "../icons/index";
+import { EarthIcon, VesselIcon, CommandSidebar, FleetChartIcon } from "../icons/index";
 
 type NavItem = {
   name: string;
@@ -14,7 +14,7 @@ const navItems: NavItem[] = [
   { icon: <EarthIcon />, name: "Dashboard", path: "/" },
   { icon: <VesselIcon />, name: "Vessels", path: "/vessels" },
   { icon: <CommandSidebar />, name: "Commands", path: "/commands" },
-  { icon: <GridIcon />, name: "Fleet", path: "/fleet" },
+  { icon: <FleetChartIcon />, name: "Fleet", path: "/fleet" },
 ];
 
 function NavItem({ item }: { item: NavItem }) {

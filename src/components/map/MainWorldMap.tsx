@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "leaflet/dist/leaflet.css";
+import useSWR from "swr";
 import type { DashboardVesselPosition } from "@/types/vessel";
+import { getVesselsLite } from "@/api/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 
 import { matchFilter, FilterKey } from "./mapUtils";
@@ -27,6 +29,11 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const searchTrigger = useVesselStore((s) => s.searchTrigger);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
+
+  const { data: liteVessels = [] } = useSWR("vesselsLite", getVesselsLite, {
+    dedupingInterval: 5 * 60 * 1000,
+    revalidateOnFocus: false,
+  });
 
   const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
   const vesselsRef = useRef(vessels);
@@ -135,6 +142,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setPopupPos,
     onDoubleClick: (imo) => handleListViewDetail(imo),
     onViewDetail: (imo) => handleListViewDetail(imo),
+    liteVessels,
   });
 
   // ── 통계 + 파생 목록 (단일 순회) ─────────────────────────────────
@@ -213,9 +221,14 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   const handleListViewDetail = useCallback((imo: number) => {
     const matched = useVesselStore.getState().vessels.find(v => v.imo === imo);
-    if (matched) setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+    if (matched) {
+      setSelectedVessel({ id: matched.id, imo: matched.imo, name: matched.name, vpnIp: matched.vpnIp, prepaidEnabled: matched.prepaidEnabled });
+    } else {
+      const lite = liteVessels.find(l => l.imo === imo);
+      if (lite) setSelectedVessel({ id: lite.vesselId, imo: lite.imo, name: lite.name, vpnIp: lite.vpnIp, prepaidEnabled: lite.prepaidEnabled });
+    }
     router.push(`/vessels/detail?imo=${imo}`);
-  }, [setSelectedVessel, router]);
+  }, [setSelectedVessel, router, liteVessels]);
 
   const handleGpsAlertViewDetail = useCallback(() => {
     if (!selectedVessel) return;

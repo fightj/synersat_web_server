@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import useSWR from "swr";
+import { getVesselsLite } from "@/api/vessel";
 import dynamic from "next/dynamic";
 import posthog from "posthog-js";
 import VesselDetailView from "@/components/vessel/VesselDetailView";
@@ -292,6 +294,11 @@ function VesselDetailPageInner() {
   const vessels = useVesselStore((s) => s.vessels);
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
 
+  const { data: liteVessels = [] } = useSWR("vesselsLite", getVesselsLite, {
+    dedupingInterval: 5 * 60 * 1000,
+    revalidateOnFocus: false,
+  });
+
   // URL imo 우선, 없으면 store fallback
   const imo = imoFromUrl ?? (selectedVessel?.imo ? String(selectedVessel.imo) : null);
 
@@ -316,7 +323,10 @@ function VesselDetailPageInner() {
 
   // vessels 목록에서 정확한 vesselId/prepaidEnabled 조회
   const matched = vessels.find((v) => String(v.imo) === imo);
-  const vesselId = matched?.id ?? selectedVessel?.id ?? null;
+  const vesselId = matched?.id
+    ?? liteVessels.find((v) => String(v.imo) === imo)?.vesselId
+    ?? selectedVessel?.id
+    ?? null;
   const prepaidEnabled = matched?.prepaidEnabled ?? selectedVessel?.prepaidEnabled ?? false;
 
   return (

@@ -173,7 +173,7 @@ export default function VesselPageHeader({
         setErrorModal({ isOpen: true, message: "Failed to retrieve authentication information." });
         return;
       }
-      const ALLOWED_USERS = ["henry.jeong", "synersatadmin", "ronnie.yoon", "testUser"];
+      const ALLOWED_USERS = ["henry.jeong", "synersatadmin", "ronnie.yoon", "testUser", "charles.im", "justin.cho"];
       if (!ALLOWED_USERS.includes(result.userId)) {
         setErrorModal({ isOpen: true, message: "Access denied. You do not have permission to use the terminal." });
         return;
