@@ -53,22 +53,20 @@ export default function VesselComponentCard() {
   }, []);
 
   const stats = useMemo(() => {
-    const name = (v: (typeof vessels)[0]) =>
-      v.status?.available
-        ? (v.status?.antennaServiceDisplayName)?.toLowerCase() ?? ""
-        : "";
+    const ant = (v: (typeof vessels)[0]) =>
+      !v.inActive ? (v.currentAntenna ?? "").toLowerCase() : "";
     return {
       total: vessels.length,
-      starlink: vessels.filter((v) => name(v).includes("starlink")).length,
-      nexuswave: vessels.filter((v) => name(v).includes("nexuswave")).length,
-      vsat: vessels.filter((v) => name(v).includes("vsat") || name(v).includes("fx")).length,
-      fbb: vessels.filter((v) => name(v).includes("fbb")).length,
-      oneweb: vessels.filter((v) => name(v).includes("oneweb")).length,
-      fourgee: vessels.filter((v) => name(v).includes("4g") || name(v).includes("lte")).length,
-      iridium: vessels.filter((v) => name(v).includes("iridium")).length,
-      na: vessels.filter((v) => v.status?.available === true && !v.status?.antennaServiceDisplayName).length,
-      inactive: vessels.filter((v) => !v.status?.available && v.status?.discard === true).length,
-      offline: vessels.filter((v) => !v.status?.available && v.status?.discard !== true).length,
+      starlink: vessels.filter((v) => ant(v).includes("starlink")).length,
+      nexuswave: vessels.filter((v) => ant(v).includes("nexuswave")).length,
+      vsat: vessels.filter((v) => ant(v).includes("vsat") || ant(v).includes("fx")).length,
+      fbb: vessels.filter((v) => ant(v).includes("fbb")).length,
+      oneweb: vessels.filter((v) => ant(v).includes("oneweb")).length,
+      fourgee: vessels.filter((v) => ant(v).includes("4g") || ant(v).includes("lte")).length,
+      iridium: vessels.filter((v) => ant(v).includes("iridium")).length,
+      na: vessels.filter((v) => !v.inActive && (v.antennaStatuses ?? []).some((a) => a.available) && !v.currentAntenna).length,
+      inactive: vessels.filter((v) => v.inActive === true).length,
+      offline: vessels.filter((v) => !v.inActive && !(v.antennaStatuses ?? []).some((a) => a.available)).length,
     };
   }, [vessels]);
 

@@ -4,39 +4,47 @@ import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 
 export async function getVessels(): Promise<Vessel[]> {
   try {
-    const res = await fetch(`${BASE_URL}/v1/vessels?minutes=180`, withTestUser({
+    const res = await fetch(`${BASE_URL}/v2/vessels?minutes=180`, withTestUser({
       ...fetchOptions,
       method: "GET",
     }));
 
-    if (!res.ok) throw new Error("Failed to fetch vessels from v1");
+    if (!res.ok) throw new Error("Failed to fetch vessels from v2");
 
     const rawData = await res.json();
 
-    return rawData.map((v: any) => ({
-      id: v.id,
-      name: v.name,
-      callsign: v.callsign,
-      imo: v.imo,
-      mmsi: v.mmsi,
-      vpnIp: v.vpn_ip,
-      enabled: v.vessel_enable,
-      description: v.description,
-      manager: v.manager,
-      acct: v.acct,
-      fireWallPassword: v.fireWallPassword,
-      serialNumber: v.serialNumber,
-      prepaidEnabled: v.prepaidEnabled,
-      betaVersionEnabled: v.betaVersionEnabled,
-      isLatestCoreVersion: v.isLatestCoreVersion,
-      coreVersion: v.coreVersion,
-      status: {
-        available: v.status?.available,
-        antennaServiceDisplayName: v.status?.antennaServiceDisplayName,
-        discard: v.status?.discard,
-        gpsStatus: v.gpsStatus ? (v.gpsStatus as string).toLowerCase() : null,
-      },
-    }));
+    return rawData.map((v: any) => {
+      const antennaStatuses: import("@/types/vessel").AntennaStatus[] = v.antennaStatuses ?? [];
+      const anyAvailable = antennaStatuses.some((a) => a.available);
+      return {
+        id: v.id,
+        name: v.name,
+        callsign: v.callsign,
+        imo: v.imo,
+        mmsi: v.mmsi,
+        vpnIp: v.vpn_ip,
+        enabled: v.vessel_enable,
+        manager: v.manager,
+        acct: v.acct,
+        fireWallPassword: v.fireWallPassword,
+        serialNumber: v.serialNumber,
+        prepaidEnabled: v.prepaidEnabled,
+        betaVersionEnabled: v.betaVersionEnabled,
+        isLatestCoreVersion: v.isLatestCoreVersion,
+        coreVersion: v.coreVersion,
+        inActive: v.inActive ?? false,
+        currentAntenna: v.currentAntenna ?? null,
+        antennaStatuses,
+        gpsStatus: v.gpsStatus ? (v.gpsStatus as string).toLowerCase() as import("@/types/vessel").GpsStatus : null,
+        // backward compat for store change-detection
+        status: {
+          available: anyAvailable,
+          antennaServiceDisplayName: v.currentAntenna ?? null,
+          discard: v.inActive ?? false,
+          gpsStatus: v.gpsStatus ? (v.gpsStatus as string).toLowerCase() as import("@/types/vessel").GpsStatus : null,
+        },
+      };
+    });
   } catch (error) {
     console.error("Error fetching vessels:", error);
     throw error;

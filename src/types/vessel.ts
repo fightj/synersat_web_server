@@ -7,6 +7,13 @@ export interface VesselStatus {
   gpsStatus?: GpsStatus | null;
 }
 
+export interface AntennaStatus {
+  gatewayName: string;
+  antennaServiceDisplayName: string;
+  interfaceName: string;
+  available: boolean;
+}
+
 export interface Vessel {
   id: string;
   name: string;
@@ -24,6 +31,10 @@ export interface Vessel {
   coreVersion?: string;
   status?: VesselStatus;
   serialNumber: string;
+  inActive?: boolean;
+  currentAntenna?: string | null;
+  antennaStatuses?: AntennaStatus[];
+  gpsStatus?: GpsStatus | null;
 }
 
 // API 응답 타입

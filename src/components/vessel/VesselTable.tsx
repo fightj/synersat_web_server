@@ -104,21 +104,9 @@ const VesselRow = memo(
         }
       }, [vessel.imo]);
 
-      const available = vessel.status?.available;
-      const discard = vessel.status?.discard;
-      const displayName = vessel.status?.antennaServiceDisplayName ?? null;
-      const gpsStatus = vessel.status?.gpsStatus ?? null;
-      const isInactive = !available && discard === true;
-      const isOffline = !available && !isInactive;
-      const isNA = available === true && !displayName;
-      const badgeLabel = isInactive ? "Inactive" : isOffline ? "Offline" : isNA ? "N/A" : (displayName ?? null);
-      const badgeClass = isInactive
-        ? "bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20"
-        : isOffline
-          ? "bg-red-100 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
-          : isNA
-            ? "bg-gray-100 text-gray-500 border border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
-            : getServiceBadgeStyles(displayName);
+      const isInactive = vessel.inActive === true;
+      const antennaStatuses = vessel.antennaStatuses ?? [];
+      const gpsStatus = vessel.gpsStatus ?? null;
       const gpsBadgeClass = gpsStatus === "live"
         ? "bg-emerald-500"
         : gpsStatus === "old"
@@ -127,153 +115,168 @@ const VesselRow = memo(
 
       return (
         <>
-        <tbody ref={ref} {...tbodyProps}>
-          <tr
-            onClick={handleToggle}
-            onDoubleClick={() => onDoubleClick(vessel)}
-            className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
-              }`}
-          >
-            <td className="pl-5 pr-1 py-4 text-start">
-              {vessel.manager === "sktelink" ? (
-                <SktelinkIcon className="h-[17px] w-auto" />
-              ) : vessel.manager === "synersat" ? (
-                <>
-                  <Image src="/images/logo/logo_black.png" alt="Synersat" width={28} height={28} className="h-[27px] w-auto dark:hidden" />
-                  <Image src="/images/logo/logo_intro.png" alt="Synersat" width={28} height={28} className="hidden h-[27px] w-auto dark:block" />
-                </>
-              ) : (
-                <span className="text-theme-sm text-gray-400 dark:text-gray-500">-</span>
-              )}
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
-              {companyLabel || "-"}
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
-              {vessel.name || "-"}
-            </td>
-            <td className="px-3 py-4 text-start">
-              <div className="flex flex-wrap gap-1">
-                {vessel.prepaidEnabled === true && (
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
-                    Prepaid
-                  </span>
+          <tbody ref={ref} {...tbodyProps}>
+            <tr
+              onClick={handleToggle}
+              onDoubleClick={() => onDoubleClick(vessel)}
+              className={`group cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
+                }`}
+            >
+              <td className="pl-5 pr-1 py-4 text-start">
+                {vessel.manager === "sktelink" ? (
+                  <SktelinkIcon className="h-[17px] w-auto" />
+                ) : vessel.manager === "synersat" ? (
+                  <>
+                    <Image src="/images/logo/logo_black.png" alt="Synersat" width={28} height={28} className="h-[27px] w-auto dark:hidden" />
+                    <Image src="/images/logo/logo_intro.png" alt="Synersat" width={28} height={28} className="hidden h-[27px] w-auto dark:block" />
+                  </>
+                ) : (
+                  <span className="text-theme-sm text-gray-400 dark:text-gray-500">-</span>
                 )}
-                {vessel.betaVersionEnabled === true && (
-                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
-                    Beta
-                  </span>
-                )}
-              </div>
-            </td>
-            <td className="px-3 py-4 text-start">
-              {badgeLabel && (
-                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase ${badgeClass}`}>
-                  {badgeLabel}
-                </span>
-              )}
-            </td>
-            <td className="px-3 py-4 text-start">
-              <button
-                title={gpsStatus === "old" ? "GPS: old — Click to Reset Core" : `GPS: ${gpsStatus ?? "unknown"}`}
-                onClick={handleGpsClick}
-                disabled={gpsStatus !== "old" || isResetting}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all ${gpsStatus === "old" ? "hover:scale-110 hover:shadow-lg active:scale-95" : ""} ${gpsBadgeClass}`}
-              >
-                {isResetting ? "…" : "GPS"}
-              </button>
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-              {vessel.id}
-            </td>
-            <td className="text-theme-sm px-5 py-4 text-start text-gray-500 dark:text-gray-400">
-              {vessel.imo}
-            </td>
-            <td className="px-5 py-4 text-start">
-              <span className="relative inline-flex overflow-hidden rounded">
-                <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                  {vessel.coreVersion}
-                </code>
-                {vessel.isLatestCoreVersion === true && (
-                  <span
-                    className="absolute right-0 top-0 h-0 w-0"
-                    style={{
-                      borderStyle: "solid",
-                      borderWidth: "0 8px 8px 0",
-                      borderColor: "transparent #10b981 transparent transparent",
-                    }}
-                  />
-                )}
-              </span>
-            </td>
-            <td className="py-2 text-center">
-              <button
-                className="flex items-center justify-center transition-all hover:scale-110"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onGrafanaClick(vessel);
-                }}
-              >
-                <GrafanaDashIcon className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-              </button>
-            </td>
-          </tr>
-
-          <tr>
-            <td colSpan={10} className="p-0">
-              <div
-                className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-                  }`}
-              >
-                <div className="overflow-hidden">
-                  {isExpanded && (
-                    <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
-                      <div className="w-fit">
-                        <RedirectButtons vesselId={vessel.id} />
-                      </div>
-                    </div>
+              </td>
+              <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
+                {companyLabel || "-"}
+              </td>
+              <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
+                {vessel.name || "-"}
+              </td>
+              <td className="px-3 py-4 text-start">
+                <div className="flex flex-wrap gap-1">
+                  {vessel.prepaidEnabled === true && (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                      Prepaid
+                    </span>
+                  )}
+                  {vessel.betaVersionEnabled === true && (
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
+                      Beta
+                    </span>
                   )}
                 </div>
-              </div>
-            </td>
-          </tr>
+              </td>
+              <td className="px-3 py-4 text-start">
+                {isInactive ? (
+                  <span className="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
+                    Inactive
+                  </span>
+                ) : antennaStatuses.length === 0 ? null : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {antennaStatuses.map((a) => {
+                      const isCurrent = a.available && a.antennaServiceDisplayName === vessel.currentAntenna;
+                      return (
+                        <span
+                          key={a.interfaceName}
+                          className={`inline-flex items-center rounded-full h-6 overflow-hidden whitespace-nowrap text-[11px] tracking-tight uppercase transition-all duration-200
+                            min-w-6 max-w-6 pl-0 group-hover:max-w-40 group-hover:pl-2.5 group-hover:pr-2.5
+                            ${!a.available
+                              ? "font-medium opacity-70 bg-red-500 text-white border border-red-600 dark:bg-red-500 dark:text-white dark:border-red-400"
+                              : isCurrent
+                                ? `font-bold ring-2 ${getServiceBadgeStyles(a.antennaServiceDisplayName)}`
+                                : `font-medium opacity-90 ${getServiceBadgeStyles(a.antennaServiceDisplayName)}`
+                            }`}
+                        >
+                          <span className="group-hover:inline hidden whitespace-nowrap">{a.gatewayName}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </td>
+              <td className="px-3 py-4 text-start">
+                <button
+                  title={gpsStatus === "old" ? "GPS: old — Click to Reset Core" : `GPS: ${gpsStatus ?? "unknown"}`}
+                  onClick={handleGpsClick}
+                  disabled={gpsStatus !== "old" || isResetting}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all ${gpsStatus === "old" ? "hover:scale-110 hover:shadow-lg active:scale-95" : ""} ${gpsBadgeClass}`}
+                >
+                  {isResetting ? "…" : "GPS"}
+                </button>
+              </td>
+              <td className="px-5 py-4 text-start">
+                <span className="relative inline-flex overflow-hidden rounded">
+                  <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
+                    {vessel.coreVersion}
+                  </code>
+                  {vessel.isLatestCoreVersion === true && (
+                    <span
+                      className="absolute right-0 top-0 h-0 w-0"
+                      style={{
+                        borderStyle: "solid",
+                        borderWidth: "0 8px 8px 0",
+                        borderColor: "transparent #10b981 transparent transparent",
+                      }}
+                    />
+                  )}
+                </span>
+              </td>
+              <td className="py-2 text-center">
+                <button
+                  className="flex items-center justify-center transition-all hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onGrafanaClick(vessel);
+                  }}
+                >
+                  <GrafanaDashIcon className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+                </button>
+              </td>
+            </tr>
 
-          {confirmOpen && (
             <tr>
-              <td colSpan={10}>
-                <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                  <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
-                    <div className="p-5">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white">Reset Core</h3>
-                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Are you sure you want to reset the core of <span className="font-semibold text-gray-800 dark:text-gray-200">{vessel.name}</span>?
-                      </p>
-                    </div>
-                    <div className="flex justify-end gap-2 bg-gray-50 px-5 py-3 dark:bg-white/2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmOpen(false); }}
-                        className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleConfirmReset(); }}
-                        className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
-                      >
-                        Reset
-                      </button>
-                    </div>
+              <td colSpan={8} className="p-0">
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    }`}
+                >
+                  <div className="overflow-hidden">
+                    {isExpanded && (
+                      <div className="bg-gray-50 px-3 py-3 dark:bg-white/2">
+                        <div className="w-fit">
+                          <RedirectButtons vesselId={vessel.id} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </td>
             </tr>
-          )}
-        </tbody>
-        <ErrorAlertModal
-          isOpen={resetError !== null}
-          message={resetError ?? ""}
-          onClose={() => setResetError(null)}
-        />
+
+            {confirmOpen && (
+              <tr>
+                <td colSpan={8}>
+                  <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
+                      <div className="p-5">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white">Reset Core</h3>
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          Are you sure you want to reset the core of <span className="font-semibold text-gray-800 dark:text-gray-200">{vessel.name}</span>?
+                        </p>
+                      </div>
+                      <div className="flex justify-end gap-2 bg-gray-50 px-5 py-3 dark:bg-white/2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmOpen(false); }}
+                          className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleConfirmReset(); }}
+                          className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+          <ErrorAlertModal
+            isOpen={resetError !== null}
+            message={resetError ?? ""}
+            onClose={() => setResetError(null)}
+          />
         </>
       );
     },
@@ -347,29 +350,29 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
   }, []);
 
   const displayVessels = useMemo(() => {
-    const name = (v: (typeof vessels)[0]) =>
-      v.status?.available
-        ? (v.status?.antennaServiceDisplayName)?.toLowerCase() ?? ""
-        : "";
+    const currentAntenna = (v: (typeof vessels)[0]) =>
+      !v.inActive ? (v.currentAntenna ?? "").toLowerCase() : "";
 
     const filtered = vessels.filter((v) => {
       if (!(v.name ?? "").toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (companyFilter && v.acct !== companyFilter) return false;
       if (!categoryFilter || categoryFilter === "total") return true;
+      const ant = currentAntenna(v);
+      const anyAvailable = (v.antennaStatuses ?? []).some((a) => a.available);
       switch (categoryFilter) {
-        case "starlink": return name(v).includes("starlink");
-        case "nexuswave": return name(v).includes("nexuswave");
-        case "vsat": return name(v).includes("vsat") || name(v).includes("fx");
-        case "fbb": return name(v).includes("fbb");
-        case "oneweb": return name(v).includes("oneweb");
-        case "fourgee": return name(v).includes("4g") || name(v).includes("lte");
-        case "iridium": return name(v).includes("iridium");
+        case "starlink": return ant.includes("starlink");
+        case "nexuswave": return ant.includes("nexuswave");
+        case "vsat": return ant.includes("vsat") || ant.includes("fx");
+        case "fbb": return ant.includes("fbb");
+        case "oneweb": return ant.includes("oneweb");
+        case "fourgee": return ant.includes("4g") || ant.includes("lte");
+        case "iridium": return ant.includes("iridium");
         case "na":
-          return v.status?.available === true && !v.status?.antennaServiceDisplayName;
+          return !v.inActive && anyAvailable && !v.currentAntenna;
         case "inactive":
-          return !v.status?.available && v.status?.discard === true;
+          return v.inActive === true;
         case "offline":
-          return !v.status?.available && v.status?.discard !== true;
+          return !v.inActive && !anyAvailable;
         default: return true;
       }
     });
@@ -424,9 +427,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
             <col style={{ width: "13%" }} />
             <col style={{ width: "13%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "10%" }} />
+            <col style={{ width: "28%" }} />
             <col style={{ width: "9%" }} />
             <col style={{ width: "10%" }} />
             <col style={{ width: "4%" }} />
@@ -452,10 +453,6 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
                 Status
               </th>
-              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                <SortHeader label="Vessel ID" k="vesselId" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
-              </th>
-              <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">IMO</th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">Version</th>
               <th className="text-theme-xs py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</th>
             </tr>
@@ -465,7 +462,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
           {paddingTop > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={10} style={{ height: paddingTop, padding: 0 }} />
+                <td colSpan={8} style={{ height: paddingTop, padding: 0 }} />
               </tr>
             </tbody>
           )}
@@ -492,7 +489,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
           {paddingBottom > 0 && (
             <tbody aria-hidden="true">
               <tr>
-                <td colSpan={10} style={{ height: paddingBottom, padding: 0 }} />
+                <td colSpan={8} style={{ height: paddingBottom, padding: 0 }} />
               </tr>
             </tbody>
           )}

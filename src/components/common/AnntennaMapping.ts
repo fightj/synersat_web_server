@@ -3,47 +3,47 @@
  */
 export const getServiceBadgeStyles = (serviceName: string | null | undefined): string => {
   if (!serviceName || typeof serviceName !== "string") {
-    return "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+    return "bg-slate-400 text-white border border-slate-500 dark:bg-slate-500 dark:text-white dark:border-slate-400";
   }
 
   const name = serviceName.toLowerCase();
-  
-  // Starlink: 따뜻한 보라 (purple)
+
+  // Starlink: 보라
   if (name.includes("starlink")) {
-    return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800/50";
+    return "bg-purple-500 text-white border border-purple-600 ring-purple-700 dark:bg-purple-500 dark:text-white dark:border-purple-400 dark:ring-purple-300";
   }
 
-  // Nexuswave: 차가운 인디고 (indigo)
+  // Nexuswave: 인디고
   if (name.includes("nexuswave")) {
-    return "bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800/50";
+    return "bg-indigo-500 text-white border border-indigo-600 ring-indigo-700 dark:bg-indigo-400 dark:text-white dark:border-indigo-300 dark:ring-indigo-200";
   }
 
-  // OneWeb: 밝은 노란색 (yellow-300)
+  // OneWeb: 노랑
   if (name.includes("oneweb")) {
-    return "bg-yellow-100 text-yellow-600 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800/50";
+    return "bg-yellow-400 text-yellow-900 border border-yellow-500 ring-yellow-600 dark:bg-yellow-400 dark:text-yellow-900 dark:border-yellow-300 dark:ring-yellow-500";
   }
 
-  // 4G / LTE: 진한 주황-노란색 (amber-600)
+  // 4G / LTE: 주황
   if (name.includes("4g") || name.includes("lte")) {
-    return "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-600 dark:border-amber-800/50";
+    return "bg-amber-500 text-white border border-amber-600 ring-amber-700 dark:bg-amber-400 dark:text-amber-900 dark:border-amber-300 dark:ring-amber-500";
   }
 
-  // Iridium: 중간 노란색 (amber-500)
+  // Iridium: 황금
   if (name.includes("iridium")) {
-    return "bg-amber-100 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50";
+    return "bg-amber-400 text-amber-900 border border-amber-500 ring-amber-600 dark:bg-amber-400 dark:text-amber-900 dark:border-amber-300 dark:ring-amber-500";
   }
 
-  // 그룹 2: VSAT, FX (녹색)
+  // VSAT, FX: 초록
   if (name.includes("vsat") || name.includes("fx")) {
-    return "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800/50";
+    return "bg-emerald-500 text-white border border-emerald-600 ring-emerald-700 dark:bg-emerald-400 dark:text-emerald-900 dark:border-emerald-300 dark:ring-emerald-200";
   }
 
-  // 그룹 3: FBB (파란색)
+  // FBB: 하늘
   if (name.includes("fbb")) {
-    return "bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800/50";
+    return "bg-sky-500 text-white border border-sky-600 ring-sky-700 dark:bg-sky-400 dark:text-sky-900 dark:border-sky-300 dark:ring-sky-200";
   }
 
-  return "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+  return "bg-slate-400 text-white border border-slate-500 ring-slate-600 dark:bg-slate-500 dark:text-white dark:border-slate-400 dark:ring-slate-300";
 };
 
 /**
