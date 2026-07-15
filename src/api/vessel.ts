@@ -411,8 +411,8 @@ export async function imoDuplicate(imo: string | number): Promise<boolean> {
 }
 
 // -----------------선박 smartbox 업데이트 api-----------------
-export async function vesselSmartboxUpdate(imo: number): Promise<void> {
-  const res = await fetch(`${BASE_URL}/vessels/${imo}/updates`, withTestUser({
+export async function vesselSmartboxUpdate(imo: number, force = false): Promise<void> {
+  const res = await fetch(`${BASE_URL}/vessels/${imo}/updates?force=${force}`, withTestUser({
     ...fetchOptions,
     method: "POST",
   }));

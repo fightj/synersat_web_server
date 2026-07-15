@@ -6,7 +6,7 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import useSWR from "swr";
 import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
-import { getAccounts, resetCore } from "@/api/vessel";
+import { getAccounts, resetCore, vesselSmartboxUpdate } from "@/api/vessel";
 import Loading from "../common/Loading";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import RedirectButtons from "../common/RedirectButtons";
@@ -111,6 +111,27 @@ const VesselRow = memo(
       const [confirmOpen, setConfirmOpen] = useState(false);
       const [isResetting, setIsResetting] = useState(false);
       const [resetError, setResetError] = useState<string | null>(null);
+
+      const [forceUpdateOpen, setForceUpdateOpen] = useState(false);
+      const [isForceUpdating, setIsForceUpdating] = useState(false);
+      const [forceUpdateError, setForceUpdateError] = useState<string | null>(null);
+
+      const handleVersionClick = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setForceUpdateOpen(true);
+      }, []);
+
+      const handleConfirmForceUpdate = useCallback(async () => {
+        setForceUpdateOpen(false);
+        setIsForceUpdating(true);
+        try {
+          await vesselSmartboxUpdate(vessel.imo, true);
+        } catch (err) {
+          setForceUpdateError(err instanceof Error ? err.message : "Force update failed");
+        } finally {
+          setIsForceUpdating(false);
+        }
+      }, [vessel.imo]);
 
       const handleGpsClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -232,9 +253,13 @@ const VesselRow = memo(
                 </button>
               </td>
               <td className="px-5 py-3 text-start">
-                <span className="relative inline-flex overflow-hidden rounded">
+                <button
+                  onClick={handleVersionClick}
+                  disabled={isForceUpdating}
+                  className="relative inline-flex overflow-hidden rounded transition-all hover:scale-110 active:scale-95 disabled:opacity-50"
+                >
                   <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
-                    {vessel.coreVersion}
+                    {isForceUpdating ? "Updating…" : vessel.coreVersion}
                   </code>
                   {vessel.isLatestCoreVersion === true && (
                     <span
@@ -246,7 +271,7 @@ const VesselRow = memo(
                       }}
                     />
                   )}
-                </span>
+                </button>
               </td>
               <td className="py-2 text-center">
                 <button
@@ -310,11 +335,46 @@ const VesselRow = memo(
                 </td>
               </tr>
             )}
+          {forceUpdateOpen && (
+              <tr>
+                <td colSpan={8}>
+                  <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-(--color-surface-1) shadow-2xl dark:border dark:border-white/10">
+                      <div className="p-5">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white">Force Update</h3>
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          Are you sure you want to force update <span className="font-semibold text-gray-800 dark:text-gray-200">{vessel.name}</span>?
+                        </p>
+                      </div>
+                      <div className="flex justify-end gap-2 bg-gray-50 px-5 py-3 dark:bg-white/2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setForceUpdateOpen(false); }}
+                          className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleConfirmForceUpdate(); }}
+                          className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
           <ErrorAlertModal
             isOpen={resetError !== null}
             message={resetError ?? ""}
             onClose={() => setResetError(null)}
+          />
+          <ErrorAlertModal
+            isOpen={forceUpdateError !== null}
+            message={forceUpdateError ?? ""}
+            onClose={() => setForceUpdateError(null)}
           />
         </>
       );
@@ -326,6 +386,7 @@ const VesselRow = memo(
 export default function VesselTable({ searchTerm = "", categoryFilter = null, companyFilter = null }: VesselTableProps) {
   const vessels = useVesselStore((s) => s.vessels);
   const loading = useVesselStore((s) => s.loading);
+  const [gpsOldFirst, setGpsOldFirst] = useState(false);
 
   const { data: accounts } = useSWR("accounts", getAccounts, {
     revalidateOnFocus: false,
@@ -420,6 +481,11 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
 
     const copy = [...filtered];
     copy.sort((a, b) => {
+      if (gpsOldFirst) {
+        const aOld = a.gpsStatus === "old" ? 0 : 1;
+        const bOld = b.gpsStatus === "old" ? 0 : 1;
+        if (aOld !== bOld) return aOld - bOld;
+      }
       const av = getSortValue(a, sortKey);
       const bv = getSortValue(b, sortKey);
       return sortDir === "asc"
@@ -427,7 +493,7 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
         : bv.localeCompare(av, "en", { numeric: true });
     });
     return copy;
-  }, [vessels, sortKey, sortDir, searchTerm, categoryFilter, companyFilter]);
+  }, [vessels, sortKey, sortDir, searchTerm, categoryFilter, companyFilter, gpsOldFirst]);
 
   // ── 가상화 (window 스크롤 사용 → 내부 스크롤바 없음) ────────────────────
   const rowVirtualizer = useWindowVirtualizer({
@@ -490,7 +556,16 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
                 Status
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                GPS
+                <button
+                  type="button"
+                  onClick={() => setGpsOldFirst((v) => !v)}
+                  className={`flex items-center gap-1 transition-colors ${gpsOldFirst ? "text-red-500" : "hover:text-gray-700 dark:hover:text-gray-200"}`}
+                >
+                  GPS
+                  <svg className={`h-3 w-3 transition-transform ${gpsOldFirst ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 15l-6-6-6 6" />
+                  </svg>
+                </button>
               </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">Version</th>
               <th className="text-theme-xs py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</th>
