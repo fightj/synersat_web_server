@@ -8,7 +8,6 @@ import type { Vessel } from "@/types/vessel";
 import { useVesselStore } from "@/store/vessel.store";
 import { getAccounts, resetCore } from "@/api/vessel";
 import Loading from "../common/Loading";
-import { getServiceBadgeStyles } from "../common/AnntennaMapping";
 import { SktelinkIcon, GrafanaDashIcon } from "@/icons";
 import RedirectButtons from "../common/RedirectButtons";
 import GrafanaDashModal from "./GrafanaDashModal";
@@ -17,6 +16,32 @@ import { useRouter } from "next/navigation";
 
 type SortKey = "company" | "vesselId" | "vesselName";
 type SortDir = "asc" | "desc";
+
+const getServiceAccent = (name: string | null | undefined): { fill: string } => {
+  if (!name) return { fill: "fill-slate-400" };
+  const n = name.toLowerCase();
+  if (n.includes("starlink"))  return { fill: "fill-purple-500" };
+  if (n.includes("nexuswave")) return { fill: "fill-indigo-500" };
+  if (n.includes("oneweb"))    return { fill: "fill-yellow-400" };
+  if (n.includes("lte") || n.includes("4g")) return { fill: "fill-amber-500" };
+  if (n.includes("iridium"))   return { fill: "fill-amber-400" };
+  if (n.includes("fbb"))       return { fill: "fill-sky-500" };
+  if (n.includes("vsat") || n.includes("fx")) return { fill: "fill-emerald-500" };
+  return { fill: "fill-slate-400" };
+};
+
+const getAntennaAbbr = (name: string | null | undefined): string => {
+  if (!name) return "N/A";
+  const n = name.toLowerCase();
+  if (n.includes("starlink")) return "STAR";
+  if (n.includes("nexuswave")) return "NEX";
+  if (n.includes("oneweb")) return "ONE";
+  if (n.includes("lte") || n.includes("4g")) return "LTE";
+  if (n.includes("iridium")) return "IRD";
+  if (n.includes("fbb")) return "FBB";
+  if (n.includes("vsat") || n.includes("fx")) return "VSAT";
+  return name.slice(0, 3).toUpperCase();
+};
 
 interface VesselTableProps {
   searchTerm?: string;
@@ -122,7 +147,7 @@ const VesselRow = memo(
               className={`group cursor-pointer hover:bg-gray-50 dark:hover:bg-white/2 ${!isExpanded ? "border-b border-gray-100 dark:border-white/5" : ""
                 }`}
             >
-              <td className="pl-5 pr-1 py-4 text-start">
+              <td className="pl-5 pr-1 py-3 text-start">
                 {vessel.manager === "sktelink" ? (
                   <SktelinkIcon className="h-[17px] w-auto" />
                 ) : vessel.manager === "synersat" ? (
@@ -134,13 +159,13 @@ const VesselRow = memo(
                   <span className="text-theme-sm text-gray-400 dark:text-gray-500">-</span>
                 )}
               </td>
-              <td className="text-theme-sm px-5 py-4 text-start font-medium text-gray-800 dark:text-white/90">
+              <td className="text-theme-sm px-5 py-3 text-start font-medium text-gray-800 dark:text-white/90">
                 {companyLabel || "-"}
               </td>
-              <td className="text-theme-sm px-5 py-4 text-start font-semibold text-gray-700 dark:text-gray-200">
+              <td className="text-theme-sm px-5 py-3 text-start font-semibold text-gray-700 dark:text-gray-200">
                 {vessel.name || "-"}
               </td>
-              <td className="px-3 py-4 text-start">
+              <td className="px-3 py-3 text-start">
                 <div className="flex flex-wrap gap-1">
                   {vessel.prepaidEnabled === true && (
                     <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
@@ -154,7 +179,7 @@ const VesselRow = memo(
                   )}
                 </div>
               </td>
-              <td className="px-3 py-4 text-start">
+              <td className="px-3 py-3 text-start">
                 {isInactive ? (
                   <span className="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-tight uppercase bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
                     Inactive
@@ -163,36 +188,50 @@ const VesselRow = memo(
                   <div className="flex flex-wrap gap-1.5">
                     {antennaStatuses.map((a) => {
                       const isCurrent = a.available && a.antennaServiceDisplayName === vessel.currentAntenna;
+                      const accent = isCurrent ? getServiceAccent(a.antennaServiceDisplayName) : null;
                       return (
-                        <span
-                          key={a.interfaceName}
-                          className={`inline-flex items-center rounded-full h-6 overflow-hidden whitespace-nowrap text-[11px] tracking-tight uppercase transition-all duration-200
-                            min-w-6 max-w-6 pl-0 group-hover:max-w-40 group-hover:pl-2.5 group-hover:pr-2.5
-                            ${!a.available
-                              ? "font-medium opacity-70 bg-red-500 text-white border border-red-600 dark:bg-red-500 dark:text-white dark:border-red-400"
-                              : isCurrent
-                                ? `font-bold ring-2 ${getServiceBadgeStyles(a.antennaServiceDisplayName)}`
-                                : `font-medium opacity-90 ${getServiceBadgeStyles(a.antennaServiceDisplayName)}`
-                            }`}
-                        >
-                          <span className="group-hover:inline hidden whitespace-nowrap">{a.gatewayName}</span>
-                        </span>
+                        <div key={a.interfaceName} className="flex flex-col items-center gap-0.5">
+                          <svg width="8" height="5" viewBox="0 0 8 5" className={isCurrent ? accent!.fill : "fill-transparent"}>
+                            <polygon points="4,5 0,0 8,0" />
+                          </svg>
+                          <span
+                            className={`inline-flex items-center justify-center rounded-full h-8 overflow-hidden whitespace-nowrap text-[9px] font-bold tracking-wide uppercase text-white transition-all duration-200
+                              min-w-8 max-w-8 group-hover:max-w-40 group-hover:px-2.5
+                              ${a.available
+                                ? "bg-emerald-500 dark:bg-emerald-500"
+                                : "bg-red-500 dark:bg-red-500"
+                              }`}
+                          >
+                            <span className="group-hover:hidden">{getAntennaAbbr(a.antennaServiceDisplayName)}</span>
+                            <span className="hidden group-hover:inline whitespace-nowrap">{a.gatewayName}</span>
+                          </span>
+                        </div>
                       );
                     })}
                   </div>
                 )}
               </td>
-              <td className="px-3 py-4 text-start">
+              <td className="px-3 py-3 text-start">
                 <button
                   title={gpsStatus === "old" ? "GPS: old — Click to Reset Core" : `GPS: ${gpsStatus ?? "unknown"}`}
                   onClick={handleGpsClick}
                   disabled={gpsStatus !== "old" || isResetting}
                   className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[9px] font-bold tracking-wide text-white shadow-md transition-all ${gpsStatus === "old" ? "hover:scale-110 hover:shadow-lg active:scale-95" : ""} ${gpsBadgeClass}`}
                 >
-                  {isResetting ? "…" : "GPS"}
+                  {isResetting ? (
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3" />
+                    </svg>
+                  ) : (
+                    <svg className="h-6 w-6" viewBox="0 0 24 27" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <ellipse cx="12" cy="24" rx="9" ry="3" fill="black" opacity="0.35" stroke="none" />
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                      <circle cx="12" cy="9" r="2.5" />
+                    </svg>
+                  )}
                 </button>
               </td>
-              <td className="px-5 py-4 text-start">
+              <td className="px-5 py-3 text-start">
                 <span className="relative inline-flex overflow-hidden rounded">
                   <code className="text-theme-sm rounded bg-gray-100 px-1.5 py-0.5 text-gray-700 dark:bg-white/5 dark:text-gray-300">
                     {vessel.coreVersion}
@@ -448,10 +487,10 @@ export default function VesselTable({ searchTerm = "", categoryFilter = null, co
                 Configuration
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                Antenna
+                Status
               </th>
               <th className="text-theme-xs px-3 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">
-                Status
+                GPS
               </th>
               <th className="text-theme-xs px-5 py-3 text-start font-semibold text-gray-500 dark:text-gray-400">Version</th>
               <th className="text-theme-xs py-3 text-center font-semibold text-gray-500 dark:text-gray-400">{""}</th>
