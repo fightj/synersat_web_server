@@ -61,7 +61,7 @@ export default function AuthInitializer({
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               You do not have permission to access this page.
               <br />
-              Please log in through Teleport.
+              Please log in through Teleport
             </p>
           </div>
 
