@@ -303,6 +303,16 @@ export default memo(function WeatherOverlayPanel({
           className="absolute right-3 z-1000 flex flex-col gap-1 rounded-xl border border-white/10 bg-gray-900/90 p-2 shadow-2xl backdrop-blur-sm"
           style={menuStyle}
         >
+          {/* Experimental 뱃지 */}
+          <div className="mb-1 flex items-center gap-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1.5">
+            <svg className="h-3 w-3 shrink-0 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-yellow-400">Experimental</span>
+          </div>
+          <p className="mb-1 px-1 text-[10px] text-gray-500">Results may vary. Use with caution.</p>
+
           {/* 기상 타일 레이어 (상호 배타) */}
           <button
             onClick={() => setActiveLayer(null)}
