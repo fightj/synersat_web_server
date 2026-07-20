@@ -4,25 +4,23 @@ import { useState, useCallback } from "react";
 import JSZip from "jszip";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
-import { getCrewOctetUsages } from "@/api/crew-account";
 import type { CrewEntry } from "@/types/crew_account";
 import Loading from "@/components/common/Loading";
 
-interface SessionUsage {
-  startAt: string;
-  endAt: string;
-  sessionTime: number;
-  inputOctets: number;
-  outputOctets: number;
-  totalOctets: number;
+interface DailyUsage {
+  date: string;
+  user: string;
+  in_bytes: number;
+  out_bytes: number;
+  total_bytes: number;
 }
 
-interface CrewUsageData {
-  crewId: string;
-  usages: SessionUsage[];
-  totalOctets: number;
-  totalInputOctets: number;
-  totalOutputOctets: number;
+interface UserDailyData {
+  userId: string;
+  dailyUsages: DailyUsage[];
+  totalInBytes: number;
+  totalOutBytes: number;
+  totalBytes: number;
 }
 
 interface CheckUsageModalProps {
@@ -33,31 +31,7 @@ interface CheckUsageModalProps {
   vesselName: string;
 }
 
-// bytes(octets) → MB
-const toMB = (octets: number) => (octets / 1024 / 1024).toFixed(2);
-
-const formatDuration = (seconds: number) => {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return s > 0 ? `${m}m ${s}s` : `${m}m`;
-  }
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (m === 0 && s === 0) return `${h}h`;
-  if (s === 0) return `${h}h ${m}m`;
-  return `${h}h ${m}m ${s}s`;
-};
-
-const formatTime = (iso: string | null | undefined): string => {
-  if (!iso) return "-";
-  const date = new Date(iso.endsWith("Z") ? iso : iso + "Z");
-  if (isNaN(date.getTime())) return iso.replace("T", " ");
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-};
+const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2);
 
 const getDefault24hRange = () => {
   const end = new Date();
@@ -69,9 +43,8 @@ const getDefault24hRange = () => {
 };
 
 export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName }: CheckUsageModalProps) {
-  const [usageMap, setUsageMap] = useState<Record<string, CrewUsageData>>({});
-  // Apply 후 실제로 표시할 유저 목록 (선택 없으면 API 응답 기반으로 채워짐)
-  const [resolvedCrews, setResolvedCrews] = useState<Pick<CrewEntry, "userId">[]>([]);
+  const [userDataMap, setUserDataMap] = useState<Record<string, UserDailyData>>({});
+  const [resolvedCrews, setResolvedCrews] = useState<string[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
@@ -90,22 +63,38 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     setHasApplied(true);
     setAppliedRange(pendingRange);
     try {
-      const crewIds = selectedCrew.map((c) => c.userId);
-      const res = await getCrewOctetUsages(imo, crewIds, pendingRange.startAt, pendingRange.endAt);
-      const dataUsages: CrewUsageData[] = res?.dataUsages ?? [];
-      const map: Record<string, CrewUsageData> = {};
-      dataUsages.forEach((d) => { map[d.crewId] = d; });
-      setUsageMap(map);
-      // 사전 선택이 없으면 API 응답 기반으로 표시 목록 구성
-      const crews = selectedCrew.length > 0
-        ? selectedCrew
-        : dataUsages.map((d) => ({ userId: d.crewId }));
-      setResolvedCrews(crews);
-      if (!selectedUserId && dataUsages.length > 0) {
-        setSelectedUserId(dataUsages[0].crewId);
+      const params = new URLSearchParams({
+        vessel_imo: String(imo),
+        startAt: pendingRange.startAt,
+        endAt: pendingRange.endAt,
+      });
+
+      const res = await fetch(`/api/crew/daily?${params}`);
+      if (!res.ok) throw new Error("fetch failed");
+      const data: DailyUsage[] = await res.json();
+
+      const map: Record<string, UserDailyData> = {};
+      data.forEach((row) => {
+        if (!map[row.user]) {
+          map[row.user] = { userId: row.user, dailyUsages: [], totalInBytes: 0, totalOutBytes: 0, totalBytes: 0 };
+        }
+        map[row.user].dailyUsages.push(row);
+        map[row.user].totalInBytes += row.in_bytes;
+        map[row.user].totalOutBytes += row.out_bytes;
+        map[row.user].totalBytes += row.total_bytes;
+      });
+
+      const crewIds = selectedCrew.length > 0
+        ? selectedCrew.map((c) => c.userId).filter((id) => map[id])
+        : Object.keys(map);
+
+      setUserDataMap(map);
+      setResolvedCrews(crewIds);
+      if (!selectedUserId && crewIds.length > 0) {
+        setSelectedUserId(crewIds[0]);
       }
     } catch {
-      setUsageMap({});
+      setUserDataMap({});
       setResolvedCrews([]);
     } finally {
       setLoading(false);
@@ -116,57 +105,44 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     const zip = new JSZip();
     const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
 
-    const toKST = (iso: string | null | undefined): string => {
-      if (!iso) return "-";
-      const date = new Date(iso.endsWith("Z") ? iso : iso + "Z");
-      if (isNaN(date.getTime())) return iso.replace("T", " ");
-      const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-      const pad = (n: number) => String(n).padStart(2, "0");
-      return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())} ${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}`;
-    };
-    // Excel이 날짜 문자열을 자동 변환해 ######으로 표시하는 것을 방지
-    const csvDate = (iso: string | null | undefined) => `="${toKST(iso)}"`;
-
-    resolvedCrews.forEach((crew) => {
-      const data = usageMap[crew.userId];
+    resolvedCrews.forEach((userId) => {
+      const data = userDataMap[userId];
+      const sortedDays = [...(data?.dailyUsages ?? [])].sort((a, b) => b.date.localeCompare(a.date));
 
       const sheetData: (string | number)[][] = [
-        ["Time Range (KST)", csvDate(appliedRange?.startAt), csvDate(appliedRange?.endAt)],
-        ["Username", crew.userId],
-        ["Total Usage (MB)", data ? Number(toMB(data.totalOctets)) : 0],
-        ["Total Download (MB)", data ? Number(toMB(data.totalInputOctets)) : 0],
-        ["Total Upload (MB)", data ? Number(toMB(data.totalOutputOctets)) : 0],
+        ["Time Range", appliedRange?.startAt ?? "", appliedRange?.endAt ?? ""],
+        ["Username", userId],
+        ["Total Usage (MB)", data ? Number(toMB(data.totalBytes)) : 0],
+        ["Total Download (MB)", data ? Number(toMB(data.totalInBytes)) : 0],
+        ["Total Upload (MB)", data ? Number(toMB(data.totalOutBytes)) : 0],
         [],
-        ["Start (KST)", "End (KST)", "Duration", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
-        ...(data?.usages ?? []).map((s) => [
-          csvDate(s.startAt),
-          csvDate(s.endAt),
-          formatDuration(s.sessionTime),
-          Number(toMB(s.inputOctets)),
-          Number(toMB(s.outputOctets)),
-          Number(toMB(s.totalOctets)),
+        ["Date", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
+        ...sortedDays.map((d) => [
+          d.date,
+          Number(toMB(d.in_bytes)),
+          Number(toMB(d.out_bytes)),
+          Number(toMB(d.total_bytes)),
         ]),
       ];
 
       const csv = sheetData
         .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
         .join("\r\n");
-      zip.file(`${safe(vesselName)}_${safe(crew.userId)}.csv`, "﻿" + csv);
+      zip.file(`${safe(vesselName)}_${safe(userId)}.csv`, "﻿" + csv);
     });
 
-    // summary 파일: 선택된 유저 전체의 in/out/total 합산
     const summaryData: (string | number)[][] = [
-      ["Time Range (KST)", csvDate(appliedRange?.startAt), csvDate(appliedRange?.endAt)],
+      ["Time Range", appliedRange?.startAt ?? "", appliedRange?.endAt ?? ""],
       ["Vessel", vesselName],
       [],
       ["Username", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
-      ...resolvedCrews.map((crew) => {
-        const d = usageMap[crew.userId];
+      ...resolvedCrews.map((userId) => {
+        const d = userDataMap[userId];
         return [
-          crew.userId,
-          d ? Number(toMB(d.totalInputOctets)) : 0,
-          d ? Number(toMB(d.totalOutputOctets)) : 0,
-          d ? Number(toMB(d.totalOctets)) : 0,
+          userId,
+          d ? Number(toMB(d.totalInBytes)) : 0,
+          d ? Number(toMB(d.totalOutBytes)) : 0,
+          d ? Number(toMB(d.totalBytes)) : 0,
         ];
       }),
     ];
@@ -182,10 +158,10 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     a.download = `${safe(vesselName)}_usage_${new Date().toISOString().slice(0, 10)}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [resolvedCrews, usageMap, vesselName, appliedRange]);
+  }, [resolvedCrews, userDataMap, vesselName, appliedRange]);
 
   const handleClose = () => {
-    setUsageMap({});
+    setUserDataMap({});
     setResolvedCrews([]);
     setSelectedUserId(null);
     setHasApplied(false);
@@ -193,23 +169,26 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     onClose();
   };
 
-  const selectedData = selectedUserId ? usageMap[selectedUserId] : null;
-
   const handleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortAsc((v) => !v);
     else { setSortKey(key); setSortAsc(key === "id"); }
   };
 
   const sortedCrews = [...resolvedCrews].sort((a, b) => {
-    const da = usageMap[a.userId];
-    const db = usageMap[b.userId];
+    const da = userDataMap[a];
+    const db = userDataMap[b];
     let diff = 0;
-    if (sortKey === "id") diff = a.userId.localeCompare(b.userId);
-    else if (sortKey === "in")    diff = (da?.totalInputOctets  ?? 0) - (db?.totalInputOctets  ?? 0);
-    else if (sortKey === "out")   diff = (da?.totalOutputOctets ?? 0) - (db?.totalOutputOctets ?? 0);
-    else if (sortKey === "total") diff = (da?.totalOctets       ?? 0) - (db?.totalOctets       ?? 0);
+    if (sortKey === "id")         diff = a.localeCompare(b);
+    else if (sortKey === "in")    diff = (da?.totalInBytes  ?? 0) - (db?.totalInBytes  ?? 0);
+    else if (sortKey === "out")   diff = (da?.totalOutBytes ?? 0) - (db?.totalOutBytes ?? 0);
+    else if (sortKey === "total") diff = (da?.totalBytes    ?? 0) - (db?.totalBytes    ?? 0);
     return sortAsc ? diff : -diff;
   });
+
+  const selectedData = selectedUserId ? userDataMap[selectedUserId] : null;
+  const sortedDailyUsages = selectedData
+    ? [...selectedData.dailyUsages].sort((a, b) => b.date.localeCompare(a.date))
+    : [];
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} showCloseButton={false} className="w-[95vw] max-w-[1400px] overflow-hidden p-0">
@@ -223,7 +202,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
             </p>
           </div>
           <div className="mr-2 flex items-center gap-2">
-            {hasApplied && Object.keys(usageMap).length > 0 && (
+            {hasApplied && resolvedCrews.length > 0 && (
               <button
                 onClick={handleDownloadZip}
                 className="flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
@@ -257,9 +236,9 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
           </button>
         </div>
 
-        {/* Body: always two-panel layout */}
+        {/* Body */}
         <div className="flex min-h-0 flex-1">
-          {/* Left: user list (always visible) */}
+          {/* Left: user list */}
           <div className="flex w-[500px] shrink-0 flex-col border-r border-gray-100 dark:border-white/10">
             <div className="border-b border-gray-100 px-5 py-3 dark:border-white/10">
               <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Users</p>
@@ -289,26 +268,26 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    {sortedCrews.map((crew) => {
-                      const data = usageMap[crew.userId];
-                      const isSelected = selectedUserId === crew.userId;
+                    {sortedCrews.map((userId) => {
+                      const data = userDataMap[userId];
+                      const isSelected = selectedUserId === userId;
                       return (
                         <tr
-                          key={crew.userId}
-                          onClick={() => setSelectedUserId(crew.userId)}
+                          key={userId}
+                          onClick={() => setSelectedUserId(userId)}
                           className={`cursor-pointer transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10" : "hover:bg-gray-50 dark:hover:bg-white/3"}`}
                         >
                           <td className={`px-4 py-3 font-semibold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-200"}`}>
-                            {crew.userId}
+                            {userId}
                           </td>
                           <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
-                            {data ? toMB(data.totalInputOctets) : "-"}
+                            {data ? toMB(data.totalInBytes) : "-"}
                           </td>
                           <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
-                            {data ? toMB(data.totalOutputOctets) : "-"}
+                            {data ? toMB(data.totalOutBytes) : "-"}
                           </td>
                           <td className={`px-3 py-3 text-right font-bold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}>
-                            {data ? `${toMB(data.totalOctets)} MB` : "-"}
+                            {data ? `${toMB(data.totalBytes)} MB` : "-"}
                           </td>
                         </tr>
                       );
@@ -319,11 +298,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
             </div>
           </div>
 
-          {/* Right: session details */}
+          {/* Right: daily breakdown */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="border-b border-gray-100 px-5 py-3 dark:border-white/10">
               <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
-                Sessions{selectedUserId ? (
+                Daily Usage{selectedUserId ? (
                   <> — <span className="text-black dark:text-white">{selectedUserId}</span></>
                 ) : ""}
               </p>
@@ -343,33 +322,29 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
                 </div>
               ) : !selectedData ? (
                 <div className="flex h-full items-center justify-center">
-                  <p className="text-sm text-gray-400">Select a user to view sessions.</p>
+                  <p className="text-sm text-gray-400">Select a user to view daily usage.</p>
                 </div>
-              ) : selectedData.usages.length === 0 ? (
+              ) : sortedDailyUsages.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
-                  <p className="text-sm text-gray-400">No session data in this period.</p>
+                  <p className="text-sm text-gray-400">No usage data in this period.</p>
                 </div>
               ) : (
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-gray-100 bg-gray-100 dark:border-white/5 dark:bg-white/2">
-                      <th className="px-3 py-2 text-left font-bold text-gray-500">Start</th>
-                      <th className="px-3 py-2 text-left font-bold text-gray-500">End</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">Duration</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">Date</th>
                       <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In (MB)</th>
                       <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out (MB)</th>
                       <th className="px-3 py-2 text-right font-bold text-gray-500">Total (MB)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    {[...selectedData.usages].sort((a, b) => (b.startAt ?? "").localeCompare(a.startAt ?? "")).map((s, i) => (
+                    {sortedDailyUsages.map((d, i) => (
                       <tr key={i} className="hover:bg-gray-50 dark:hover:bg-white/3">
-                        <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.startAt)}</td>
-                        <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{formatTime(s.endAt)}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-500">{formatDuration(s.sessionTime)}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(s.inputOctets)}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(s.outputOctets)}</td>
-                        <td className="px-3 py-2.5 text-right font-bold text-gray-800 dark:text-gray-200">{toMB(s.totalOctets)}</td>
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{d.date}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(d.in_bytes)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(d.out_bytes)}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-gray-800 dark:text-gray-200">{toMB(d.total_bytes)}</td>
                       </tr>
                     ))}
                   </tbody>
