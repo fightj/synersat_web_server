@@ -26,11 +26,11 @@ interface UsageHistoryModalProps {
   imo: number;
 }
 
-const toMB = (bytes: number) => parseFloat((bytes / 1_000_000).toFixed(2));
+const toMB = (bytes: number) => parseFloat((bytes / 1024 / 1024).toFixed(2));
 
 const formatMB = (mb: number) => {
-  if (mb >= 1000) return `${(mb / 1000).toFixed(2)} GB`;
-  return `${mb.toFixed(2)} MB`;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GiB`;
+  return `${mb.toFixed(2)} MiB`;
 };
 
 const getDefault24hRange = () => {
@@ -206,13 +206,13 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo }: UsageH
         labels: {
           minWidth: 60,
           style: { colors: isDark ? "#6B7280" : "#9CA3AF", fontSize: "12px" },
-          formatter: (val) => val >= 1 ? `${val.toFixed(1)} MB` : `${(val * 1000).toFixed(0)} KB`,
+          formatter: (val) => val >= 1 ? `${val.toFixed(1)} MiB` : `${(val * 1024).toFixed(0)} KiB`,
         },
       },
       tooltip: {
         theme: isDark ? "dark" : "light",
         x: { format: "MM/dd HH:mm" },
-        y: { formatter: (val) => `${val.toFixed(2)} MB` },
+        y: { formatter: (val) => `${val.toFixed(2)} MiB` },
       },
       grid: {
         borderColor: isDark ? "rgba(156, 163, 175, 0.1)" : "rgba(0, 0, 0, 0.06)",
