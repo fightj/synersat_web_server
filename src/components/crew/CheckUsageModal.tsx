@@ -68,6 +68,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
         startAt: pendingRange.startAt,
         endAt: pendingRange.endAt,
       });
+      selectedCrew.forEach((c) => params.append('user', c.userId));
 
       const res = await fetch(`/api/crew/daily?${params}`);
       if (!res.ok) throw new Error("fetch failed");

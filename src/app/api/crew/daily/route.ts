@@ -6,7 +6,7 @@ const TIMEOUT_MS = 10_000;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const user = searchParams.get('user');
+  const users = searchParams.getAll('user');
   const vesselImo = searchParams.get('vessel_imo');
   const startAt = searchParams.get('startAt');
   const endAt = searchParams.get('endAt');
@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
   const formattedStart = startAt.endsWith('Z') ? startAt : `${startAt}Z`;
   const formattedEnd = endAt.endsWith('Z') ? endAt : `${endAt}Z`;
 
-  const userCondition = user ? `AND "user"='${user}'` : '';
+  let userCondition = '';
+  if (users.length === 1) {
+    userCondition = `AND "user"='${users[0]}'`;
+  } else if (users.length > 1) {
+    userCondition = `AND "user" =~ /^(${users.join('|')})$/`;
+  }
 
   const query = `SELECT SUM("in_bytes"), SUM("out_bytes"), SUM("total_bytes") FROM "wifi_usage" WHERE "vessel_imo"='${vesselImo}' ${userCondition} AND time >= '${formattedStart}' AND time <= '${formattedEnd}' GROUP BY time(1d), "user" ORDER BY time DESC`;
 
