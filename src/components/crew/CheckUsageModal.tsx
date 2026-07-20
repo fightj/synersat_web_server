@@ -31,7 +31,13 @@ interface CheckUsageModalProps {
   vesselName: string;
 }
 
-const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2);
+const toMiB = (bytes: number) => bytes / 1024 / 1024;
+
+const formatBytes = (bytes: number) => {
+  const mib = toMiB(bytes);
+  if (mib >= 1024) return `${(mib / 1024).toFixed(2)} GiB`;
+  return `${mib.toFixed(2)} MiB`;
+};
 
 const getDefault24hRange = () => {
   const end = new Date();
@@ -113,16 +119,16 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       const sheetData: (string | number)[][] = [
         ["Time Range", appliedRange?.startAt ?? "", appliedRange?.endAt ?? ""],
         ["Username", userId],
-        ["Total Usage (MB)", data ? Number(toMB(data.totalBytes)) : 0],
-        ["Total Download (MB)", data ? Number(toMB(data.totalInBytes)) : 0],
-        ["Total Upload (MB)", data ? Number(toMB(data.totalOutBytes)) : 0],
+        ["Total Usage (MiB)", data ? Number(toMiB(data.totalBytes).toFixed(2)) : 0],
+        ["Total Download (MiB)", data ? Number(toMiB(data.totalInBytes).toFixed(2)) : 0],
+        ["Total Upload (MiB)", data ? Number(toMiB(data.totalOutBytes).toFixed(2)) : 0],
         [],
-        ["Date", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
+        ["Date", "↓ In (MiB)", "↑ Out (MiB)", "Total (MiB)"],
         ...sortedDays.map((d) => [
           d.date,
-          Number(toMB(d.in_bytes)),
-          Number(toMB(d.out_bytes)),
-          Number(toMB(d.total_bytes)),
+          Number(toMiB(d.in_bytes).toFixed(2)),
+          Number(toMiB(d.out_bytes).toFixed(2)),
+          Number(toMiB(d.total_bytes).toFixed(2)),
         ]),
       ];
 
@@ -136,14 +142,14 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       ["Time Range", appliedRange?.startAt ?? "", appliedRange?.endAt ?? ""],
       ["Vessel", vesselName],
       [],
-      ["Username", "↓ In (MB)", "↑ Out (MB)", "Total (MB)"],
+      ["Username", "↓ In (MiB)", "↑ Out (MiB)", "Total (MiB)"],
       ...resolvedCrews.map((userId) => {
         const d = userDataMap[userId];
         return [
           userId,
-          d ? Number(toMB(d.totalInBytes)) : 0,
-          d ? Number(toMB(d.totalOutBytes)) : 0,
-          d ? Number(toMB(d.totalBytes)) : 0,
+          d ? Number(toMiB(d.totalInBytes).toFixed(2)) : 0,
+          d ? Number(toMiB(d.totalOutBytes).toFixed(2)) : 0,
+          d ? Number(toMiB(d.totalBytes).toFixed(2)) : 0,
         ];
       }),
     ];
@@ -282,13 +288,13 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
                             {userId}
                           </td>
                           <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
-                            {data ? toMB(data.totalInBytes) : "-"}
+                            {data ? formatBytes(data.totalInBytes) : "-"}
                           </td>
                           <td className="px-3 py-3 text-right text-gray-500 dark:text-gray-400">
-                            {data ? toMB(data.totalOutBytes) : "-"}
+                            {data ? formatBytes(data.totalOutBytes) : "-"}
                           </td>
                           <td className={`px-3 py-3 text-right font-bold ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}>
-                            {data ? `${toMB(data.totalBytes)} MB` : "-"}
+                            {data ? formatBytes(data.totalBytes) : "-"}
                           </td>
                         </tr>
                       );
@@ -334,18 +340,18 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-gray-100 bg-gray-100 dark:border-white/5 dark:bg-white/2">
                       <th className="px-3 py-2 text-left font-bold text-gray-500">Date</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In (MB)</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out (MB)</th>
-                      <th className="px-3 py-2 text-right font-bold text-gray-500">Total (MB)</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↓ In</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">↑ Out</th>
+                      <th className="px-3 py-2 text-right font-bold text-gray-500">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {sortedDailyUsages.map((d, i) => (
                       <tr key={i} className="hover:bg-gray-50 dark:hover:bg-white/3">
                         <td className="px-3 py-2.5 font-mono text-[11px] text-gray-600 dark:text-gray-400">{d.date}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(d.in_bytes)}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{toMB(d.out_bytes)}</td>
-                        <td className="px-3 py-2.5 text-right font-bold text-gray-800 dark:text-gray-200">{toMB(d.total_bytes)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{formatBytes(d.in_bytes)}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-400">{formatBytes(d.out_bytes)}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-gray-800 dark:text-gray-200">{formatBytes(d.total_bytes)}</td>
                       </tr>
                     ))}
                   </tbody>
