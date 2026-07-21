@@ -26,6 +26,7 @@ export function useLeafletMap(
     (async () => {
       if (!mapRef.current || mapInstanceRef.current) return;
       const L = await import("leaflet");
+      await import("leaflet.markercluster");
       if (cancelled || !mapRef.current || mapInstanceRef.current) return;
 
       const width = window.innerWidth;

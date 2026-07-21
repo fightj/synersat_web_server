@@ -38,6 +38,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
   const clickedLatLngRef = useRef<{ lat: number; lng: number } | null>(null);
   const vesselsRef = useRef(vessels);
   const hasInitialDataRef = useRef(false);
+  const markersRef = useRef<Map<number, any>>(new Map());
+  const clusterGroupRef = useRef<any>(null);
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
@@ -125,6 +127,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     setPopupPos,
     setGpsAlert,
     vesselsRef,
+    markersRef,
+    clusterGroupRef,
     onViewDetail: (imo) => handleListViewDetail(imo),
   });
 
@@ -143,6 +147,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     onDoubleClick: (imo) => handleListViewDetail(imo),
     onViewDetail: (imo) => handleListViewDetail(imo),
     liteVessels,
+    markersRef,
+    clusterGroupRef,
   });
 
   // ── 통계 + 파생 목록 (단일 순회) ─────────────────────────────────

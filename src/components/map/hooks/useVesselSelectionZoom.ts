@@ -30,6 +30,8 @@ interface UseVesselSelectionZoomOptions {
   setPopupPos: (pos: { x: number; y: number } | null) => void;
   setGpsAlert: (v: boolean) => void;
   vesselsRef: RefObject<DashboardVesselPosition[] | undefined>;
+  markersRef: RefObject<Map<number, any>>;
+  clusterGroupRef: RefObject<any>;
   onViewDetail?: (imo: number) => void;
 }
 
@@ -50,6 +52,8 @@ export function useVesselSelectionZoom({
   setPopupPos,
   setGpsAlert,
   vesselsRef,
+  markersRef,
+  clusterGroupRef,
   onViewDetail,
 }: UseVesselSelectionZoomOptions): UseVesselSelectionZoomReturn {
   const pingMarkerRef = useRef<any>(null);
@@ -143,11 +147,10 @@ export function useVesselSelectionZoom({
       const color = found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName);
       setClickedVessel({ imo: found.imo, name: found.vesselName, color });
 
-      // 마커 클릭과 동일하게 중앙 이동 후 팝업 열기
       const L = leafletRef.current;
-      if (L) {
-        map.panTo([lat, closestLng], { animate: true, duration: 0.4 });
+      if (!L) return;
 
+      const createPopup = () => {
         const popup = L.popup({
           closeButton: false,
           offset: [0, -18],
@@ -178,6 +181,20 @@ export function useVesselSelectionZoom({
             }, { once: true });
           }
         }, 30);
+      };
+
+      const clusterGroup = clusterGroupRef.current;
+      const marker = markersRef.current?.get(found.imo);
+      if (clusterGroup && marker) {
+        // 클러스터 안에 있으면 줌인 후 팝업
+        clusterGroup.zoomToShowLayer(marker, createPopup);
+      } else {
+        // 직접 flyTo 후 팝업 (팝업이 애니메이션과 함께 이동)
+        map.flyTo([lat, closestLng], Math.max(map.getZoom(), 7), {
+          animate: true,
+          duration: 0.7,
+        });
+        createPopup();
       }
     } else {
       setGpsAlert(true);

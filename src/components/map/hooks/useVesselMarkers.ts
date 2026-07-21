@@ -18,6 +18,8 @@ interface UseVesselMarkersOptions {
   onDoubleClick?: (imo: number) => void;
   onViewDetail?: (imo: number) => void;
   liteVessels?: GetVesselsLite[];
+  markersRef: RefObject<Map<number, any>>;
+  clusterGroupRef: RefObject<any>;
 }
 
 interface VesselPoint {
@@ -92,17 +94,30 @@ export function useVesselMarkers({
   onDoubleClick,
   onViewDetail,
   liteVessels,
+  markersRef: markerMapRef,
+  clusterGroupRef,
 }: UseVesselMarkersOptions) {
   const ICON_H = 28;
   const ICON_W = 20;
-
-  const markerMapRef = useRef<Map<number, any>>(new Map());
   const showNameRef = useRef(showName);
   const onViewDetailRef = useRef(onViewDetail);
   const liteVesselsRef = useRef<GetVesselsLite[]>(liteVessels ?? []);
 
   useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
   useEffect(() => { liteVesselsRef.current = liteVessels ?? []; }, [liteVessels]);
+
+  useEffect(() => {
+    const markerMap = markerMapRef.current;
+    return () => {
+      if (clusterGroupRef.current) {
+        try { clusterGroupRef.current.remove(); } catch {}
+        clusterGroupRef.current = null;
+      }
+      markerMap.clear();
+    };
+  // refs are stable — intentionally omitted from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const L = leafletRef.current;
@@ -114,8 +129,47 @@ export function useVesselMarkers({
     const h = ICON_H;
     const w = ICON_W;
 
+    if (!clusterGroupRef.current) {
+      const LClass = (L as any).default ?? L;
+      clusterGroupRef.current = LClass.markerClusterGroup({
+        maxClusterRadius: 60,
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: false,
+        disableClusteringAtZoom: 10,
+        chunkedLoading: true,
+        iconCreateFunction: (cluster: any) => {
+          const count = cluster.getChildCount();
+          const color = count < 10 ? "#4ade80" : count < 100 ? "#facc15" : count < 500 ? "#fb923c" : "#f87171";
+          const outer = count < 10 ? 40 : count < 100 ? 50 : count < 500 ? 60 : 70;
+          const inner = count < 10 ? 30 : count < 100 ? 38 : count < 500 ? 46 : 54;
+          const fontSize = count < 10 ? 13 : count < 100 ? 12 : count < 1000 ? 11 : 10;
+          return L.divIcon({
+            html: `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.3;"></div>
+              <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${fontSize}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 1px 5px rgba(0,0,0,0.35);">${count}</div>
+            </div>`,
+            className: "",
+            iconSize: [outer, outer],
+            iconAnchor: [outer / 2, outer / 2],
+          });
+        },
+      });
+      clusterGroupRef.current.addTo(map);
+
+      clusterGroupRef.current.on("clusterclick", (e: any) => {
+        const bounds = e.layer.getBounds();
+        map.flyToBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 10,
+          animate: true,
+          duration: 0.5,
+        });
+      });
+    }
+
     if (!vessels || vessels.length === 0) {
-      markerMapRef.current.forEach((m) => m.remove());
+      clusterGroupRef.current?.clearLayers();
       markerMapRef.current.clear();
       clickedLatLngRef.current = null;
       setClickedVessel(null);
@@ -151,7 +205,7 @@ export function useVesselMarkers({
     // 사라진 마커 제거
     prevMap.forEach((marker, imo) => {
       if (!nextMap.has(imo)) {
-        marker.remove();
+        clusterGroupRef.current?.removeLayer(marker);
         prevMap.delete(imo);
       }
     });
@@ -165,7 +219,7 @@ export function useVesselMarkers({
         const marker = L.marker([vessel.lat, getClosestLng(vessel.lng, 170)], {
           icon: makeVesselIcon(L, w, h, vessel.color, vessel.heading, vessel.name, showName),
           zIndexOffset: 1000,
-        }).addTo(map);
+        });
 
         marker._vesselColor = vessel.color;
         marker._vesselHeading = vessel.heading;
@@ -248,6 +302,7 @@ export function useVesselMarkers({
           opacity: 1,
         });
 
+        clusterGroupRef.current?.addLayer(marker);
         prevMap.set(imo, marker);
       } else {
         // 기존 마커 업데이트 (변경된 필드만)
@@ -281,5 +336,5 @@ export function useVesselMarkers({
     });
   }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
 
-  return { markersRef: markerMapRef };
+  return {};
 }
