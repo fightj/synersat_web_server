@@ -22,6 +22,9 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const data = await getAuth();
+          if (data && !Array.isArray(data.userAcct)) {
+            data.userAcct = [data.userAcct as unknown as string];
+          }
           set({ user: data });
         } catch {
           set({ user: null });
@@ -35,8 +38,13 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "auth", // sessionStorage key
-      storage: createJSONStorage(() => sessionStorage), // ✅ sessionStorage 사용
+      name: "auth",
+      storage: createJSONStorage(() => sessionStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.user && !Array.isArray(state.user.userAcct)) {
+          state.user.userAcct = [state.user.userAcct as unknown as string];
+        }
+      },
     }
   )
 );

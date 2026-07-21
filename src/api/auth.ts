@@ -1,14 +1,14 @@
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 export interface AuthInfo {
-  userId: string
-  userAcct: string;
+  userId: string;
+  userAcct: string[];
   authKind: string;
 }
 
 // 배포 서버에서는 teleport를 통해 인증 / local 서버에서는 .env 파일의 account 정보를 헤더에 포함시켜 요청
 export async function getAuth(): Promise<AuthInfo | null> {
   try {
-    const url = `${BASE_URL}/auth/my`;
+    const url = `${BASE_URL}/v2/auth/my`;
 
     const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
 

@@ -10,7 +10,7 @@ export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
 
-  const displayName = user?.userAcct
+  const displayName = user?.userAcct?.join(', ')
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.stopPropagation();

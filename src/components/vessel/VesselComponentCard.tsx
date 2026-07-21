@@ -93,7 +93,7 @@ export default function VesselComponentCard() {
               </div>
 
               {/* Company 필터 */}
-              {(user?.userAcct == "synersat" || user?.userAcct == "sktelink" || user?.userAcct == "admin") && <div className="flex flex-col gap-1.5">
+              {(user?.userAcct?.includes("synersat") || user?.userAcct?.includes("sktelink") || user?.userAcct?.includes("admin")) && <div className="flex flex-col gap-1.5">
                 <label className="ml-1 text-xs font-bold tracking-tight text-gray-400 uppercase">Company</label>
                 <NativeSelectWithIcon
                   value={companyFilter}

@@ -11,8 +11,8 @@ export default function DashboardClient() {
   const userAcct = useAuthStore((s) => s.user?.userAcct);
 
   const { data } = useSWR(
-    userAcct ? ["dashboard-vessels", userAcct] : null,
-    () => getDashboardVessels(userAcct),
+    userAcct?.length ? ["dashboard-vessels", ...userAcct] : null,
+    () => getDashboardVessels(userAcct?.[0]),
     {
       refreshInterval: FIVE_MINUTES,
       revalidateOnFocus: false,

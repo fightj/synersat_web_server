@@ -17,9 +17,9 @@ export default function AuthInitializer({
     fetchUser().finally(() => {
       setReady(true);
       const { user } = useAuthStore.getState();
-      if (user?.userAcct) {
-        posthog.identify(user.userAcct, {
-          username: user.userAcct,
+      if (user?.userAcct?.length) {
+        posthog.identify(user.userAcct[0], {
+          username: user.userAcct[0],
         });
       }
     });
