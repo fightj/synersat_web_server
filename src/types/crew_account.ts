@@ -48,3 +48,8 @@ export interface CrewTopUpRequest {
   maxTotalOctets: string
   currentOctetUsage: string
 }
+
+export interface CrewRecentResetTime {
+  userId: string
+  recentUsageResetTimeStamp: string
+}

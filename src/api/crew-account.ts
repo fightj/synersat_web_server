@@ -1,5 +1,5 @@
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
-import type { CrewResponse, UpdateCrewRequest, CrewTopUpRequest, AddCrewRequest } from "@/types/crew_account";
+import type { CrewResponse, UpdateCrewRequest, CrewTopUpRequest, AddCrewRequest, CrewRecentResetTime } from "@/types/crew_account";
 
 export async function getCrewData(imo: number): Promise<CrewResponse> {
   try {
@@ -167,6 +167,21 @@ export async function deleteCrewData(imo: number, crewIds: string[]): Promise<vo
   }
   catch (error) {
     console.error("Error deleting crew data", error)
+    throw error
+  }
+}
+
+export async function getRecentResetTime(imo: number): Promise<CrewRecentResetTime> {
+  try {
+    const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/octets/recentUsageResetTimeStamp`, withTestUser({
+      ...fetchOptions,
+      method: "GET",
+    }))
+    if (!res) throw new Error("Fail to get recent reset data")
+    return await res.json()
+  }
+  catch (error) {
+    console.error("Error get recent reset data", error)
     throw error
   }
 }
