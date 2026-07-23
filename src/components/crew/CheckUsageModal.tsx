@@ -111,8 +111,11 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
   const handleDownloadZip = useCallback(async () => {
     const zip = new JSZip();
     const safe = (s: string) => s.replace(/[/\\?%*:|"<>]/g, "_");
+    const sortedForCsv = [...resolvedCrews].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+    );
 
-    resolvedCrews.forEach((userId) => {
+    sortedForCsv.forEach((userId) => {
       const data = userDataMap[userId];
       const sortedDays = [...(data?.dailyUsages ?? [])].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -143,7 +146,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
       ["Vessel", vesselName],
       [],
       ["Username", "↓ In (MiB)", "↑ Out (MiB)", "Total (MiB)"],
-      ...resolvedCrews.map((userId) => {
+      ...sortedForCsv.map((userId) => {
         const d = userDataMap[userId];
         return [
           userId,
