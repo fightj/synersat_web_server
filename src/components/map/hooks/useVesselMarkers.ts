@@ -134,8 +134,8 @@ export function useVesselMarkers({
       clusterGroupRef.current = LClass.markerClusterGroup({
         maxClusterRadius: 60,
         showCoverageOnHover: false,
-        spiderfyOnMaxZoom: true,
-        zoomToBoundsOnClick: false,
+        spiderfyOnMaxZoom: false,
+        zoomToBoundsOnClick: true,
         disableClusteringAtZoom: 10,
         chunkedLoading: true,
         iconCreateFunction: (cluster: any) => {
@@ -157,15 +157,6 @@ export function useVesselMarkers({
       });
       clusterGroupRef.current.addTo(map);
 
-      clusterGroupRef.current.on("clusterclick", (e: any) => {
-        const bounds = e.layer.getBounds();
-        map.flyToBounds(bounds, {
-          padding: [60, 60],
-          maxZoom: 10,
-          animate: true,
-          duration: 0.5,
-        });
-      });
     }
 
     if (!vessels || vessels.length === 0) {

@@ -29,6 +29,7 @@ interface CheckUsageModalProps {
   selectedCrew: CrewEntry[];
   imo: number;
   vesselName: string;
+  sinceResetAt?: string | Date;
 }
 
 const toMiB = (bytes: number) => bytes / 1024 / 1024;
@@ -48,7 +49,7 @@ const getDefault24hRange = () => {
   };
 };
 
-export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName }: CheckUsageModalProps) {
+export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName, sinceResetAt }: CheckUsageModalProps) {
   const [userDataMap, setUserDataMap] = useState<Record<string, UserDailyData>>({});
   const [resolvedCrews, setResolvedCrews] = useState<string[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -226,7 +227,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
               </button>
             )}
             <div className="min-w-0 flex-1">
-              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} />
+              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} sinceResetAt={sinceResetAt} />
             </div>
             <button
               onClick={handleApply}

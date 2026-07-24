@@ -292,6 +292,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
           vesselName={selectedVessel?.name ?? "vessel"}
+          sinceResetAt={new Date(new Date().getFullYear(), new Date().getMonth(), 1)}
         />
       )}
 
@@ -301,6 +302,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           onClose={() => setUsageHistoryTarget(null)}
           crew={usageHistoryTarget}
           imo={imo}
+          sinceResetAt={new Date(new Date().getFullYear(), new Date().getMonth(), 1)}
         />
       )}
 

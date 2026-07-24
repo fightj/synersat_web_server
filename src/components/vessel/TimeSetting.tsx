@@ -24,6 +24,7 @@ interface TimeSettingProps {
     isLive: boolean,
     rangeFn?: () => { start: Date; end: Date },
   ) => void;
+  sinceResetAt?: string | Date;
 }
 
 type SubOption = { label: string; fn: () => { start: Date; end: Date } };
@@ -33,7 +34,7 @@ type QuickRange = {
   subOptions?: SubOption[];
 };
 
-export default function TimeSetting({ onApply }: TimeSettingProps) {
+export default function TimeSetting({ onApply, sinceResetAt }: TimeSettingProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -229,6 +230,27 @@ export default function TimeSetting({ onApply }: TimeSettingProps) {
         </button>
 
         <div className="flex flex-wrap items-center gap-1 pr-1 max-[401px]:w-full">
+          {sinceResetAt && (
+            <button
+              onClick={() => {
+                const start = sinceResetAt instanceof Date ? sinceResetAt : new Date(sinceResetAt);
+                const end = new Date();
+                setRange({ start, end });
+                setActiveRange("since reset");
+                setError(null);
+                setOpenSubMenu(null);
+                setIsOpen(false);
+                onApply(toUTCString(start), toUTCString(end), false);
+              }}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
+                activeRange === "since reset"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
+              }`}
+            >
+              Since Reset
+            </button>
+          )}
           {quickRanges.map((r, i) => {
             const isActive =
               activeRange === r.label ||
