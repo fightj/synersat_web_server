@@ -239,12 +239,13 @@ export default function TimeSetting({ onApply, showSinceReset, sinceResetAt }: T
                 setError(null);
                 setOpenSubMenu(null);
                 setIsOpen(false);
-                if (sinceResetAt) {
-                  const start = sinceResetAt instanceof Date ? sinceResetAt : new Date(sinceResetAt);
-                  const end = new Date();
-                  setRange({ start, end });
-                  onApply(toUTCString(start), toUTCString(end), false, undefined, true);
-                }
+                // 리셋 이력이 없는 유저는 최근 1년을 기본 범위로 사용
+                const start = sinceResetAt
+                  ? (sinceResetAt instanceof Date ? sinceResetAt : new Date(sinceResetAt))
+                  : subDays(new Date(), 365);
+                const end = new Date();
+                setRange({ start, end });
+                onApply(toUTCString(start), toUTCString(end), false, undefined, true);
               }}
               className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all ${
                 activeRange === "since reset"

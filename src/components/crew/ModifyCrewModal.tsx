@@ -106,8 +106,10 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<UpdateCrewRequest | null>(null);
 
+  // 모달이 열리는 시점에만 초기화 — selectedCrew는 부모 리렌더마다 새 배열이라
+  // 의존성에 넣으면 입력 중인 폼이 리셋됨
   useEffect(() => {
-    if (!isOpen || selectedCrew.length === 0) return;
+    if (!isOpen) return;
     setDraft(initialDraft);
     setErrors({});
     setAlertState(null);
@@ -122,7 +124,7 @@ export default function ModifyCrewModal({ isOpen, onClose, onSaved, selectedCrew
         setGateways(list);
       })
       .catch(() => setGateways([]));
-  }, [isOpen, selectedCrew, imo]);
+  }, [isOpen, imo]);
 
   const handleChange = (field: keyof CrewDraft, value: string) => {
     setDraft((prev) => ({ ...prev, [field]: value }));

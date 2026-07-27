@@ -219,6 +219,9 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, allCrew
     setSelectedUserId(null);
     setHasApplied(false);
     setPendingRange(getDefault24hRange());
+    setAppliedRange(null);
+    // 닫히면 TimeSetting이 언마운트되어 기본값(24h)으로 돌아가므로 함께 리셋
+    setIsSinceReset(false);
     onClose();
   };
 
