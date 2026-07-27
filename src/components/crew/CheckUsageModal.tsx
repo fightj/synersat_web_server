@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import JSZip from "jszip";
 import { Modal } from "@/components/ui/modal";
 import TimeSetting from "@/components/vessel/TimeSetting";
@@ -27,9 +27,10 @@ interface CheckUsageModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedCrew: CrewEntry[];
+  allCrew?: CrewEntry[];
   imo: number;
   vesselName: string;
-  sinceResetAt?: string | Date;
+  resetMap?: Record<string, string>;
 }
 
 const toMiB = (bytes: number) => bytes / 1024 / 1024;
@@ -49,7 +50,7 @@ const getDefault24hRange = () => {
   };
 };
 
-export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, vesselName, sinceResetAt }: CheckUsageModalProps) {
+export default function CheckUsageModal({ isOpen, onClose, selectedCrew, allCrew = [], imo, vesselName, resetMap }: CheckUsageModalProps) {
   const [userDataMap, setUserDataMap] = useState<Record<string, UserDailyData>>({});
   const [resolvedCrews, setResolvedCrews] = useState<string[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -59,9 +60,32 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
   const [appliedRange, setAppliedRange] = useState<{ startAt: string; endAt: string } | null>(null);
   const [sortKey, setSortKey] = useState<"id" | "in" | "out" | "total">("id");
   const [sortAsc, setSortAsc] = useState(true);
+  const [isSinceReset, setIsSinceReset] = useState(false);
 
-  const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
+  // since reset은 미선택 시 전체 크루를 대상으로 동작
+  const sinceResetTargets = useMemo(
+    () => (selectedCrew.length > 0 ? selectedCrew : allCrew),
+    [selectedCrew, allCrew],
+  );
+
+  // TimeSetting 표시용: 대상 크루 중 가장 이른 reset 시각
+  const sinceResetAt = useMemo(() => {
+    if (!resetMap) return undefined;
+    const times = sinceResetTargets
+      .map(c => resetMap[c.userId])
+      .filter((t): t is string => Boolean(t));
+    return times.length > 0 ? times.sort()[0] : undefined;
+  }, [resetMap, sinceResetTargets]);
+
+  const handleTimeSelect = useCallback((
+    startAt: string,
+    endAt: string,
+    _isLive?: boolean,
+    _rangeFn?: any,
+    sinceReset?: boolean,
+  ) => {
     setPendingRange({ startAt, endAt });
+    setIsSinceReset(sinceReset ?? false);
   }, []);
 
   const handleApply = useCallback(async () => {
@@ -70,16 +94,34 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     setHasApplied(true);
     setAppliedRange(pendingRange);
     try {
-      const params = new URLSearchParams({
-        vessel_imo: String(imo),
-        startAt: pendingRange.startAt,
-        endAt: pendingRange.endAt,
-      });
-      selectedCrew.forEach((c) => params.append('user', c.userId));
+      let data: DailyUsage[];
 
-      const res = await fetch(`/api/crew/daily?${params}`);
-      if (!res.ok) throw new Error("fetch failed");
-      const data: DailyUsage[] = await res.json();
+      if (isSinceReset) {
+        // 유저별 reset 시각을 startAt으로 사용하는 전용 route
+        // 체크박스 미선택 시 전체 크루를 선택한 것처럼 동작
+        const res = await fetch('/api/crew/since-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vesselImo: String(imo),
+            users: sinceResetTargets.map((c) => c.userId),
+            resetMap: resetMap ?? {},
+          }),
+        });
+        if (!res.ok) throw new Error("fetch failed");
+        data = await res.json();
+      } else {
+        const params = new URLSearchParams({
+          vessel_imo: String(imo),
+          startAt: pendingRange.startAt,
+          endAt: pendingRange.endAt,
+        });
+        selectedCrew.forEach((c) => params.append('user', c.userId));
+
+        const res = await fetch(`/api/crew/daily?${params}`);
+        if (!res.ok) throw new Error("fetch failed");
+        data = await res.json();
+      }
 
       const map: Record<string, UserDailyData> = {};
       data.forEach((row) => {
@@ -107,7 +149,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
     } finally {
       setLoading(false);
     }
-  }, [imo, selectedCrew, selectedUserId, pendingRange]);
+  }, [imo, selectedCrew, sinceResetTargets, selectedUserId, pendingRange, isSinceReset, resetMap]);
 
   const handleDownloadZip = useCallback(async () => {
     const zip = new JSZip();
@@ -227,7 +269,7 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, imo, ve
               </button>
             )}
             <div className="min-w-0 flex-1">
-              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} sinceResetAt={sinceResetAt} />
+              <TimeSetting onApply={(startAt, endAt, isLive, rangeFn, isSinceReset) => handleTimeSelect(startAt, endAt, isLive, rangeFn, isSinceReset)} showSinceReset sinceResetAt={sinceResetAt} />
             </div>
             <button
               onClick={handleApply}

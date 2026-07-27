@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useVesselStore } from "@/store/vessel.store";
 import { useCommandEventStore, CREW_COMMAND_TYPES } from "@/store/command-event.store";
 import type { CrewEntry } from "@/types/crew_account";
-import { getCrewData, deleteCrewData } from "@/api/crew-account";
+import { getCrewData, deleteCrewData, getRecentResetTime } from "@/api/crew-account";
 import DeleteConfirmAlert from "@/components/common/DeleteConfirmAlert";
 import CrewToolbar from "./CrewToolbar";
 import CrewTable from "./CrewTable";
@@ -52,6 +52,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
   const [usageHistoryTarget, setUsageHistoryTarget] = useState<CrewEntry | null>(null);
   const [refreshBanner, setRefreshBanner] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [resetMap, setResetMap] = useState<Record<string, string>>({});
 
   const processRaw = useCallback((result: any): CrewEntry[] => {
     const rawList: any[] = Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : [];
@@ -144,6 +145,20 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
       ).filter((u) => u.userId !== "synersat"),
     [crew, mode],
   );
+
+  // 크루 탭 진입 시 유저별 최근 리셋 시각 조회
+  useEffect(() => {
+    if (!imo) return;
+    getRecentResetTime(imo)
+      .then((data) => {
+        const map: Record<string, string> = {};
+        data.forEach(({ userId, recentUsageResetTimeStamp }) => {
+          map[userId] = recentUsageResetTimeStamp;
+        });
+        setResetMap(map);
+      })
+      .catch(() => setResetMap({}));
+  }, [imo]);
 
   // 탭 전환 시 선택 초기화
   useEffect(() => { setSelected(new Set()); }, [mode]);
@@ -290,9 +305,10 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           isOpen={checkUsageOpen}
           onClose={() => setCheckUsageOpen(false)}
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
+          allCrew={filteredCrew.filter((u) => u.updateType == null)}
           imo={imo}
           vesselName={selectedVessel?.name ?? "vessel"}
-          sinceResetAt={new Date(new Date().getFullYear(), new Date().getMonth(), 1)}
+          resetMap={resetMap}
         />
       )}
 
@@ -302,7 +318,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           onClose={() => setUsageHistoryTarget(null)}
           crew={usageHistoryTarget}
           imo={imo}
-          sinceResetAt={new Date(new Date().getFullYear(), new Date().getMonth(), 1)}
+          resetMap={resetMap}
         />
       )}
 

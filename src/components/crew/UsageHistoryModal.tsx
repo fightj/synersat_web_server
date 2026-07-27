@@ -24,7 +24,7 @@ interface UsageHistoryModalProps {
   onClose: () => void;
   crew: CrewEntry | null;
   imo: number;
-  sinceResetAt?: string | Date;
+  resetMap?: Record<string, string>;
 }
 
 const toMB = (bytes: number) => parseFloat((bytes / 1024 / 1024).toFixed(2));
@@ -67,7 +67,7 @@ function parseInfluxResponse(data: any): WifiRecord[] {
     .sort((a, b) => a.time - b.time);
 }
 
-export default function UsageHistoryModal({ isOpen, onClose, crew, imo, sinceResetAt }: UsageHistoryModalProps) {
+export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap }: UsageHistoryModalProps) {
   const [pendingRange, setPendingRange] = useState(getDefault24hRange);
   const [loading, setLoading] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
@@ -234,7 +234,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, sinceRes
           </div>
           <div className="mr-2 flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} sinceResetAt={sinceResetAt} />
+              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} showSinceReset sinceResetAt={crew ? resetMap?.[crew.userId] : undefined} />
             </div>
             <button
               onClick={() => handleApply()}

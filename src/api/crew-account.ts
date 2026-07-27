@@ -171,7 +171,7 @@ export async function deleteCrewData(imo: number, crewIds: string[]): Promise<vo
   }
 }
 
-export async function getRecentResetTime(imo: number): Promise<CrewRecentResetTime> {
+export async function getRecentResetTime(imo: number): Promise<CrewRecentResetTime[]> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/crews/octets/recentUsageResetTimeStamp`, withTestUser({
       ...fetchOptions,

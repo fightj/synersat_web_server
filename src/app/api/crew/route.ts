@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const INFLUX_HOST = 'http://10.10.10.20:8086';
+const INFLUX_HOST = process.env.INFLUX_HOST ?? 'http://10.10.10.20:8086';
 const INFLUX_DB = 'wifiusage';
 const TIMEOUT_MS = 10_000;
 
@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
   const vesselImo = searchParams.get('vessel_imo');
   const startAt = searchParams.get('startAt');
   const endAt = searchParams.get('endAt');
-
   // 1. 필수 파라미터 체크
   if (!user || !vesselImo || !startAt || !endAt) {
     return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });

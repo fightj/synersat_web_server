@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const INFLUX_HOST = 'http://10.10.10.20:8086';
+const INFLUX_HOST = process.env.INFLUX_HOST ?? 'http://10.10.10.20:8086';
+
 const INFLUX_DB = 'wifiusage';
 const TIMEOUT_MS = 10_000;
 
