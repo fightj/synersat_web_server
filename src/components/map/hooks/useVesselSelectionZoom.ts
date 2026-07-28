@@ -185,8 +185,8 @@ export function useVesselSelectionZoom({
 
       const clusterGroup = clusterGroupRef.current;
       const marker = markersRef.current?.get(found.imo);
-      if (clusterGroup && marker) {
-        // 클러스터 안에 있으면 줌인 후 팝업
+      if (clusterGroup && typeof clusterGroup.zoomToShowLayer === "function" && marker) {
+        // 클러스터 안에 있으면 줌인 후 팝업 (클러스터 off 시엔 일반 layerGroup이라 flyTo로 처리)
         clusterGroup.zoomToShowLayer(marker, createPopup);
       } else {
         // 직접 flyTo 후 팝업 (팝업이 애니메이션과 함께 이동)

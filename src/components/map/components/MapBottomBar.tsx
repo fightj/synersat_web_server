@@ -45,6 +45,8 @@ interface MapBottomBarProps {
   // onToggleName: () => void;
   activeStyle: string;
   onStyleChange: (id: string) => void;
+  clusterEnabled: boolean;
+  onClusterToggle: () => void;
   noGpsCount: number;
   offlineCount: number;
   offlineNoGpsDiscardFalseCount?: number;
@@ -61,6 +63,8 @@ export default memo(function MapBottomBar({
   // onToggleName,
   activeStyle,
   onStyleChange,
+  clusterEnabled,
+  onClusterToggle,
   noGpsCount,
   offlineCount,
   offlineNoGpsDiscardFalseCount = 0,
@@ -237,6 +241,28 @@ export default memo(function MapBottomBar({
           })}
         </div>
       )}
+
+      {/* ── 클러스터 모드 스위치 ─────────────────────────────────── */}
+      <div className="flex shrink-0 flex-col items-center gap-1 pr-3">
+        <button
+          role="switch"
+          aria-checked={clusterEnabled}
+          onClick={onClusterToggle}
+          title={clusterEnabled ? "Show all vessel icons individually" : "Group nearby vessels into clusters"}
+          className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${
+            clusterEnabled ? "bg-blue-500" : "bg-white/15"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200 ${
+              clusterEnabled ? "left-[18px]" : "left-0.5"
+            }`}
+          />
+        </button>
+        <span className={`text-[9px] font-bold whitespace-nowrap ${clusterEnabled ? "text-blue-400" : "text-gray-500"}`}>
+          Cluster
+        </span>
+      </div>
 
       {/* ── 가운데: 카테고리 필터 ─────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-wrap justify-center px-2">

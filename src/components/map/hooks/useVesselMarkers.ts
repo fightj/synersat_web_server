@@ -11,6 +11,7 @@ interface UseVesselMarkersOptions {
   mapReady: boolean;
   showName: boolean;
   activeFilter: FilterKey;
+  clusterEnabled?: boolean;
   clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>;
   setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string; prepaidEnabled?: boolean }) => void;
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
@@ -87,6 +88,7 @@ export function useVesselMarkers({
   mapReady,
   showName,
   activeFilter,
+  clusterEnabled = true,
   clickedLatLngRef,
   setSelectedVessel,
   setClickedVessel,
@@ -102,6 +104,7 @@ export function useVesselMarkers({
   const showNameRef = useRef(showName);
   const onViewDetailRef = useRef(onViewDetail);
   const liteVesselsRef = useRef<GetVesselsLite[]>(liteVessels ?? []);
+  const clusterModeRef = useRef<boolean | null>(null);
 
   useEffect(() => { onViewDetailRef.current = onViewDetail; }, [onViewDetail]);
   useEffect(() => { liteVesselsRef.current = liteVessels ?? []; }, [liteVessels]);
@@ -129,34 +132,47 @@ export function useVesselMarkers({
     const h = ICON_H;
     const w = ICON_W;
 
-    if (!clusterGroupRef.current) {
-      const LClass = (L as any).default ?? L;
-      clusterGroupRef.current = LClass.markerClusterGroup({
-        maxClusterRadius: 60,
-        showCoverageOnHover: false,
-        spiderfyOnMaxZoom: false,
-        zoomToBoundsOnClick: true,
-        disableClusteringAtZoom: 10,
-        chunkedLoading: true,
-        iconCreateFunction: (cluster: any) => {
-          const count = cluster.getChildCount();
-          const color = count < 10 ? "#4ade80" : count < 100 ? "#facc15" : count < 500 ? "#fb923c" : "#f87171";
-          const outer = count < 10 ? 40 : count < 100 ? 50 : count < 500 ? 60 : 70;
-          const inner = count < 10 ? 30 : count < 100 ? 38 : count < 500 ? 46 : 54;
-          const fontSize = count < 10 ? 13 : count < 100 ? 12 : count < 1000 ? 11 : 10;
-          return L.divIcon({
-            html: `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;">
-              <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.3;"></div>
-              <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${fontSize}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 1px 5px rgba(0,0,0,0.35);">${count}</div>
-            </div>`,
-            className: "",
-            iconSize: [outer, outer],
-            iconAnchor: [outer / 2, outer / 2],
-          });
-        },
-      });
-      clusterGroupRef.current.addTo(map);
+    // 그룹이 없거나 클러스터 모드가 바뀌면 새로 생성 (기존 마커는 새 그룹으로 이전)
+    if (!clusterGroupRef.current || clusterModeRef.current !== clusterEnabled) {
+      const existingMarkers = [...markerMapRef.current.values()];
+      if (clusterGroupRef.current) {
+        try { clusterGroupRef.current.remove(); } catch {}
+        clusterGroupRef.current = null;
+      }
 
+      const LClass = (L as any).default ?? L;
+      if (clusterEnabled) {
+        clusterGroupRef.current = LClass.markerClusterGroup({
+          maxClusterRadius: 60,
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: false,
+          zoomToBoundsOnClick: true,
+          disableClusteringAtZoom: 10,
+          chunkedLoading: true,
+          iconCreateFunction: (cluster: any) => {
+            const count = cluster.getChildCount();
+            const color = count < 10 ? "#4ade80" : count < 100 ? "#facc15" : count < 500 ? "#fb923c" : "#f87171";
+            const outer = count < 10 ? 40 : count < 100 ? 50 : count < 500 ? 60 : 70;
+            const inner = count < 10 ? 30 : count < 100 ? 38 : count < 500 ? 46 : 54;
+            const fontSize = count < 10 ? 13 : count < 100 ? 12 : count < 1000 ? 11 : 10;
+            return L.divIcon({
+              html: `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;">
+                <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:0.3;"></div>
+                <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${fontSize}px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 1px 5px rgba(0,0,0,0.35);">${count}</div>
+              </div>`,
+              className: "",
+              iconSize: [outer, outer],
+              iconAnchor: [outer / 2, outer / 2],
+            });
+          },
+        });
+      } else {
+        // 클러스터 off: 모든 선박 아이콘을 개별 표시하는 일반 레이어 그룹
+        clusterGroupRef.current = LClass.layerGroup();
+      }
+      clusterGroupRef.current.addTo(map);
+      existingMarkers.forEach((m) => clusterGroupRef.current.addLayer(m));
+      clusterModeRef.current = clusterEnabled;
     }
 
     if (!vessels || vessels.length === 0) {
@@ -325,7 +341,7 @@ export function useVesselMarkers({
         existing._vesselData = vessel;
       }
     });
-  }, [vessels, mapReady, showName, activeFilter, setSelectedVessel]);
+  }, [vessels, mapReady, showName, activeFilter, clusterEnabled, setSelectedVessel]);
 
   return {};
 }

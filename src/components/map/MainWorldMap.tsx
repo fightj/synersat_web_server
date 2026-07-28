@@ -43,6 +43,18 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const showName = true;
+  const [clusterEnabled, setClusterEnabled] = useState(true);
+
+  // 클러스터 모드 선택 복원/저장
+  useEffect(() => {
+    if (localStorage.getItem("map-cluster-mode") === "off") setClusterEnabled(false);
+  }, []);
+  const handleClusterToggle = useCallback(() => {
+    setClusterEnabled((prev) => {
+      localStorage.setItem("map-cluster-mode", prev ? "off" : "on");
+      return !prev;
+    });
+  }, []);
   const [clickedVessel, setClickedVessel] = useState<ClickedVessel | null>(null);
   const [, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   const [distanceTarget, setDistanceTarget] = useState<{ lat: number; lng: number } | null>(null);
@@ -140,6 +152,7 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     mapReady,
     showName,
     activeFilter,
+    clusterEnabled,
     clickedLatLngRef,
     setSelectedVessel: setSelectedVesselFromMarker,
     setClickedVessel,
@@ -343,6 +356,8 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
           onFilterChange={setActiveFilter}
           activeStyle={activeStyle}
           onStyleChange={handleStyleChange}
+          clusterEnabled={clusterEnabled}
+          onClusterToggle={handleClusterToggle}
           noGpsCount={noGpsVessels.length}
           offlineCount={offlineVessels.filter((v) => v.discard !== true).length}
           offlineNoGpsDiscardFalseCount={offlineNoGpsDiscardFalseCount}

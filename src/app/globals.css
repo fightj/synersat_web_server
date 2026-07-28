@@ -887,9 +887,6 @@ span.flatpickr-weekday,
 [data-map-style="dark"] .leaflet-container {
   background: #0f1117 !important;
 }
-[data-map-style="light"] .leaflet-container {
-  background: #b3d1e0 !important;
-}
 [data-map-style="satellite"] .leaflet-container {
   background: #071020 !important;
 }

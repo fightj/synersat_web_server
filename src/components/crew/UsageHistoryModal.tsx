@@ -76,6 +76,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap
   const [showIn, setShowIn] = useState(false);
   const [showOut, setShowOut] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isSinceReset, setIsSinceReset] = useState(false);
 
   useEffect(() => {
     const check = () => setIsDark(document.documentElement.classList.contains("dark"));
@@ -85,32 +86,67 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap
     return () => observer.disconnect();
   }, []);
 
-  const handleTimeSelect = useCallback((startAt: string, endAt: string) => {
+  const handleTimeSelect = useCallback((
+    startAt: string,
+    endAt: string,
+    _isLive?: boolean,
+    _rangeFn?: () => { start: Date; end: Date },
+    sinceReset?: boolean,
+  ) => {
     setPendingRange({ startAt, endAt });
+    setIsSinceReset(sinceReset ?? false);
   }, []);
 
-  const handleApply = useCallback(async (range?: { startAt: string; endAt: string }) => {
+  const handleApply = useCallback(async (
+    range?: { startAt: string; endAt: string },
+    sinceResetOverride?: boolean,
+  ) => {
     if (!crew) return;
     const target = range ?? pendingRange;
+    const useDaily = sinceResetOverride ?? isSinceReset;
     setLoading(true);
     setHasApplied(true);
     setFetchError(false);
     try {
-      const data = await getWifiUsageHistory(crew.userId, imo, target.startAt, target.endAt);
-      setRecords(parseInfluxResponse(data));
+      if (useDaily) {
+        // since reset은 범위가 길 수 있으므로 하루 단위 집계 라우트 사용
+        const params = new URLSearchParams({
+          vessel_imo: String(imo),
+          startAt: target.startAt,
+          endAt: target.endAt,
+        });
+        params.append("user", crew.userId);
+        const res = await fetch(`/api/crew/daily?${params}`);
+        if (!res.ok) throw new Error("fetch failed");
+        const rows: { date: string; in_bytes: number; out_bytes: number; total_bytes: number }[] = await res.json();
+        setRecords(
+          rows
+            .map((r) => ({
+              time: new Date(`${r.date}T00:00:00Z`).getTime(),
+              in_bytes: r.in_bytes ?? 0,
+              out_bytes: r.out_bytes ?? 0,
+              total_bytes: r.total_bytes ?? 0,
+            }))
+            .sort((a, b) => a.time - b.time),
+        );
+      } else {
+        const data = await getWifiUsageHistory(crew.userId, imo, target.startAt, target.endAt);
+        setRecords(parseInfluxResponse(data));
+      }
     } catch {
       setRecords([]);
       setFetchError(true);
     } finally {
       setLoading(false);
     }
-  }, [crew, imo, pendingRange]);
+  }, [crew, imo, pendingRange, isSinceReset]);
 
   useEffect(() => {
     if (isOpen && crew) {
       const defaultRange = getDefault24hRange();
       setPendingRange(defaultRange);
-      handleApply(defaultRange);
+      setIsSinceReset(false);
+      handleApply(defaultRange, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, crew]);
@@ -120,6 +156,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap
     setHasApplied(false);
     setFetchError(false);
     setPendingRange(getDefault24hRange());
+    setIsSinceReset(false);
     setShowIn(false);
     setShowOut(false);
     onClose();
@@ -234,7 +271,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap
           </div>
           <div className="mr-2 flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <TimeSetting onApply={(startAt, endAt) => handleTimeSelect(startAt, endAt)} showSinceReset sinceResetAt={crew ? resetMap?.[crew.userId] : undefined} />
+              <TimeSetting onApply={handleTimeSelect} showSinceReset sinceResetAt={crew ? resetMap?.[crew.userId] : undefined} />
             </div>
             <button
               onClick={() => handleApply()}
@@ -273,7 +310,7 @@ export default function UsageHistoryModal({ isOpen, onClose, crew, imo, resetMap
               <StatusPlaceholder
                 title="Failed to load usage data."
                 description="The vessel network may be unstable. Please try again."
-                onRetry={handleApply}
+                onRetry={() => handleApply()}
               />
             </div>
           ) : records.length === 0 ? (
