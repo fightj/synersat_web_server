@@ -4,19 +4,27 @@ const INFLUX_HOST = process.env.INFLUX_HOST ?? 'http://10.10.10.20:8086';
 const INFLUX_DB = 'wifiusage';
 const TIMEOUT_MS = 15_000;
 
-async function queryUser(
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeQuote = (s: string) => s.replace(/'/g, "\\'");
+
+async function queryUsers(
   vesselImo: string,
-  userId: string,
+  userIds: string[],
   startAt: string,
   endAt: string,
 ): Promise<any[]> {
   const fmtStart = startAt.endsWith('Z') ? startAt : `${startAt}Z`;
   const fmtEnd = endAt.endsWith('Z') ? endAt : `${endAt}Z`;
 
+  const userCondition =
+    userIds.length === 1
+      ? `"user"='${escapeQuote(userIds[0])}'`
+      : `"user" =~ /^(${userIds.map(escapeRegex).join('|')})$/`;
+
   const query =
     `SELECT SUM("in_bytes"), SUM("out_bytes"), SUM("total_bytes") ` +
     `FROM "wifi_usage" ` +
-    `WHERE "vessel_imo"='${vesselImo}' AND "user"='${userId}' ` +
+    `WHERE "vessel_imo"='${escapeQuote(vesselImo)}' AND ${userCondition} ` +
     `AND time >= '${fmtStart}' AND time <= '${fmtEnd}' ` +
     `GROUP BY time(1d), "user" ORDER BY time DESC`;
 
@@ -29,7 +37,7 @@ async function queryUser(
     clearTimeout(timer);
 
     if (!res.ok) {
-      console.error(`[crew/since-reset] InfluxDB error for "${userId}":`, res.status);
+      console.error(`[crew/since-reset] InfluxDB error for [${userIds.join(', ')}]:`, res.status);
       return [];
     }
 
@@ -37,7 +45,7 @@ async function queryUser(
     const series: any[] = data?.results?.[0]?.series ?? [];
 
     return series.flatMap((s) => {
-      const user: string = s.tags?.user ?? userId;
+      const user: string = s.tags?.user ?? userIds[0];
       return (s.values as any[][])
         .filter((row) => row[1] !== null || row[2] !== null || row[3] !== null)
         .map((row) => ({
@@ -51,7 +59,7 @@ async function queryUser(
   } catch (error: any) {
     clearTimeout(timer);
     if (error.name !== 'AbortError') {
-      console.error(`[crew/since-reset] fetch error for "${userId}":`, error.message);
+      console.error(`[crew/since-reset] fetch error for [${userIds.join(', ')}]:`, error.message);
     }
     return [];
   }
@@ -79,12 +87,20 @@ export async function POST(request: NextRequest) {
   const endAt = now.toISOString().slice(0, 19);
   const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19);
 
-  // 유저별로 개별 startAt 결정 후 병렬 쿼리
+  // startAt이 같은 유저끼리 묶어서 쿼리 횟수 최소화
+  // (리셋 이력 없는 유저들은 전부 oneYearAgo 그룹 하나로 합쳐짐)
+  const groups = new Map<string, string[]>();
+  users.forEach((userId) => {
+    const startAt = resetMap[userId] ?? oneYearAgo;
+    const group = groups.get(startAt);
+    if (group) group.push(userId);
+    else groups.set(startAt, [userId]);
+  });
+
   const results = await Promise.all(
-    users.map((userId) => {
-      const startAt = resetMap[userId] ?? oneYearAgo;
-      return queryUser(vesselImo, userId, startAt, endAt);
-    }),
+    [...groups.entries()].map(([startAt, userIds]) =>
+      queryUsers(vesselImo, userIds, startAt, endAt),
+    ),
   );
 
   return NextResponse.json(results.flat());
