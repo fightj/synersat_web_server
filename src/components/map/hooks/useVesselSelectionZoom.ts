@@ -27,7 +27,6 @@ interface UseVesselSelectionZoomOptions {
   clickedVessel: ClickedVessel | null;
   setSelectedVessel: (v: SelectedVessel) => void;
   setClickedVessel: (v: ClickedVessel | null) => void;
-  setPopupPos: (pos: { x: number; y: number } | null) => void;
   setGpsAlert: (v: boolean) => void;
   vesselsRef: RefObject<DashboardVesselPosition[] | undefined>;
   markersRef: RefObject<Map<number, any>>;
@@ -49,7 +48,6 @@ export function useVesselSelectionZoom({
   clickedVessel,
   setSelectedVessel,
   setClickedVessel,
-  setPopupPos,
   setGpsAlert,
   vesselsRef,
   markersRef,
@@ -121,7 +119,6 @@ export function useVesselSelectionZoom({
     }
 
     setClickedVessel(null);
-    setPopupPos(null);
     (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = null;
 
     if (gpsAlertTimerRef.current) clearTimeout(gpsAlertTimerRef.current);
@@ -142,8 +139,6 @@ export function useVesselSelectionZoom({
       const map = mapInstanceRef.current;
       const closestLng = getClosestLng(found.longitude!, 170);
       (clickedLatLngRef as { current: { lat: number; lng: number } | null }).current = { lat, lng: closestLng };
-      const pt = map.latLngToContainerPoint([lat, closestLng]);
-      setPopupPos({ x: pt.x, y: pt.y });
       const color = found.connected === false ? "#ef4444" : getServiceColor(found.antennaDisplayName);
       setClickedVessel({ imo: found.imo, name: found.vesselName, color });
 

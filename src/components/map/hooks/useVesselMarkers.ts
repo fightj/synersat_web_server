@@ -15,7 +15,6 @@ interface UseVesselMarkersOptions {
   clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>;
   setSelectedVessel: (v: { id: string; imo: number; name: string; vpnIp: string; prepaidEnabled?: boolean }) => void;
   setClickedVessel: (v: { imo: number; name: string; color: string } | null) => void;
-  setPopupPos: (pos: { x: number; y: number } | null) => void;
   onDoubleClick?: (imo: number) => void;
   onViewDetail?: (imo: number) => void;
   liteVessels?: GetVesselsLite[];
@@ -92,7 +91,6 @@ export function useVesselMarkers({
   clickedLatLngRef,
   setSelectedVessel,
   setClickedVessel,
-  setPopupPos,
   onDoubleClick,
   onViewDetail,
   liteVessels,
@@ -180,7 +178,6 @@ export function useVesselMarkers({
       markerMapRef.current.clear();
       clickedLatLngRef.current = null;
       setClickedVessel(null);
-      setPopupPos(null);
       return;
     }
 
@@ -259,7 +256,7 @@ export function useVesselMarkers({
           // Popup 닫힐 때 tooltip 복원
           popup.once("remove", () => {
             if (marker._map) {
-              marker.bindTooltip(buildVesselCardHtml(marker._vesselData), {
+              marker.bindTooltip(() => buildVesselCardHtml(marker._vesselData), {
                 direction: "top",
                 offset: [0, -(h / 2 + 4)],
                 className: "vessel-hover-tooltip",
@@ -282,8 +279,6 @@ export function useVesselMarkers({
 
           const latlng = { lat: v.lat, lng: targetLng };
           clickedLatLngRef.current = latlng;
-          const pt = map.latLngToContainerPoint([latlng.lat, latlng.lng]);
-          setPopupPos({ x: pt.x, y: pt.y });
           setClickedVessel({ imo: v.imo, name: v.name, color: v.color });
           const stored = useVesselStore.getState().vessels.find((sv) => sv.imo === v.imo);
           if (stored) {
@@ -302,7 +297,8 @@ export function useVesselMarkers({
           onDoubleClick?.(v.imo);
         });
 
-        marker.bindTooltip(buildVesselCardHtml(vessel), {
+        // 호버 시점에 최신 _vesselData로 지연 생성 — 선제 HTML 생성 비용 제거
+        marker.bindTooltip(() => buildVesselCardHtml(marker._vesselData), {
           direction: "top",
           offset: [0, -(h / 2 + 4)],
           className: "vessel-hover-tooltip",
@@ -327,17 +323,7 @@ export function useVesselMarkers({
           existing._vesselName = vessel.name;
         }
 
-        if (
-          prev.connected !== vessel.connected ||
-          prev.antennaDisplayName !== vessel.antennaDisplayName ||
-          prev.satType !== vessel.satType ||
-          prev.vesselSpeed !== vessel.vesselSpeed ||
-          prev.lat !== vessel.lat ||
-          prev.lng !== vessel.lng
-        ) {
-          existing.setTooltipContent(buildVesselCardHtml(vessel));
-        }
-
+        // tooltip은 함수형 바인딩이라 _vesselData만 갱신하면 호버 시 최신 내용 표시
         existing._vesselData = vessel;
       }
     });

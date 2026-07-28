@@ -56,7 +56,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     });
   }, []);
   const [clickedVessel, setClickedVessel] = useState<ClickedVessel | null>(null);
-  const [, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   const [distanceTarget, setDistanceTarget] = useState<{ lat: number; lng: number } | null>(null);
   const [measuringMode, setMeasuringMode] = useState(false);
   const clickedVesselRef = useRef(clickedVessel);
@@ -108,12 +107,10 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
       } else {
         // 일반 클릭: 선박 선택 해제
         setClickedVessel(null);
-        setPopupPos(null);
         setDistanceTarget(null);
         setMeasuringMode(false);
       }
     },
-    (pt) => setPopupPos(pt),
     clickedLatLngRef,
   );
 
@@ -136,7 +133,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     clickedVessel,
     setSelectedVessel,
     setClickedVessel,
-    setPopupPos,
     setGpsAlert,
     vesselsRef,
     markersRef,
@@ -156,7 +152,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
     clickedLatLngRef,
     setSelectedVessel: setSelectedVesselFromMarker,
     setClickedVessel,
-    setPopupPos,
     onDoubleClick: (imo) => handleListViewDetail(imo),
     onViewDetail: (imo) => handleListViewDetail(imo),
     liteVessels,
@@ -266,7 +261,6 @@ export default function WorldMap({ vessels }: MainWorldMapProps) {
 
   const handleVesselClose = useCallback(() => {
     setClickedVessel(null);
-    setPopupPos(null);
     setDistanceTarget(null);
     setMeasuringMode(false);
   }, []);

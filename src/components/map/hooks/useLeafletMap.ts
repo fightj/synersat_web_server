@@ -3,7 +3,6 @@ import { MAP_STYLES } from "../mapUtils";
 
 export function useLeafletMap(
   onMapClick: (latlng: { lat: number; lng: number }) => void,
-  onMapMove: (pt: { x: number; y: number } | null) => void,
   clickedLatLngRef: RefObject<{ lat: number; lng: number } | null>,
 ) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -74,22 +73,12 @@ export function useLeafletMap(
         if (tilePane) tilePane.style.filter = initialStyle.tileFilter;
       }
 
-      map.on("move", () => {
-        const ll = clickedLatLngRef.current;
-        if (ll) {
-          const pt = map.latLngToContainerPoint([ll.lat, ll.lng]);
-          onMapMove({ x: pt.x, y: pt.y });
-        }
-      });
-
       map.on("click", (e: any) => {
         clickedLatLngRef.current = null;
         onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
       });
 
       const handleResize = () => {
-        const w = window.innerWidth;
-        const baseZoom = w >= 1920 ? 3 : w >= 1280 ? 2.5 : w >= 768 ? 2 : 1.5;
         const newMinZoom = 2; // 2카피 bounds에서 빈 공간 없이 채우려면 최소 2
         map.setMinZoom(newMinZoom);
         if (map.getZoom() < newMinZoom) map.setZoom(newMinZoom);
