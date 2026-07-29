@@ -12,7 +12,6 @@ import {
   isVesselDisconnected,
 } from "@/api/notification";
 import { useNotificationStore } from "@/store/notification.store";
-import { useToastStore } from "@/store/toast.store";
 import { useVesselStore } from "@/store/vessel.store";
 import { getVesselDetail } from "@/api/vessel";
 import { useRouter } from "next/navigation";
@@ -189,8 +188,7 @@ export default function NotificationDropdown() {
   const pendingReadIds = useRef<Set<number>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const toastCount = useToastStore((s) => s.toasts.length);
-  const prevToastCountRef = useRef(toastCount);
+  const prevHasNewRef = useRef(hasNew);
 
   useLayoutEffect(() => {
     if (!isOpen || !panelRef.current) return;
@@ -206,7 +204,7 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getNotifications(8);
+      const res = await getNotifications(8, undefined, undefined, "VESSEL_DISCONNECTED");
       const seen = new Set<number>();
       setNotifications(res.notifications.filter((n) => seen.has(n.id) ? false : (seen.add(n.id), true)));
       setServerUnreadCount(res.unReadNotificationCount);
@@ -229,13 +227,14 @@ export default function NotificationDropdown() {
     }
   }, [isOpen, fetchNotifications, setHasNew]);
 
-  // 토스트 발생 시 open 여부와 무관하게 re-fetch → 최신 unread 카운트 반영
+  // SSE로 새 연결 알림(VESSEL_DISCONNECTED) 수신 시 re-fetch → 최신 unread 카운트 반영
+  // hasNew는 VESSEL_DISCONNECTED에서만 세워지므로 command 알림은 배지에 영향을 주지 않음
   useEffect(() => {
-    if (toastCount > prevToastCountRef.current) {
+    if (hasNew && !prevHasNewRef.current) {
       fetchNotifications();
     }
-    prevToastCountRef.current = toastCount;
-  }, [toastCount, fetchNotifications]);
+    prevHasNewRef.current = hasNew;
+  }, [hasNew, fetchNotifications]);
 
   useEffect(() => {
     if (!isOpen && pendingReadIds.current.size > 0) {

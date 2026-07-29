@@ -7,6 +7,7 @@ const TIMEOUT_MS = 10_000;
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const user = searchParams.get('user');
+
   const vesselImo = searchParams.get('vessel_imo');
   const startAt = searchParams.get('startAt');
   const endAt = searchParams.get('endAt');

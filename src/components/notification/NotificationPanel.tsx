@@ -6,6 +6,7 @@ import {
   getNotifications,
   readNotifications,
   NotificationItem,
+  NotificationKind,
   isCommandNotification,
   isVesselDisconnected,
 } from "@/api/notification";
@@ -14,7 +15,12 @@ import { CommandSignIcon, DisconnectedIcon } from "@/icons";
 import { useVesselStore } from "@/store/vessel.store";
 import Switch from "@/components/form/switch/Switch";
 
-type FilterTab = "All" | "Command" | "Connect";
+type FilterTab = "Connect" | "Command";
+
+const KIND_BY_TAB: Record<FilterTab, NotificationKind> = {
+  Connect: "VESSEL_DISCONNECTED",
+  Command: "COMMAND_NOTIFICATION",
+};
 
 function timeAgo(utcDateStr: string): string {
   const utcDate = new Date(utcDateStr + "Z");
@@ -189,9 +195,13 @@ export default function NotificationPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [activeTab, setActiveTab] = useState<FilterTab>("All");
+  const [activeTab, setActiveTab] = useState<FilterTab>("Connect");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-  const [serverUnreadCount, setServerUnreadCount] = useState(0);
+  // 탭별 안읽은 수 — kind 필터 요청의 unReadNotificationCount 기준
+  const [unreadCounts, setUnreadCounts] = useState<Record<FilterTab, number>>({
+    Connect: 0,
+    Command: 0,
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingReadIds = useRef<Set<number>>(new Set());
@@ -209,7 +219,6 @@ export default function NotificationPanel({
     try {
       const res = await getNotifications(LIMIT);
       setNotifications(dedup(res.notifications));
-      setServerUnreadCount(res.unReadNotificationCount);
       if (res.notifications.length < LIMIT) setHasMore(false);
     } catch (error) {
       console.error("알림 조회 실패:", error);
@@ -218,24 +227,26 @@ export default function NotificationPanel({
     }
   }, []);
 
-  const handleUnreadToggle = useCallback(async (checked: boolean) => {
-    setShowUnreadOnly(checked);
-    if (checked) {
-      setIsLoading(true);
-      setHasMore(false);
-      try {
-        const limit = serverUnreadCount > 0 ? serverUnreadCount : LIMIT;
-        const res = await getNotifications(limit, undefined, true);
-        setNotifications(dedup(res.notifications));
-      } catch (error) {
-        console.error("안읽은 알림 조회 실패:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      fetchNotifications();
+  // kind별로 각각 요청해 탭 뱃지에 쓸 안읽은 수만 취함 (목록은 limit=1로 최소화)
+  const fetchUnreadCounts = useCallback(async () => {
+    try {
+      const [connect, command] = await Promise.all([
+        getNotifications(1, undefined, undefined, KIND_BY_TAB.Connect),
+        getNotifications(1, undefined, undefined, KIND_BY_TAB.Command),
+      ]);
+      setUnreadCounts({
+        Connect: connect.unReadNotificationCount,
+        Command: command.unReadNotificationCount,
+      });
+    } catch (error) {
+      console.error("안읽은 알림 수 조회 실패:", error);
     }
-  }, [serverUnreadCount, fetchNotifications]);
+  }, []);
+
+  // 현재 보고 있는 탭의 목록에서 안 읽은 알림만 클라이언트 필터로 표시
+  const handleUnreadToggle = useCallback((checked: boolean) => {
+    setShowUnreadOnly(checked);
+  }, []);
 
   const fetchMore = useCallback(
     async (lastId: number) => {
@@ -261,17 +272,20 @@ export default function NotificationPanel({
   useEffect(() => {
     if (isOpen) {
       setShowUnreadOnly(false);
+      setActiveTab("Connect");
       fetchNotifications();
+      fetchUnreadCounts();
     }
-  }, [isOpen, fetchNotifications]);
+  }, [isOpen, fetchNotifications, fetchUnreadCounts]);
 
-  // 토스트 추가 시 패널 열려있고 unread 필터 OFF일 때만 자동 refetch
+  // 토스트 추가 시 패널이 열려있으면 자동 refetch (unread는 클라이언트 필터라 항상 안전)
   useEffect(() => {
-    if (toastCount > prevToastCountRef.current && isOpenRef.current && !showUnreadOnly) {
+    if (toastCount > prevToastCountRef.current && isOpenRef.current) {
       fetchNotifications();
+      fetchUnreadCounts();
     }
     prevToastCountRef.current = toastCount;
-  }, [toastCount, fetchNotifications, showUnreadOnly]);
+  }, [toastCount, fetchNotifications, fetchUnreadCounts]);
 
   // 패널 닫힐 때 배치 읽음 처리 flush → 완료 후 부모에 unreadCount 갱신 요청
   useEffect(() => {
@@ -287,11 +301,16 @@ export default function NotificationPanel({
   }, [isOpen, onReadFlushed]);
 
   const handleRead = useCallback((id: number) => {
+    const target = notifications.find((n) => n.id === id);
+    if (!target || target.read) return;
     pendingReadIds.current.add(id);
+    // 읽음은 패널을 닫을 때 일괄 flush되므로 탭 뱃지는 로컬에서 먼저 반영
+    const tab: FilterTab = isCommandNotification(target) ? "Command" : "Connect";
+    setUnreadCounts((c) => ({ ...c, [tab]: Math.max(0, c[tab] - 1) }));
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
-  }, []);
+  }, [notifications]);
 
   const router = useRouter();
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
@@ -304,11 +323,19 @@ export default function NotificationPanel({
     router.push(`/vessels/detail?imo=${imo}`);
   }, [handleRead, onClose, router, setSelectedVessel]);
 
+  // 탭과 무관하게 로드된 알림 전체를 읽음 처리
   const handleMarkAllRead = useCallback(() => {
-    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
-    if (unreadIds.length === 0) return;
+    const unread = notifications.filter((n) => !n.read);
+    if (unread.length === 0) return;
+    const unreadIds = unread.map((n) => n.id);
     // pendingReadIds에서 이미 추적 중인 id 제거 (중복 flush 방지)
     unreadIds.forEach((id) => pendingReadIds.current.delete(id));
+    const readCommand = unread.filter(isCommandNotification).length;
+    const readConnect = unread.filter(isVesselDisconnected).length;
+    setUnreadCounts((c) => ({
+      Connect: Math.max(0, c.Connect - readConnect),
+      Command: Math.max(0, c.Command - readCommand),
+    }));
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     readNotifications(unreadIds)
       .then(() => onReadFlushed?.())
@@ -330,9 +357,9 @@ export default function NotificationPanel({
   }, [hasMore, isFetchingMore, isLoading, notifications, fetchMore]);
 
   const filteredNotifications = notifications.filter((n) => {
-    if (activeTab === "Command") return isCommandNotification(n);
-    if (activeTab === "Connect") return isVesselDisconnected(n);
-    return true;
+    const matchesTab = activeTab === "Command" ? isCommandNotification(n) : isVesselDisconnected(n);
+    if (!matchesTab) return false;
+    return showUnreadOnly ? !n.read : true;
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -355,7 +382,7 @@ export default function NotificationPanel({
     };
   }, [isOpen]);
 
-  const TABS: FilterTab[] = ["All", "Command", "Connect"];
+  const TABS: FilterTab[] = ["Connect", "Command"];
 
   return (
     <>
@@ -377,11 +404,6 @@ export default function NotificationPanel({
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Notifications
             </h2>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-blue-500 px-2 py-0.5 text-xs font-bold text-white">
-                {unreadCount}
-              </span>
-            )}
           </div>
           <button
             onClick={onClose}
@@ -401,18 +423,26 @@ export default function NotificationPanel({
         {/* 필터 탭 */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3 dark:border-white/10">
           <div className="flex gap-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${activeTab === tab
-                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
-                  }`}
-              >
-                {tab}
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const count = unreadCounts[tab];
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`relative rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${activeTab === tab
+                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
+                    }`}
+                >
+                  {tab}
+                  {count > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] leading-none font-bold text-white">
+                      {count > 99 ? "99+" : count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-gray-400 dark:text-gray-500">

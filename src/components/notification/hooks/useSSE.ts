@@ -42,7 +42,6 @@ export function useSSE() {
             status: data.commandStatus,
             timestamp: Date.now(),
           });
-          useNotificationStore.getState().setHasNew(true);
 
           if (data.commandType === "MODIFY_PREPAY_UI_COMMAND" && data.commandStatus === "SUCCESS") {
             const { selectedVessel, setSelectedVessel } = useVesselStore.getState();
@@ -69,6 +68,7 @@ export function useSSE() {
           imo: data.imo,
           lastConnectAt: data.lastConnectAt,
         });
+        // 배지는 VESSEL_DISCONNECTED 기준 — 이 이벤트에서만 플래그를 세움
         useNotificationStore.getState().setHasNew(true);
         retryCountRef.current = 0; // 메시지 수신 성공 시 재시도 횟수 초기화
       },

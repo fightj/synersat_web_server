@@ -52,15 +52,19 @@ export interface NotificationsResponse {
   unReadNotificationCount: number;
 }
 
+export type NotificationKind = "VESSEL_DISCONNECTED" | "COMMAND_NOTIFICATION";
+
 export async function getNotifications(
   limit: number,
   cursorId?: number,
   unread?: boolean,
+  kind?: NotificationKind,
 ): Promise<NotificationsResponse> {
   try {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursorId !== undefined) params.set("cursorId", String(cursorId));
     if (unread !== undefined) params.set("unread", String(unread));
+    if (kind !== undefined) params.set("kind", kind);
     const url = `${BASE_URL}/notifications?${params.toString()}`;
     const res = await fetch(url, withTestUser({ ...fetchOptions, method: "GET" }));
 
