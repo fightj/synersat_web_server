@@ -22,6 +22,7 @@ const KIND_BY_TAB: Record<FilterTab, NotificationKind> = {
   Command: "COMMAND_NOTIFICATION",
 };
 
+
 function timeAgo(utcDateStr: string): string {
   const utcDate = new Date(utcDateStr + "Z");
   const now = new Date();
@@ -186,15 +187,37 @@ function dedup(items: NotificationItem[]): NotificationItem[] {
   return items.filter((n) => seen.has(n.id) ? false : (seen.add(n.id), true));
 }
 
+// 탭마다 목록·커서·로딩 상태를 독립적으로 유지 (요청도 kind별로 분리)
+interface TabState {
+  items: NotificationItem[];
+  hasMore: boolean;
+  loaded: boolean;
+  isLoading: boolean;
+  isFetchingMore: boolean;
+}
+
+const EMPTY_TAB: TabState = {
+  items: [],
+  hasMore: true,
+  loaded: false,
+  isLoading: false,
+  isFetchingMore: false,
+};
+
+// 초기화하면서 지정한 탭은 곧바로 로딩 상태로 — 이후 effect가 실제 조회를 수행
+const createTabStates = (loadingTab: FilterTab): Record<FilterTab, TabState> => ({
+  Connect: { ...EMPTY_TAB, isLoading: loadingTab === "Connect" },
+  Command: { ...EMPTY_TAB, isLoading: loadingTab === "Command" },
+});
+
 export default function NotificationPanel({
   isOpen,
   onClose,
   onReadFlushed,
 }: NotificationPanelProps) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [tabStates, setTabStates] = useState<Record<FilterTab, TabState>>(() =>
+    createTabStates("Connect"),
+  );
   const [activeTab, setActiveTab] = useState<FilterTab>("Connect");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   // 탭별 안읽은 수 — kind 필터 요청의 unReadNotificationCount 기준
@@ -207,85 +230,118 @@ export default function NotificationPanel({
   const pendingReadIds = useRef<Set<number>>(new Set());
 
   const toastCount = useToastStore((s) => s.toasts.length);
-  const prevToastCountRef = useRef(toastCount);
-  const isOpenRef = useRef(isOpen);
-  useEffect(() => {
-    isOpenRef.current = isOpen;
-  }, [isOpen]);
 
-  const fetchNotifications = useCallback(async () => {
-    setIsLoading(true);
-    setHasMore(true);
-    try {
-      const res = await getNotifications(LIMIT);
-      setNotifications(dedup(res.notifications));
-      if (res.notifications.length < LIMIT) setHasMore(false);
-    } catch (error) {
-      console.error("알림 조회 실패:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const patchTab = useCallback((tab: FilterTab, patch: Partial<TabState>) => {
+    setTabStates((prev) => ({ ...prev, [tab]: { ...prev[tab], ...patch } }));
   }, []);
 
-  // kind별로 각각 요청해 탭 뱃지에 쓸 안읽은 수만 취함 (목록은 limit=1로 최소화)
-  const fetchUnreadCounts = useCallback(async () => {
-    try {
-      const [connect, command] = await Promise.all([
-        getNotifications(1, undefined, undefined, KIND_BY_TAB.Connect),
-        getNotifications(1, undefined, undefined, KIND_BY_TAB.Command),
-      ]);
-      setUnreadCounts({
-        Connect: connect.unReadNotificationCount,
-        Command: command.unReadNotificationCount,
-      });
-    } catch (error) {
-      console.error("안읽은 알림 수 조회 실패:", error);
+  // ── 프롭/스토어 변화에 따른 상태 초기화 (렌더 중 조정) ─────────────
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevToastCount, setPrevToastCount] = useState(toastCount);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  // 패널을 열면 Connect 탭부터 다시 로드
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setShowUnreadOnly(false);
+      setActiveTab("Connect");
+      setTabStates(createTabStates("Connect"));
+      setReloadTick((v) => v + 1);
     }
-  }, []);
+  }
+
+  // 토스트(SSE) 수신 시 열려 있으면 두 탭 모두 무효화 → 활성 탭부터 재로드
+  if (toastCount !== prevToastCount) {
+    setPrevToastCount(toastCount);
+    if (isOpen && toastCount > prevToastCount) {
+      setTabStates(createTabStates(activeTab));
+      setReloadTick((v) => v + 1);
+    }
+  }
 
   // 현재 보고 있는 탭의 목록에서 안 읽은 알림만 클라이언트 필터로 표시
   const handleUnreadToggle = useCallback((checked: boolean) => {
     setShowUnreadOnly(checked);
   }, []);
 
-  const fetchMore = useCallback(
-    async (lastId: number) => {
-      if (isFetchingMore) return;
-      setIsFetchingMore(true);
+  // 해당 탭의 다음 페이지 조회 (커서도 탭별로 독립)
+  const fetchMoreTab = useCallback(
+    async (tab: FilterTab, lastId: number) => {
+      patchTab(tab, { isFetchingMore: true });
       try {
-        const res = await getNotifications(LIMIT, lastId);
-        setNotifications((prev) => {
-          const existingIds = new Set(prev.map((n) => n.id));
+        const res = await getNotifications(LIMIT, lastId, undefined, KIND_BY_TAB[tab]);
+        setTabStates((prev) => {
+          const cur = prev[tab];
+          const existingIds = new Set(cur.items.map((n) => n.id));
           const newItems = res.notifications.filter((n) => !existingIds.has(n.id));
-          return [...prev, ...newItems];
+          return {
+            ...prev,
+            [tab]: {
+              ...cur,
+              items: [...cur.items, ...newItems],
+              hasMore: res.notifications.length >= LIMIT,
+              isFetchingMore: false,
+            },
+          };
         });
-        if (res.notifications.length < LIMIT) setHasMore(false);
       } catch (error) {
         console.error("추가 알림 조회 실패:", error);
-      } finally {
-        setIsFetchingMore(false);
+        patchTab(tab, { isFetchingMore: false });
       }
     },
-    [isFetchingMore],
+    [patchTab],
   );
 
+  // 탭 뱃지 숫자 — kind별로 각각 요청해 unReadNotificationCount만 취함 (limit=1)
   useEffect(() => {
-    if (isOpen) {
-      setShowUnreadOnly(false);
-      setActiveTab("Connect");
-      fetchNotifications();
-      fetchUnreadCounts();
-    }
-  }, [isOpen, fetchNotifications, fetchUnreadCounts]);
+    if (!isOpen) return;
+    Promise.all([
+      getNotifications(1, undefined, undefined, KIND_BY_TAB.Connect),
+      getNotifications(1, undefined, undefined, KIND_BY_TAB.Command),
+    ])
+      .then(([connect, command]) => {
+        setUnreadCounts({
+          Connect: connect.unReadNotificationCount,
+          Command: command.unReadNotificationCount,
+        });
+      })
+      .catch((error) => {
+        console.error("안읽은 알림 수 조회 실패:", error);
+      });
+  }, [isOpen, reloadTick]);
 
-  // 토스트 추가 시 패널이 열려있으면 자동 refetch (unread는 클라이언트 필터라 항상 안전)
+  // 활성 탭이 아직 로드되지 않았으면 그 탭의 kind로 첫 페이지 조회 (탭 전환 시 lazy load)
   useEffect(() => {
-    if (toastCount > prevToastCountRef.current && isOpenRef.current) {
-      fetchNotifications();
-      fetchUnreadCounts();
-    }
-    prevToastCountRef.current = toastCount;
-  }, [toastCount, fetchNotifications, fetchUnreadCounts]);
+    if (!isOpen) return;
+    const tab = activeTab;
+    if (tabStates[tab].loaded) return;
+    // 로드 중 재초기화(토스트 수신 등)가 일어나면 이전 응답은 버리고 새로 조회
+    let ignore = false;
+    getNotifications(LIMIT, undefined, undefined, KIND_BY_TAB[tab])
+      .then((res) => {
+        if (ignore) return;
+        patchTab(tab, {
+          items: dedup(res.notifications),
+          hasMore: res.notifications.length >= LIMIT,
+          loaded: true,
+          isLoading: false,
+        });
+      })
+      .catch((error) => {
+        if (ignore) return;
+        console.error("알림 조회 실패:", error);
+        patchTab(tab, { loaded: true, isLoading: false });
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [isOpen, activeTab, tabStates, patchTab]);
+
+  // 탭 전환 시 스크롤 위치 초기화
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
 
   // 패널 닫힐 때 배치 읽음 처리 flush → 완료 후 부모에 unreadCount 갱신 요청
   useEffect(() => {
@@ -301,16 +357,20 @@ export default function NotificationPanel({
   }, [isOpen, onReadFlushed]);
 
   const handleRead = useCallback((id: number) => {
-    const target = notifications.find((n) => n.id === id);
+    const tab = activeTab;
+    const target = tabStates[tab].items.find((n) => n.id === id);
     if (!target || target.read) return;
     pendingReadIds.current.add(id);
     // 읽음은 패널을 닫을 때 일괄 flush되므로 탭 뱃지는 로컬에서 먼저 반영
-    const tab: FilterTab = isCommandNotification(target) ? "Command" : "Connect";
     setUnreadCounts((c) => ({ ...c, [tab]: Math.max(0, c[tab] - 1) }));
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    );
-  }, [notifications]);
+    setTabStates((prev) => ({
+      ...prev,
+      [tab]: {
+        ...prev[tab],
+        items: prev[tab].items.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      },
+    }));
+  }, [activeTab, tabStates]);
 
   const router = useRouter();
   const setSelectedVessel = useVesselStore((s) => s.setSelectedVessel);
@@ -323,46 +383,54 @@ export default function NotificationPanel({
     router.push(`/vessels/detail?imo=${imo}`);
   }, [handleRead, onClose, router, setSelectedVessel]);
 
-  // 탭과 무관하게 로드된 알림 전체를 읽음 처리
+  // 현재 보고 있는 탭의 알림만 읽음 처리
   const handleMarkAllRead = useCallback(() => {
-    const unread = notifications.filter((n) => !n.read);
+    const tab = activeTab;
+    const unread = tabStates[tab].items.filter((n) => !n.read);
     if (unread.length === 0) return;
     const unreadIds = unread.map((n) => n.id);
     // pendingReadIds에서 이미 추적 중인 id 제거 (중복 flush 방지)
     unreadIds.forEach((id) => pendingReadIds.current.delete(id));
-    const readCommand = unread.filter(isCommandNotification).length;
-    const readConnect = unread.filter(isVesselDisconnected).length;
     setUnreadCounts((c) => ({
-      Connect: Math.max(0, c.Connect - readConnect),
-      Command: Math.max(0, c.Command - readCommand),
+      ...c,
+      [tab]: Math.max(0, c[tab] - unread.length),
     }));
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setTabStates((prev) => ({
+      ...prev,
+      [tab]: {
+        ...prev[tab],
+        items: prev[tab].items.map((n) => (n.read ? n : { ...n, read: true })),
+      },
+    }));
     readNotifications(unreadIds)
       .then(() => onReadFlushed?.())
       .catch((error) => {
         console.error("전체 읽음 처리 실패:", error);
       });
-  }, [notifications, onReadFlushed]);
+  }, [activeTab, tabStates, onReadFlushed]);
+
+  const current = tabStates[activeTab];
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el || !hasMore || isFetchingMore || isLoading) return;
+    const cur = tabStates[activeTab];
+    if (!el || !cur.hasMore || cur.isFetchingMore || cur.isLoading) return;
     if (
       el.scrollTop + el.clientHeight >=
       el.scrollHeight - SCROLL_THRESHOLD_PX
     ) {
-      const lastId = notifications[notifications.length - 1]?.id;
-      if (lastId !== undefined) fetchMore(lastId);
+      const lastId = cur.items[cur.items.length - 1]?.id;
+      if (lastId !== undefined) fetchMoreTab(activeTab, lastId);
     }
-  }, [hasMore, isFetchingMore, isLoading, notifications, fetchMore]);
+  }, [tabStates, activeTab, fetchMoreTab]);
 
-  const filteredNotifications = notifications.filter((n) => {
-    const matchesTab = activeTab === "Command" ? isCommandNotification(n) : isVesselDisconnected(n);
-    if (!matchesTab) return false;
-    return showUnreadOnly ? !n.read : true;
-  });
+  // 목록은 이미 kind별로 받아오므로 여기서는 unread 필터만 적용
+  const filteredNotifications = showUnreadOnly
+    ? current.items.filter((n) => !n.read)
+    : current.items;
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // 하단 Mark All Read 활성화 기준 — 현재 탭의 안읽은 알림 수
+  const tabUnreadCount = current.items.filter((n) => !n.read).length;
 
   // ESC 키로 닫기
   useEffect(() => {
@@ -422,13 +490,17 @@ export default function NotificationPanel({
 
         {/* 필터 탭 */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3 dark:border-white/10">
-          <div className="flex gap-1">
+          <div className="flex gap-3">
             {TABS.map((tab) => {
               const count = unreadCounts[tab];
               return (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    // 처음 여는 탭이면 즉시 스피너 — 실제 조회는 effect가 수행
+                    if (!tabStates[tab].loaded) patchTab(tab, { isLoading: true });
+                  }}
                   className={`relative rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${activeTab === tab
                     ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
                     : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5"
@@ -462,7 +534,7 @@ export default function NotificationPanel({
           onScroll={handleScroll}
           className="custom-scrollbar flex-1 overflow-y-auto px-4 py-3"
         >
-          {isLoading ? (
+          {current.isLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
             </div>
@@ -482,12 +554,12 @@ export default function NotificationPanel({
                   onViewDetail={handleViewDetail}
                 />
               ))}
-              {isFetchingMore && (
+              {current.isFetchingMore && (
                 <div className="flex justify-center py-4">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
                 </div>
               )}
-              {!hasMore && notifications.length > 0 && (
+              {!current.hasMore && current.items.length > 0 && (
                 <p className="py-4 text-center text-xs text-gray-400">
                   No more notifications
                 </p>
@@ -500,7 +572,7 @@ export default function NotificationPanel({
         <div className="border-t border-gray-100 px-6 py-4 dark:border-white/10">
           <button
             onClick={handleMarkAllRead}
-            disabled={unreadCount === 0}
+            disabled={tabUnreadCount === 0}
             className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-500 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-gray-400 dark:hover:bg-white/5"
           >
             Mark All Read
