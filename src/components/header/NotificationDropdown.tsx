@@ -247,11 +247,15 @@ export default function NotificationDropdown() {
   }, [isOpen]);
 
   const handleRead = useCallback((id: number) => {
+    const target = notifications.find((n) => n.id === id);
+    if (!target || target.read) return;
     pendingReadIds.current.add(id);
+    // 읽음은 드롭다운을 닫을 때 일괄 flush되므로 배지 숫자는 로컬에서 먼저 반영
+    setServerUnreadCount((c) => Math.max(0, c - 1));
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
-  }, []);
+  }, [notifications]);
 
   const handleViewDetail = useCallback(async (imo: number, notificationId: number) => {
     handleRead(notificationId);

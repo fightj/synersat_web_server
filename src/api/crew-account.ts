@@ -177,7 +177,7 @@ export async function getRecentResetTime(imo: number): Promise<CrewRecentResetTi
       ...fetchOptions,
       method: "GET",
     }))
-    if (!res) throw new Error("Fail to get recent reset data")
+    if (!res.ok) throw new Error("Fail to get recent reset data")
     return await res.json()
   }
   catch (error) {
