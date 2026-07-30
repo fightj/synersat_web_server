@@ -123,6 +123,8 @@ export interface DataUsage {
   name: string;
   color: string | null;
   antennaDisplayName: string | null;
+  /** 게이트웨이(안테나 회선) 이름 — /vessels/dataUsages/antennas 응답에만 존재 */
+  gatewayName?: string | null;
 }
 
 export interface VesselRouteResponse {

@@ -146,7 +146,11 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
       return {
         name,
         interfaces: items.map((i) => i.interfaceName),
-        items: items.map((i) => ({ displayName: i.antennaDisplayName, dataUsageAmount: i.dataUsageAmount })),
+        items: items.map((i) => ({
+          displayName: i.antennaDisplayName,
+          gatewayName: i.gatewayName,
+          dataUsageAmount: i.dataUsageAmount,
+        })),
         usageRaw: raw,
         usageValue: value,
         usageUnit: unit,
@@ -245,7 +249,10 @@ const VesselDetailView: React.FC<VesselDetailViewProps> = ({
                           <div className="flex flex-col items-end gap-0.5">
                             {item.items.map((sub, idx) => {
                               const { value: subVal, unit: subUnit } = formatDataSize(sub.dataUsageAmount);
-                              const label = getBreakdownLabel(sub.displayName, item.name);
+                              // 게이트웨이명이 있으면 회선별로 구분되도록 우선 표기
+                              const label = sub.gatewayName?.trim()
+                                ? sub.gatewayName
+                                : getBreakdownLabel(sub.displayName, item.name);
                               return (
                                 <span key={idx} className="font-mono text-[10px] text-gray-400">
                                   <span className="font-semibold text-gray-500">{label}</span>

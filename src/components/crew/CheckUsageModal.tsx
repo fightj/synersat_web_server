@@ -241,6 +241,12 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, allCrew
     return sortAsc ? diff : -diff;
   });
 
+  // 목록에 표시된 유저 전체의 사용량 합계
+  const grandTotalBytes = resolvedCrews.reduce(
+    (sum, userId) => sum + (userDataMap[userId]?.totalBytes ?? 0),
+    0,
+  );
+
   const selectedData = selectedUserId ? userDataMap[selectedUserId] : null;
   const sortedDailyUsages = selectedData
     ? [...selectedData.dailyUsages].sort((a, b) => b.date.localeCompare(a.date))
@@ -296,8 +302,23 @@ export default function CheckUsageModal({ isOpen, onClose, selectedCrew, allCrew
         <div className="flex min-h-0 flex-1">
           {/* Left: user list */}
           <div className="flex w-[500px] shrink-0 flex-col border-r border-gray-100 dark:border-white/10">
-            <div className="border-b border-gray-100 px-5 py-3 dark:border-white/10">
-              <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">Users</p>
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-5 py-3 dark:border-white/10">
+              <p className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                Users
+                {hasApplied && !loading && resolvedCrews.length > 0 && (
+                  <span className="ml-1.5 normal-case tracking-normal text-gray-300 dark:text-gray-600">
+                    ({resolvedCrews.length})
+                  </span>
+                )}
+              </p>
+              {hasApplied && !loading && resolvedCrews.length > 0 && (
+                <p className="flex items-baseline gap-1.5 text-[11px] font-bold tracking-wider text-gray-400 uppercase">
+                  Total
+                  <span className="text-sm tracking-normal text-blue-600 normal-case dark:text-blue-400">
+                    {formatBytes(grandTotalBytes)}
+                  </span>
+                </p>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto">
               {!hasApplied ? (
