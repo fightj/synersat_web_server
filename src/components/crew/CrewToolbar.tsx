@@ -20,7 +20,17 @@ interface CrewToolbarProps {
   quickGroups?: { prefix: string; ids: string[] }[];
   activeGroup?: string | null;
   onQuickSelect?: (prefix: string) => void;
+  usageByType?: { label: string; usedMb: number }[];
 }
+
+const formatUsage = (mb: number) =>
+  mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${Math.round(mb)} MB`;
+
+const USAGE_CHIP_STYLE: Record<string, string> = {
+  Starlink: "text-purple-600 ring-purple-200 dark:text-purple-400 dark:ring-purple-500/30",
+  VSAT: "text-emerald-600 ring-emerald-200 dark:text-emerald-400 dark:ring-emerald-500/30",
+  Auto: "text-gray-500 ring-gray-200 dark:text-gray-400 dark:ring-white/15",
+};
 
 const DeleteIcon = () => (
   <Image src="/images/icons/ic_delete_r.png" alt="Delete" width={14} height={14} />
@@ -53,6 +63,7 @@ export default function CrewToolbar({
   quickGroups = [],
   activeGroup = null,
   onQuickSelect,
+  usageByType = [],
 }: CrewToolbarProps) {
   return (
     <div className="sticky top-20 z-40 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-gray-100 bg-(--color-surface-1) px-5 py-3 dark:border-white/5">
@@ -124,13 +135,33 @@ export default function CrewToolbar({
         )}
       </div>
 
-      {/* 오른쪽: Add Voucher */}
-      {mode === "normal" && (
-        <Button size="compact" variant="blue" startIcon={<PlusIcon />}
-          onClick={onAddVoucher} disabled={isLoading || isError}>
-          Add Voucher
-        </Button>
-      )}
+      {/* 오른쪽: 타입별 사용량 집계 + Add Voucher */}
+      <div className="flex flex-wrap items-center gap-3">
+        {!isLoading && !isError && usageByType.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+              Total Usage
+            </span>
+            {usageByType.map((u) => (
+              <span
+                key={u.label}
+                className={`flex items-baseline gap-1.5 rounded-lg px-2.5 py-1 text-xs ring-1 ${
+                  USAGE_CHIP_STYLE[u.label] ?? USAGE_CHIP_STYLE.Auto
+                }`}
+              >
+                <span className="font-semibold">{u.label}</span>
+                <span className="font-bold tabular-nums">{formatUsage(u.usedMb)}</span>
+              </span>
+            ))}
+          </div>
+        )}
+        {mode === "normal" && (
+          <Button size="compact" variant="blue" startIcon={<PlusIcon />}
+            onClick={onAddVoucher} disabled={isLoading || isError}>
+            Add Voucher
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

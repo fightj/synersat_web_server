@@ -15,7 +15,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import { ArrowsUpDownIcon } from "@heroicons/react/24/outline";
 import type { CrewEntry, CrewUpdateType } from "@/types/crew_account";
 
-function getBadgeProps(type: string | undefined | null) {
+export function getBadgeProps(type: string | undefined | null) {
   if (!type || type.trim() === "") return { color: "light" as const, label: "Auto" };
   const lower = type.toLowerCase();
   if (lower === "starlink") return { color: "purple" as const, label: "Starlink" };

@@ -8,7 +8,7 @@ import type { CrewEntry } from "@/types/crew_account";
 import { getCrewData, deleteCrewData, getRecentResetTime } from "@/api/crew-account";
 import DeleteConfirmAlert from "@/components/common/DeleteConfirmAlert";
 import CrewToolbar from "./CrewToolbar";
-import CrewTable from "./CrewTable";
+import CrewTable, { getBadgeProps } from "./CrewTable";
 import SuspensionSetupModal from "./SuspensionSetupModal";
 import AddCrewModal from "./AddCrewModal";
 import ModifyCrewModal from "./ModifyCrewModal";
@@ -182,6 +182,19 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
       .slice(0, 2);
   }, [filteredCrew]);
 
+  // 테이블에 보이는 유저들의 사용량을 터미널 타입별로 집계 (단위: MB)
+  const usageByType = useMemo(() => {
+    const totals = new Map<string, number>();
+    filteredCrew.forEach((u) => {
+      const { label } = getBadgeProps(u.terminalType);
+      const usedMb = parseFloat(u.currentOctetUsage ?? "0") || 0;
+      totals.set(label, (totals.get(label) ?? 0) + usedMb);
+    });
+    return [...totals.entries()]
+      .map(([label, usedMb]) => ({ label, usedMb }))
+      .sort((a, b) => b.usedMb - a.usedMb || a.label.localeCompare(b.label));
+  }, [filteredCrew]);
+
   // 정확히 한 그룹만 선택된 상태면 그 그룹을 활성 표시
   const activeGroup = useMemo(() => {
     const matched = quickGroups.find(
@@ -299,6 +312,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           quickGroups={quickGroups}
           activeGroup={activeGroup}
           onQuickSelect={handleQuickSelect}
+          usageByType={usageByType}
         />
         <div className="overflow-x-auto">
           <CrewTable
