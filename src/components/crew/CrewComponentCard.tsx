@@ -164,6 +164,41 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
   useEffect(() => { setSelected(new Set()); }, [mode]);
 
   const allIds = useMemo(() => filteredCrew.filter((u) => u.updateType == null).map((u) => u.userId), [filteredCrew]);
+
+  // 유저명에서 끝 숫자를 뗀 접두사(안테나 구분)로 묶어 상위 2개 그룹만 노출
+  const quickGroups = useMemo(() => {
+    const groups = new Map<string, string[]>();
+    filteredCrew.forEach((u) => {
+      if (u.updateType != null) return; // pending 항목은 선택 불가
+      const prefix = u.userId.replace(/^crewpay-/, "").replace(/\d+$/, "");
+      if (!prefix) return;
+      const ids = groups.get(prefix);
+      if (ids) ids.push(u.userId);
+      else groups.set(prefix, [u.userId]);
+    });
+    return [...groups.entries()]
+      .map(([prefix, ids]) => ({ prefix, ids }))
+      .sort((a, b) => b.ids.length - a.ids.length || a.prefix.localeCompare(b.prefix))
+      .slice(0, 2);
+  }, [filteredCrew]);
+
+  // 정확히 한 그룹만 선택된 상태면 그 그룹을 활성 표시
+  const activeGroup = useMemo(() => {
+    const matched = quickGroups.find(
+      (g) => g.ids.length === selected.size && g.ids.every((id) => selected.has(id)),
+    );
+    return matched?.prefix ?? null;
+  }, [quickGroups, selected]);
+
+  const handleQuickSelect = useCallback((prefix: string) => {
+    const group = quickGroups.find((g) => g.prefix === prefix);
+    if (!group) return;
+    setSelected((prev) => {
+      const isActive = prev.size === group.ids.length && group.ids.every((id) => prev.has(id));
+      return isActive ? new Set() : new Set(group.ids);
+    });
+  }, [quickGroups]);
+
   const allSelected = allIds.length > 0 && selected.size === allIds.length;
   const noneSelected = selected.size === 0;
 
@@ -261,6 +296,9 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
           onExportCSV={handleExportCSV}
           onAddVoucher={() => setAddCrewOpen(true)}
           onModifyVoucher={() => setModifyCrewOpen(true)}
+          quickGroups={quickGroups}
+          activeGroup={activeGroup}
+          onQuickSelect={handleQuickSelect}
         />
         <div className="overflow-x-auto">
           <CrewTable

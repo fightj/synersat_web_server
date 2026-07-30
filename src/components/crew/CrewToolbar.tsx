@@ -17,6 +17,9 @@ interface CrewToolbarProps {
   onExportCSV: () => void;
   onAddVoucher?: () => void;
   onModifyVoucher?: () => void;
+  quickGroups?: { prefix: string; ids: string[] }[];
+  activeGroup?: string | null;
+  onQuickSelect?: (prefix: string) => void;
 }
 
 const DeleteIcon = () => (
@@ -47,11 +50,45 @@ export default function CrewToolbar({
   onExportCSV,
   onAddVoucher,
   onModifyVoucher,
+  quickGroups = [],
+  activeGroup = null,
+  onQuickSelect,
 }: CrewToolbarProps) {
   return (
     <div className="sticky top-20 z-40 flex flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-gray-100 bg-(--color-surface-1) px-5 py-3 dark:border-white/5">
       {/* 왼쪽: 액션 버튼들 */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* 안테나별(유저명 접두사) 일괄 선택 */}
+        {quickGroups.length > 0 && (
+          <>
+            {quickGroups.map((g) => {
+              const isActive = activeGroup === g.prefix;
+              return (
+                <button
+                  key={g.prefix}
+                  onClick={() => onQuickSelect?.(g.prefix)}
+                  disabled={isLoading}
+                  title={isActive ? "Clear selection" : `Select all ${g.ids.length} ${g.prefix} users`}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:ring-white/15 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {g.prefix}
+                  <span
+                    className={`rounded px-1 py-0.5 text-[10px] leading-none tabular-nums ${
+                      isActive ? "bg-white/25 text-white" : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400"
+                    }`}
+                  >
+                    {g.ids.length}
+                  </span>
+                </button>
+              );
+            })}
+            <span className="mx-0.5 h-5 w-px bg-gray-200 dark:bg-white/10" />
+          </>
+        )}
         <Button size="compact" variant="outline" startIcon={<CsvIcon />}
           onClick={onExportCSV} disabled={crewCount === 0 || isLoading}>
           Export CSV
