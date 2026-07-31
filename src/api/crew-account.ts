@@ -1,12 +1,13 @@
 import { BASE_URL, fetchOptions, withTestUser } from "./_client";
 import type { CrewResponse, UpdateCrewRequest, CrewTopUpRequest, AddCrewRequest, CrewRecentResetTime } from "@/types/crew_account";
 
-export async function getCrewData(imo: number): Promise<CrewResponse> {
+export async function getCrewData(imo: number, signal?: AbortSignal): Promise<CrewResponse> {
   try {
     const res = await fetch(`${BASE_URL}/vessels/${imo}/crews`, withTestUser(
       {
         ...fetchOptions,
         method: "GET",
+        signal,
       }))
     if (!res.ok) {
       const body = await res.text().catch(() => "(no body)");
@@ -17,7 +18,10 @@ export async function getCrewData(imo: number): Promise<CrewResponse> {
     return data
   }
   catch (error) {
-    console.error("Error fetching Crew Data:", error);
+    // 새 요청으로 대체되어 취소된 경우는 정상 동작이므로 로깅 제외
+    if ((error as Error)?.name !== "AbortError") {
+      console.error("Error fetching Crew Data:", error);
+    }
     throw error;
   }
 }

@@ -29,6 +29,8 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
   const selectedVessel = useVesselStore((s) => s.selectedVessel);
   const imo = imoProp ?? selectedVessel?.imo ?? null;
   const fetchIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const sseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchParams = useSearchParams();
   const searchParamsMode = searchParams.get("mode") ?? "normal";
   const mode = modeProp ?? searchParamsMode;
@@ -81,38 +83,38 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     });
   }, []);
 
-  const fetchCrewData = useCallback(async (preserveOnError = false) => {
+  // silent: 스피너 없이 조용히 갱신 (SSE 등) / preserveOnError: 실패해도 기존 목록 유지
+  const fetchCrewData = useCallback(async (
+    opts?: { silent?: boolean; preserveOnError?: boolean },
+  ) => {
     if (!imo) return;
+    const { silent = false, preserveOnError = false } = opts ?? {};
+
+    // 진행 중이던 이전 요청은 취소 — 느린 선박 회선에서 불필요한 왕복 제거
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const fetchId = ++fetchIdRef.current;
-    setIsLoading(true);
-    setFetchError(null);
+    if (!silent) {
+      setIsLoading(true);
+      setFetchError(null);
+    }
     try {
-      const result = await getCrewData(imo);
+      const result = await getCrewData(imo, controller.signal);
       if (fetchId !== fetchIdRef.current) return;
       setCrew(processRaw(result));
+      if (silent) setRefreshBanner(true);
     } catch (error) {
+      // 뒤늦게 도착한(=이미 대체된) 응답이나 취소된 요청은 무시
       if (fetchId !== fetchIdRef.current) return;
       console.error("Crew Fetch Error:", error);
-      if (!preserveOnError) {
+      if (!silent && !preserveOnError) {
         setFetchError("The vessel network is unstable. Please try again later.");
       }
     } finally {
+      // silent 여부와 무관하게 "최신 요청"이 로딩 상태를 책임지고 해제
       if (fetchId === fetchIdRef.current) setIsLoading(false);
-    }
-  }, [imo, processRaw]);
-
-  // 로딩 없이 조용히 데이터 갱신
-  const silentRefetch = useCallback(async () => {
-    if (!imo) return;
-    const fetchId = ++fetchIdRef.current;
-    try {
-      const result = await getCrewData(imo);
-      if (fetchId !== fetchIdRef.current) return;
-      setCrew(processRaw(result));
-      setRefreshBanner(true);
-    } catch (error) {
-      if (fetchId !== fetchIdRef.current) return;
-      console.error("Crew Silent Refetch Error:", error);
     }
   }, [imo, processRaw]);
 
@@ -133,9 +135,17 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     if (Number(lastEvent.imo) !== Number(imo)) return;
     if (searchParams.get("tab") !== "crew") return;
 
-    silentRefetch();
     clearLastEvent();
-  }, [lastEvent, imo, searchParams, silentRefetch, clearLastEvent]);
+    // 짧은 간격으로 여러 이벤트가 와도 갱신은 한 번만
+    if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+    sseTimerRef.current = setTimeout(() => fetchCrewData({ silent: true }), 400);
+  }, [lastEvent, imo, searchParams, fetchCrewData, clearLastEvent]);
+
+  // 언마운트 시 진행 중인 요청·예약된 갱신 정리
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+  }, []);
 
   const filteredCrew = useMemo(
     () =>
@@ -256,7 +266,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     try {
       await deleteCrewData(imo, Array.from(selected));
       setSelected(new Set());
-      await fetchCrewData(true);
+      await fetchCrewData({ preserveOnError: true });
     } catch (error) {
       console.error("Error deleting crew:", error);
     }
@@ -337,7 +347,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
         <TopUpModal
           isOpen={!!topUpTarget}
           onClose={() => setTopUpTarget(null)}
-          onSaved={() => { setTopUpTarget(null); fetchCrewData(true); }}
+          onSaved={() => { setTopUpTarget(null); fetchCrewData({ preserveOnError: true }); }}
           imo={imo}
           username={topUpTarget.userId}
           currentMaxOctets={topUpTarget.maxTotalOctets}
@@ -392,7 +402,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
         <ModifyCrewModal
           isOpen={modifyCrewOpen}
           onClose={() => setModifyCrewOpen(false)}
-          onSaved={() => { setModifyCrewOpen(false); setSelected(new Set()); fetchCrewData(true); }}
+          onSaved={() => { setModifyCrewOpen(false); setSelected(new Set()); fetchCrewData({ preserveOnError: true }); }}
           selectedCrew={filteredCrew.filter((u) => selected.has(u.userId))}
           imo={imo}
         />
@@ -402,7 +412,7 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
         <AddCrewModal
           isOpen={addCrewOpen}
           onClose={() => setAddCrewOpen(false)}
-          onSaved={() => { setAddCrewOpen(false); fetchCrewData(true); }}
+          onSaved={() => { setAddCrewOpen(false); fetchCrewData({ preserveOnError: true }); }}
           imo={imo}
         />
       )}
