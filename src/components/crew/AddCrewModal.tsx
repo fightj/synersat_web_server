@@ -186,6 +186,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
               <div className="mb-2 flex flex-row items-center gap-2 pb-3 dark:border-white/5">
                 <div className="relative h-5 w-5">
                   <input
+                    id="applyRandomPassword"
                     type="checkbox"
                     checked={values.applyRandomPassword}
                     onChange={(e) => handleChange('applyRandomPassword', e.target.checked)}
@@ -209,7 +210,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                     </svg>
                   )}
                 </div>
-                <label className={labelClass}>
+                <label htmlFor="applyRandomPassword" className={`${labelClass} mb-0 cursor-pointer select-none`}>
                   Generate random password?
                 </label>
               </div>
@@ -218,6 +219,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
               <div className="mb-2 flex flex-row items-center gap-2 pb-3 dark:border-white/5">
                 <div className="relative h-5 w-5">
                   <input
+                    id="applySimplifiedId"
                     type="checkbox"
                     checked={values.applySimplifiedId}
                     onChange={(e) => handleChange('applySimplifiedId', e.target.checked)}
@@ -241,7 +243,7 @@ export default function AddCrewModal({ isOpen, onClose, onSaved, imo }: AddCrewM
                     </svg>
                   )}
                 </div>
-                <label className={labelClass}>
+                <label htmlFor="applySimplifiedId" className={`${labelClass} mb-0 cursor-pointer select-none`}>
                   Create simplefied ID?
                 </label>
               </div>

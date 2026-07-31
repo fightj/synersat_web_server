@@ -79,7 +79,7 @@ export default function RecentVesselTabs() {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === "Enter" && handleNavigate(v.imo, v.lastTab)}
-              className={`group relative flex w-[120px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors select-none ${isActive
+              className={`group relative flex w-[120px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg py-1 pr-7 pl-2.5 text-xs font-medium transition-colors select-none ${isActive
                 ? "bg-blue-100 text-gray-800 dark:bg-blue-800 dark:text-white/90"
                 : "text-gray-400 hover:bg-gray-50 hover:text-gray-700 dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white/70"
                 }`}
@@ -89,18 +89,17 @@ export default function RecentVesselTabs() {
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange-400" />
               )}
               <span className="min-w-0 truncate">{v.name}</span>
-              <div className="w-0 overflow-hidden transition-[width] duration-150 group-hover:w-[18px]">
-                <button
-                  aria-label="Close tab"
-                  className="flex items-center justify-center rounded p-0.5 hover:bg-black/5 dark:hover:bg-white/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeRecent(v.imo);
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              {/* 선박명 길이와 무관하게 항상 탭 오른쪽 끝 고정 위치 */}
+              <button
+                aria-label="Close tab"
+                className="pointer-events-none absolute top-1/2 right-1 flex -translate-y-1/2 items-center justify-center rounded p-0.5 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-black/5 focus-visible:pointer-events-auto focus-visible:opacity-100 dark:hover:bg-white/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeRecent(v.imo);
+                }}
+              >
+                <X size={14} />
+              </button>
             </div>
           </React.Fragment>
         );
