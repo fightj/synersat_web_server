@@ -13,6 +13,7 @@ import {
 } from "./Constants";
 import { portForwardModalStyles } from "./Styles";
 import SelectWithIcon from "../form/SelectWithIcon";
+import ErrorAlertModal from "@/components/ui/ErrorAlertModal";
 
 interface PortForwardAddModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export default function PortForwardAddModal({
   const [srcPortMode, setSrcPortMode] = useState("any");
   const [dstPortMode, setDstPortMode] = useState("any");
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const interfaceOptions = useMemo(() => {
     return interfaces.map((iface) => ({
@@ -82,7 +84,7 @@ export default function PortForwardAddModal({
       onSuccess();
       handleClose();
     } catch (err: any) {
-      alert(`규칙 생성 실패: ${err.message}`);
+      setSubmitError(err?.message || "Failed to create the rule. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -95,6 +97,12 @@ export default function PortForwardAddModal({
   };
 
   return (
+    <>
+    <ErrorAlertModal
+      isOpen={submitError !== null}
+      message={submitError ?? ""}
+      onClose={() => setSubmitError(null)}
+    />
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
@@ -333,5 +341,6 @@ export default function PortForwardAddModal({
         </div>
       </div>
     </Modal>
+    </>
   );
 }

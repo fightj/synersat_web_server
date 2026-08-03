@@ -13,6 +13,7 @@ import {
 import { portForwardModalStyles } from "./Styles";
 import { updateDeviceNat } from "@/api/firewall";
 import { DeviceNatRow } from "@/types/firewall";
+import ErrorAlertModal from "@/components/ui/ErrorAlertModal";
 
 interface PortForwardEditModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export default function PortForwardEditModal({
   const [srcPortMode, setSrcPortMode] = useState("any");
   const [dstPortMode, setDstPortMode] = useState("any");
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const interfaceOptions = useMemo(() => {
     return interfaces.map((iface) => ({
@@ -113,7 +115,7 @@ export default function PortForwardEditModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      alert(err.message || "수정 실패");
+      setSubmitError(err?.message || "Failed to update the rule. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -129,6 +131,12 @@ export default function PortForwardEditModal({
   );
 
   return (
+    <>
+    <ErrorAlertModal
+      isOpen={submitError !== null}
+      message={submitError ?? ""}
+      onClose={() => setSubmitError(null)}
+    />
     <Modal
       isOpen={isOpen}
       onClose={onClose}
@@ -361,5 +369,6 @@ export default function PortForwardEditModal({
         </div>
       </div>
     </Modal>
+    </>
   );
 }

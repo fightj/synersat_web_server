@@ -18,7 +18,7 @@ import TopUpModal from "./TopUpModal";
 import UsageHistoryModal from "./UsageHistoryModal";
 import RefreshBanner from "@/components/common/RefreshBanner";
 
-type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
+type ActionType = "CHECK_PW" | "DELETE" | "CHECK_USAGE";
 
 interface CrewComponentCardProps {
   mode?: string;
@@ -106,7 +106,9 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
       setCrew(processRaw(result));
       if (silent) setRefreshBanner(true);
     } catch (error) {
-      // 뒤늦게 도착한(=이미 대체된) 응답이나 취소된 요청은 무시
+      // 새 요청·언마운트로 취소된 경우는 정상 동작이므로 로깅/에러표시 없이 종료
+      if ((error as Error)?.name === "AbortError") return;
+      // 뒤늦게 도착한(=이미 대체된) 응답은 무시
       if (fetchId !== fetchIdRef.current) return;
       console.error("Crew Fetch Error:", error);
       if (!silent && !preserveOnError) {
@@ -239,9 +241,9 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     });
   };
 
-  const onAction = async (action: ActionType) => {
-    const selectedUsers = filteredCrew.filter((u) => selected.has(u.userId));
+  const onAction = (action: ActionType) => {
     if (action === "CHECK_PW") {
+      const selectedUsers = filteredCrew.filter((u) => selected.has(u.userId));
       setCheckPwEntries(selectedUsers.map((u) => ({ username: u.userId, password: u.password })));
       setCheckPwOpen(true);
       return;
@@ -252,11 +254,6 @@ export default function CrewComponentCard({ mode: modeProp, imo: imoProp }: Crew
     }
     if (action === "DELETE") {
       setIsDeleteAlertOpen(true);
-      return;
-    }
-    if (confirm(`${action} action for ${selected.size} users. Are you sure?`)) {
-      console.log(`Executing ${action} for:`, selectedUsers.map((u) => u.userId));
-      alert(`${action} has been requested.`);
     }
   };
 

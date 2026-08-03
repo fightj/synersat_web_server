@@ -4,7 +4,7 @@ import Image from "next/image";
 import { CsvIcon, UpdateIcon, CheckIcon } from "@/icons";
 import Button from "@/components/ui/button/Button";
 
-type ActionType = "RESET_PW" | "RESET_DATA" | "CHECK_PW" | "DELETE" | "CHECK_USAGE";
+type ActionType = "CHECK_PW" | "DELETE" | "CHECK_USAGE";
 
 interface CrewToolbarProps {
   vesselName: string | undefined;

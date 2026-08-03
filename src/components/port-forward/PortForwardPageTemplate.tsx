@@ -7,6 +7,7 @@ import DeleteConfirmAlert from "./DeleteConfirmAlert";
 import PortForwardEditModal from "@/components/port-forward/PortForwardEditModal";
 import PortForwardAddModal from "@/components/port-forward/PortForwardAddModal";
 import RefreshBanner from "@/components/common/RefreshBanner";
+import ErrorAlertModal from "@/components/ui/ErrorAlertModal";
 import { usePortForward, RuleType } from "./usePortForward";
 
 interface PortForwardPageTemplateProps {
@@ -31,6 +32,8 @@ export default function PortForwardPageTemplate({
     isLoading,
     isUpdating,
     fetchError,
+    actionError,
+    setActionError,
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,
@@ -52,6 +55,12 @@ export default function PortForwardPageTemplate({
   return (
     <div className="space-y-6">
       <RefreshBanner visible={refreshBanner} onClose={() => setRefreshBanner(false)} />
+
+      <ErrorAlertModal
+        isOpen={actionError !== null}
+        message={actionError ?? ""}
+        onClose={() => setActionError(null)}
+      />
 
       <DeleteConfirmAlert
         isOpen={isDeleteAlertOpen}
@@ -89,7 +98,7 @@ export default function PortForwardPageTemplate({
             isLocked={isLocked}
             hasVessel={!!selectedVessel}
             fetchError={fetchError}
-            onRetry={fetchAllData}
+            onRetry={() => fetchAllData()}
             statusCounts={statusCounts}
             getInterfaceLabel={getInterfaceLabel}
             onEditClick={handleEditClick}
@@ -106,7 +115,7 @@ export default function PortForwardPageTemplate({
         ruleId={selectedIdx}
         imo={imo}
         interfaces={interfaces}
-        onSuccess={fetchAllData}
+        onSuccess={() => fetchAllData()}
         currentRuleCount={rules.length}
       />
 
@@ -115,7 +124,7 @@ export default function PortForwardPageTemplate({
         onClose={() => setIsAddModalOpen(false)}
         imo={imo}
         interfaces={interfaces}
-        onSuccess={fetchAllData}
+        onSuccess={() => fetchAllData()}
         isSystem={ruleType}
       />
     </div>

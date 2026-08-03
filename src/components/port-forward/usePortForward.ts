@@ -15,6 +15,8 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
   const imo = imoProp ?? selectedVessel?.imo;
   const vpnIp = selectedVessel?.vpnIp;
   const fetchIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const sseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchParams = useSearchParams();
   const lastEvent = useCommandEventStore((s) => s.lastEvent);
   const clearLastEvent = useCommandEventStore((s) => s.clearLastEvent)
@@ -24,6 +26,8 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // 토글·삭제 등 사용자 조작 실패 → ErrorAlertModal로 표시
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -34,43 +38,41 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
   const [ruleToDelete, setRuleToDelete] = useState<number | null>(null);
   const [refreshBanner, setRefreshBanner] = useState(false);
 
-  const fetchAllData = useCallback(async () => {
+  // silent: 스피너 없이 조용히 갱신 (SSE 등)
+  const fetchAllData = useCallback(async (opts?: { silent?: boolean }) => {
     if (!imo) return;
+    const { silent = false } = opts ?? {};
+
+    // 진행 중이던 이전 요청은 취소 — 느린 선박 회선에서 불필요한 왕복 제거
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const fetchId = ++fetchIdRef.current;
-    setIsLoading(true);
-    setFetchError(null);
+    if (!silent) {
+      setIsLoading(true);
+      setFetchError(null);
+    }
     try {
       const [natsData, ifaceData] = await Promise.all([
-        getDeviceNats(Number(imo)),
-        getDeviceInterfaces(Number(imo)),
+        getDeviceNats(Number(imo), controller.signal),
+        getDeviceInterfaces(Number(imo), controller.signal),
       ]);
       if (fetchId !== fetchIdRef.current) return;
       setRules(Array.isArray(natsData) ? natsData : []);
       setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
+      if (silent) setRefreshBanner(true);
     } catch (error) {
+      // 새 요청·언마운트로 취소된 경우는 정상 동작이므로 무시
+      if ((error as Error)?.name === "AbortError") return;
       if (fetchId !== fetchIdRef.current) return;
       console.error("Fetch Error:", error);
-      setFetchError(error instanceof Error ? error.message : "Failed to load data");
+      if (!silent) {
+        setFetchError(error instanceof Error ? error.message : "Failed to load data");
+      }
     } finally {
+      // silent 여부와 무관하게 "최신 요청"이 로딩 상태를 책임지고 해제
       if (fetchId === fetchIdRef.current) setIsLoading(false);
-    }
-  }, [imo]);
-
-  const silentRefetch = useCallback(async () => {
-    if (!imo) return;
-    const fetchId = ++fetchIdRef.current;
-    try {
-      const [natsData, ifaceData] = await Promise.all([
-        getDeviceNats(Number(imo)),
-        getDeviceInterfaces(Number(imo)),
-      ]);
-      if (fetchId !== fetchIdRef.current) return;
-      setRules(Array.isArray(natsData) ? natsData : []);
-      setInterfaces(Array.isArray(ifaceData) ? ifaceData : []);
-      setRefreshBanner(true);
-    } catch (error) {
-      if (fetchId !== fetchIdRef.current) return;
-      console.error("Silent Refetch Error:", error);
     }
   }, [imo]);
 
@@ -94,9 +96,17 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
 
     if (isEditModalOpen || isAddModalOpen) return;
 
-    silentRefetch();
     clearLastEvent();
-  }, [lastEvent, selectedVessel?.imo, searchParams, isEditModalOpen, isAddModalOpen, silentRefetch, clearLastEvent]);
+    // 짧은 간격으로 여러 이벤트가 와도 갱신은 한 번만
+    if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+    sseTimerRef.current = setTimeout(() => fetchAllData({ silent: true }), 400);
+  }, [lastEvent, selectedVessel?.imo, searchParams, isEditModalOpen, isAddModalOpen, fetchAllData, clearLastEvent]);
+
+  // 언마운트 시 진행 중인 요청·예약된 갱신 정리
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    if (sseTimerRef.current) clearTimeout(sseTimerRef.current);
+  }, []);
 
   // 탭별 필터링된 rules
   const filteredRules = useMemo(() => {
@@ -159,7 +169,7 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
         rule_index: originalIndex,
         error: err instanceof Error ? err.message : "Update failed",
       });
-      alert("fail to set status.");
+      setActionError("Failed to change the rule status. Please try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -198,7 +208,7 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
     await fetchAllData();
   } catch (error: any) {
     posthog.captureException(error);
-    alert(error.message);
+    setActionError(error?.message || "Failed to delete the rule. Please try again.");
   } finally {
     setIsUpdating(false);
     setRuleToDelete(null);
@@ -216,6 +226,8 @@ export function usePortForward(ruleType: RuleType, imoProp?: number) {
     isLoading,
     isUpdating,
     fetchError,
+    actionError,
+    setActionError,
     isEditModalOpen,
     setIsEditModalOpen,
     isAddModalOpen,

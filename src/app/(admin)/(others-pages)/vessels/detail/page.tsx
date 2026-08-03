@@ -129,84 +129,88 @@ function VesselDetailContent({
 
   // ── 탭 바 오른쪽 슬롯 ────────────────────────────────────────
   const tabRightSlot = useMemo(() => {
-    if (mainTab === "detail") {
-      return (
-        <>
-          <div className="flex shrink-0 items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+    // detail 슬롯은 언마운트하지 않고 숨김 — TimeSetting이 선택한 기간을 잃지 않도록
+    const detailSlot = (
+      <>
+        <div
+          className={`shrink-0 items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5 ${
+            mainTab === "detail" ? "flex" : "hidden"
+          }`}
+        >
+          <button
+            onClick={() => setViewMode("OVERVIEW")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setViewMode("COMMANDS")}
+            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
+              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+          >
+            Commands
+          </button>
+        </div>
+        <div className={`min-w-0 max-[983px]:w-full ${mainTab === "detail" ? "" : "hidden"}`}>
+          <TimeSetting onApply={handleTimeApply} />
+        </div>
+      </>
+    );
+
+    return (
+      <>
+        {detailSlot}
+        {mainTab === "crew" && prepaidEnabled && (
+          <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
             <button
-              onClick={() => setViewMode("OVERVIEW")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "OVERVIEW"
+              onClick={() => setCrewSubTab("normal")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "normal"
                 ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                 }`}
             >
-              Overview
+              Crew Account
             </button>
             <button
-              onClick={() => setViewMode("COMMANDS")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${viewMode === "COMMANDS"
+              onClick={() => setCrewSubTab("prepay")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "prepay"
                 ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
                 : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                 }`}
             >
-              Commands
+              Prepaid
             </button>
           </div>
-          <div className="min-w-0 max-[983px]:w-full">
-            <TimeSetting onApply={handleTimeApply} />
+        )}
+        {mainTab === "firewall" && (
+          <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+            <button
+              onClick={() => handleFirewallSubTabChange("system")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "system"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                }`}
+            >
+              Port Forward (System)
+            </button>
+            <button
+              onClick={() => handleFirewallSubTabChange("user")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "user"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                }`}
+            >
+              Port Forward (User)
+            </button>
           </div>
-        </>
-      );
-    }
-    if (mainTab === "crew" && prepaidEnabled) {
-      return (
-        <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
-          <button
-            onClick={() => setCrewSubTab("normal")}
-            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "normal"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-          >
-            Crew Account
-          </button>
-          <button
-            onClick={() => setCrewSubTab("prepay")}
-            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${crewSubTab === "prepay"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-          >
-            Prepaid
-          </button>
-        </div>
-      );
-    }
-    if (mainTab === "firewall") {
-      return (
-        <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
-          <button
-            onClick={() => handleFirewallSubTabChange("system")}
-            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "system"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-          >
-            Port Forward (System)
-          </button>
-          <button
-            onClick={() => handleFirewallSubTabChange("user")}
-            className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all ${firewallSubTab === "user"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-gray-800 dark:text-blue-400"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
-              }`}
-          >
-            Port Forward (User)
-          </button>
-        </div>
-      );
-    }
-    return null;
+        )}
+      </>
+    );
   }, [mainTab, prepaidEnabled, viewMode, handleTimeApply, crewSubTab, firewallSubTab, handleFirewallSubTabChange]);
 
   return (

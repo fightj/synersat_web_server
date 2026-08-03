@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { fetchWindGrid } from "../utils/fetchWindGrid";
+import ErrorAlertModal from "@/components/ui/ErrorAlertModal";
 
 const OWM_API_KEY = process.env.NEXT_PUBLIC_OWM_API_KEY ?? "";
 
@@ -158,12 +159,13 @@ export default memo(function WeatherOverlayPanel({
   const windLayerRef                    = useRef<any>(null);
   const darkOverlayRef                  = useRef<HTMLDivElement | null>(null);
   const rateLimitAlertedRef             = useRef(false);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
-  // 429 에러 시 alert — 동일 세션에서 중복 호출 방지
+  // 429 에러 시 알림 — 동일 세션에서 중복 호출 방지
   const handleRateLimit = useCallback(() => {
     if (rateLimitAlertedRef.current) return;
     rateLimitAlertedRef.current = true;
-    alert("Too many requests. Please try again in a moment.");
+    setRateLimitError("Too many requests. Please try again in a moment.");
     setTimeout(() => { rateLimitAlertedRef.current = false; }, 60_000);
   }, []);
 
@@ -275,6 +277,12 @@ export default memo(function WeatherOverlayPanel({
 
   return (
     <>
+      <ErrorAlertModal
+        isOpen={rateLimitError !== null}
+        message={rateLimitError ?? ""}
+        onClose={() => setRateLimitError(null)}
+      />
+
       {/* ── 날씨 레이어 토글 버튼 ── */}
       <button
         onClick={() => setShowMenu((v) => !v)}
