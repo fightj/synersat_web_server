@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type Preset = '1d' | 'week' | 'month'
+type Preset = '1d' | 'week' | 'month' | 'lastMonth'
 /** 'cursor' = the YYYY.MM value on the left, 'custom' = a range picked in the calendar */
 export type TimeRangeMode = Preset | 'cursor' | 'custom'
 
@@ -18,9 +18,11 @@ export interface TimeRange {
 }
 
 const PRESETS: { id: Preset; label: string }[] = [
-  { id: '1d', label: '1D' },
+  // 라벨은 실제 동작을 그대로 말한다 — 1D는 '오늘'이 아니라 롤링 24시간
+  { id: '1d', label: 'Last 24h' },
   { id: 'week', label: 'This Week' },
   { id: 'month', label: 'This Month' },
+  { id: 'lastMonth', label: 'Last Month' },
 ]
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -90,6 +92,13 @@ function currentUtcMonthRange(now = new Date()): TimeRange {
   return { ...range, mode: 'month', label: 'This month' }
 }
 
+/** The whole previous UTC month — the usual reporting/settlement window. */
+function lastUtcMonthRange(now = new Date()): TimeRange {
+  const prev = new Date(utcDayStart(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+  const range = utcMonthRange(prev.getUTCFullYear(), prev.getUTCMonth())
+  return { ...range, mode: 'lastMonth', label: 'Last month' }
+}
+
 /** Whole days between two calendar days, inclusive on both ends, in UTC. */
 function customRange(startDayTs: number, endDayTs: number): TimeRange {
   const s = new Date(startDayTs)
@@ -102,9 +111,12 @@ function customRange(startDayTs: number, endDayTs: number): TimeRange {
   }
 }
 
-/** The range the picker starts on, so a parent can seed its state identically. */
+/**
+ * The range the picker starts on, so a parent can seed its state identically.
+ * 리포트는 보통 마감된 지난달을 먼저 보므로 'Last Month'가 기본값이다.
+ */
 export function defaultTimeRange() {
-  return currentUtcMonthRange()
+  return lastUtcMonthRange()
 }
 
 /** 2026.07.01 */
@@ -126,12 +138,21 @@ export interface TimeRangePickerProps {
 
 export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
   const now = new Date()
+  // 기본값은 마감된 지난달 — 정산·리포트에서 가장 자주 보는 구간
+  const initialRange = defaultTimeRange()
+  const initialMonth = {
+    year: initialRange.start.getUTCFullYear(),
+    month: initialRange.start.getUTCMonth(),
+  }
+
   // the cursor tracks a UTC calendar month, not a local one
-  const [cursor, setCursor] = useState({ year: now.getUTCFullYear(), month: now.getUTCMonth() })
-  const [mode, setMode] = useState<TimeRangeMode>('month')
+  const [cursor, setCursor] = useState(initialMonth)
+  const [mode, setMode] = useState<TimeRangeMode>(initialRange.mode)
+  // 왼쪽 표시가 실제 조회 구간을 따라가도록 마지막으로 확정된 범위를 보관
+  const [activeRange, setActiveRange] = useState<TimeRange>(initialRange)
 
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [calendarMonth, setCalendarMonth] = useState({ year: now.getUTCFullYear(), month: now.getUTCMonth() })
+  const [calendarMonth, setCalendarMonth] = useState(initialMonth)
   // draft/applied days are midnight-UTC timestamps
   const [draft, setDraft] = useState<{ start: number | null; end: number | null }>({ start: null, end: null })
   const [applied, setApplied] = useState<{ start: number; end: number } | null>(null)
@@ -151,25 +172,43 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [calendarOpen])
 
+  /** 범위가 확정될 때 mode·표시·콜백을 한 번에 갱신한다 */
+  function emit(range: TimeRange) {
+    setMode(range.mode)
+    setActiveRange(range)
+    // 커스텀이 아닌 범위로 옮겨가면 이전 커스텀 선택은 더 이상 유효하지 않다
+    if (range.mode !== 'custom') {
+      setApplied(null)
+      setDraft({ start: null, end: null })
+    }
+    onChange?.(range)
+  }
+
   function shift(delta: number) {
     const next = new Date(utcDayStart(cursor.year, cursor.month + delta, 1))
     const value = { year: next.getUTCFullYear(), month: next.getUTCMonth() }
     setCursor(value)
-    setMode('cursor')
-    onChange?.(utcMonthRange(value.year, value.month))
+    emit(utcMonthRange(value.year, value.month))
   }
 
   /** Clicking the YYYY.MM value queries that whole month without touching the arrows */
   function selectCursorMonth() {
-    setMode('cursor')
-    onChange?.(utcMonthRange(cursor.year, cursor.month))
+    emit(utcMonthRange(cursor.year, cursor.month))
   }
 
   function selectPreset(next: Preset) {
-    setMode(next)
-    if (next === '1d') onChange?.(last24HoursRange())
-    else if (next === 'week') onChange?.(currentUtcWeekRange())
-    else onChange?.(currentUtcMonthRange())
+    if (next === '1d') {
+      emit(last24HoursRange())
+      return
+    }
+    if (next === 'week') {
+      emit(currentUtcWeekRange())
+      return
+    }
+    // 월 단위 프리셋은 커서도 해당 월로 옮겨 네비게이터와 조회 구간을 일치시킨다
+    const range = next === 'month' ? currentUtcMonthRange() : lastUtcMonthRange()
+    setCursor({ year: range.start.getUTCFullYear(), month: range.start.getUTCMonth() })
+    emit(range)
   }
 
   const days = useMemo(() => {
@@ -199,9 +238,8 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
   function applyRange() {
     if (!draft.start || !draft.end) return
     setApplied({ start: draft.start, end: draft.end })
-    setMode('custom')
     setCalendarOpen(false)
-    onChange?.(customRange(draft.start, draft.end))
+    emit(customRange(draft.start, draft.end))
   }
 
   function dayClass(ts: number) {
@@ -228,15 +266,24 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
 
   // neutral until a range is actually applied; the tray turns gray while open too
   const calendarButtonClass = customActive
-    ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
+    ? 'border-blue-500 bg-blue-50 text-blue-600 dark:border-blue-500/60 dark:bg-blue-500/15 dark:text-blue-400'
     : calendarOpen
-      ? 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200'
-      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
+      ? 'border-gray-300 bg-gray-100 text-gray-700 dark:border-white/20 dark:bg-white/10 dark:text-gray-200'
+      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 dark:border-white/10 dark:text-gray-400 dark:hover:border-white/20 dark:hover:bg-white/5 dark:hover:text-gray-200'
 
-  /** 커스텀 범위가 적용되면 월 표시 대신 실제 적용된 구간을 보여준다 */
-  const cursorText = customActive && applied
-    ? `${formatUtcDay(applied.start)} ~ ${formatUtcDay(applied.end)}`
-    : `${cursor.year}.${pad(cursor.month + 1)}`
+  /**
+   * 월 네비게이터는 '조작부'로만 둔다 — 표시와 클릭 결과가 어긋나지 않도록
+   * 실제 조회 구간은 오른쪽 읽기 전용 readout이 담당한다.
+   */
+  const cursorText = `${cursor.year}.${pad(cursor.month + 1)}`
+
+  const startDay = formatUtcDay(activeRange.start)
+  const endDay = formatUtcDay(activeRange.end)
+  const rangeText = startDay === endDay ? startDay : `${startDay} ~ ${endDay}`
+
+  // 미래 월은 데이터가 없으므로 이번 달을 상한으로 막는다
+  const atCurrentMonth =
+    cursor.year === now.getUTCFullYear() && cursor.month === now.getUTCMonth()
 
   return (
     <div
@@ -255,27 +302,31 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
           type="button"
           onClick={selectCursorMonth}
           aria-pressed={cursorActive}
-          title={customActive && applied ? 'Custom range applied' : 'Query this month'}
-          className={`flex h-full min-w-0 items-center justify-center rounded-lg px-2 leading-none font-semibold tracking-tight tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${
-            customActive ? 'text-[13px]' : 'text-[21px]'
-          } ${
-            cursorActive
-              ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
-              : 'text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10'
-          }`}
+          title={`Query ${cursorText}`}
+          className={`flex h-full min-w-0 items-center justify-center rounded-lg px-2 text-[21px] leading-none font-semibold tracking-tight tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${cursorActive
+            ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
+            : 'text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-white/10'
+            }`}
         >
           <span className="truncate">{cursorText}</span>
         </button>
 
-        <button type="button" onClick={() => shift(1)} aria-label="Next month" className={arrowClass}>
+        <button
+          type="button"
+          onClick={() => shift(1)}
+          aria-label="Next month"
+          disabled={atCurrentMonth}
+          title={atCurrentMonth ? 'Current month is the latest' : undefined}
+          className={`${arrowClass} disabled:pointer-events-none disabled:opacity-30`}
+        >
           <ChevronRight className="size-5" strokeWidth={2.25} />
         </button>
       </div>
 
       <div aria-hidden="true" className="mx-0.5 h-6 w-px shrink-0 bg-gray-200 dark:bg-white/10" />
 
-      {/* Presets */}
-      <div className="flex h-full min-w-0 flex-1 items-center gap-0.5">
+      {/* Presets — 달력 버튼까지 같은 그룹으로 붙여둔다 */}
+      <div className="flex h-full min-w-0 items-center gap-1.5">
         {PRESETS.map((item) => {
           const active = mode === item.id
           return (
@@ -284,11 +335,10 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
               type="button"
               aria-pressed={active}
               onClick={() => selectPreset(item.id)}
-              className={`h-full min-w-0 flex-1 truncate rounded-lg px-2 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${
-                active
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-200'
-              }`}
+              className={`h-7 min-w-0 shrink-0 truncate rounded-md border px-2.5 text-[12px] font-semibold whitespace-nowrap transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${active
+                ? 'border-blue-500 bg-blue-50 text-blue-600 dark:border-blue-500/60 dark:bg-blue-500/15 dark:text-blue-400'
+                : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 dark:border-white/10 dark:text-gray-400 dark:hover:border-white/20 dark:hover:bg-white/5 dark:hover:text-gray-200'
+                }`}
             >
               {item.label}
             </button>
@@ -296,27 +346,38 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
         })}
       </div>
 
-      {/* UTC 기준임을 바에서도 알 수 있게 */}
-      <span className="hidden shrink-0 px-1 text-[10px] font-bold tracking-wider text-gray-400 sm:inline dark:text-gray-500">
-        UTC
-      </span>
-
       {/* Custom range */}
+      {/* 트레이는 이 래퍼(=달력 버튼) 기준으로 위치를 잡는다 */}
+      <div className="relative shrink-0">
       <button
         type="button"
         aria-label="Select custom date range"
         aria-expanded={calendarOpen}
         onClick={() => {
-          setCalendarOpen((open) => !open)
+          setCalendarOpen((open) => {
+            // 열 때마다 적용된 값에서 다시 시작 — 반쯤 고른 상태가 남지 않게
+            if (!open) {
+              setDraft(applied ? { start: applied.start, end: applied.end } : { start: null, end: null })
+              setCalendarMonth(
+                applied
+                  ? {
+                    year: new Date(applied.start).getUTCFullYear(),
+                    month: new Date(applied.start).getUTCMonth(),
+                  }
+                  : { year: cursor.year, month: cursor.month },
+              )
+            }
+            return !open
+          })
           setError(null)
         }}
-        className={`flex h-full w-9 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${calendarButtonClass}`}
+        className={`flex size-7 shrink-0 items-center justify-center rounded-md border transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${calendarButtonClass}`}
       >
-        <CalendarRange className="size-5" strokeWidth={2} />
+        <CalendarRange className="size-4" strokeWidth={2} />
       </button>
 
       {calendarOpen && (
-        <div className="absolute top-full right-0 z-9999 mt-2 w-[320px] rounded-xl border border-gray-200 bg-(--color-surface-1) p-4 shadow-xl dark:border-white/10">
+        <div className="absolute top-full left-0 z-9999 mt-2 w-[320px] rounded-xl border border-gray-200 bg-(--color-surface-1) p-4 shadow-xl dark:border-white/10">
           <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
@@ -362,6 +423,8 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
               <button
                 key={ts}
                 type="button"
+                aria-label={formatUtcDay(ts)}
+                aria-pressed={draft.start === ts || draft.end === ts}
                 onClick={() => handleDayClick(ts)}
                 className={`flex h-8 w-full items-center justify-center text-[13px] tabular-nums transition-colors ${dayClass(ts)}`}
               >
@@ -395,6 +458,17 @@ export function TimeRangePicker({ className, onChange }: TimeRangePickerProps) {
           </div>
         </div>
       )}
+      </div>
+
+      {/* 지금 조회 중인 구간 — 읽기 전용. 컨트롤 바로 옆에 붙여 눈에 들어오게 한다 */}
+      <div aria-live="polite" className="ml-1 flex min-w-0 shrink items-baseline gap-1.5">
+        <span className="truncate font-mono text-[12px] font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+          {rangeText}
+        </span>
+        <span className="shrink-0 text-[10px] font-bold tracking-wider text-gray-400 dark:text-gray-500">
+          UTC
+        </span>
+      </div>
     </div>
   )
 }

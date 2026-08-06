@@ -5,14 +5,23 @@ import { ACCOUNTS, SERVICES, formatGB, vesselTotal, type VesselUsage } from "./f
 import { useIsDark } from "./useIsDark";
 
 interface VesselAccountTableProps {
-  selectedImo: number | null;
-  onSelectVessel: (v: VesselUsage | null) => void;
+  /** 부모가 선택 상태를 관리할 때 전달. 없으면 컴포넌트가 자체 상태로 동작한다 */
+  selectedImo?: number | null;
+  onSelectVessel?: (v: VesselUsage | null) => void;
 }
 
-export default function VesselAccountTable({ selectedImo, onSelectVessel }: VesselAccountTableProps) {
+export default function VesselAccountTable({ selectedImo, onSelectVessel }: VesselAccountTableProps = {}) {
   const isDark = useIsDark();
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // 단독으로 붙여도 클릭이 동작하도록 하는 내부 폴백 상태
+  const [innerSelected, setInnerSelected] = useState<number | null>(null);
+
+  const activeImo = selectedImo !== undefined ? selectedImo : innerSelected;
+  const handleSelect = (v: VesselUsage | null) => {
+    setInnerSelected(v?.imo ?? null);
+    onSelectVessel?.(v);
+  };
 
   const groups = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,9 +66,9 @@ export default function VesselAccountTable({ selectedImo, onSelectVessel }: Vess
 
       {/* 전체 보기 */}
       <button
-        onClick={() => onSelectVessel(null)}
+        onClick={() => handleSelect(null)}
         className={`flex items-center justify-between border-b border-gray-100 px-5 py-2.5 text-xs font-bold transition-colors dark:border-white/10 ${
-          selectedImo === null
+          activeImo === null
             ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
             : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/5"
         }`}
@@ -100,13 +109,13 @@ export default function VesselAccountTable({ selectedImo, onSelectVessel }: Vess
                 {!isCollapsed && (
                   <ul>
                     {g.vessels.map((v) => {
-                      const isActive = selectedImo === v.imo;
+                      const isActive = activeImo === v.imo;
                       const vTotal = vesselTotal(v);
                       const share = total > 0 ? (vTotal / total) * 100 : 0;
                       return (
                         <li key={v.imo}>
                           <button
-                            onClick={() => onSelectVessel(isActive ? null : v)}
+                            onClick={() => handleSelect(isActive ? null : v)}
                             className={`flex w-full items-center gap-2 py-2 pr-5 pl-11 text-left transition-colors ${
                               isActive
                                 ? "bg-blue-50 dark:bg-blue-500/10"
